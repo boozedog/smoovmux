@@ -1,0 +1,39 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# SPM
+.build/
+Packages/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Tagged debug builds (scripts/reload.sh --tag <slug>)
+/tmp/smoovmux-*
+smoovmux-last-debug-log-path
+
+# GhosttyKit artifact (produced by scripts/setup.sh)
+GhosttyKit.xcframework/
+
+# Secrets — catch-all, nothing sensitive should ever be committed
+secrets.plist
+*.secret
+*.secrets
+.env
+.env.*
+
+# Editor / misc
+*.swp
+.idea/
+.vscode/
+
+# Worktrees (per projects CLAUDE.md)
+.worktrees/

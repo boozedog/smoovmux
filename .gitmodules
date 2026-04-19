@@ -1,0 +1,4 @@
+[submodule "ghostty"]
+	path = ghostty
+	url = https://github.com/boozedog/ghostty.git
+	branch = main

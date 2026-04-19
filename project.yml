@@ -1,0 +1,51 @@
+name: smoovmux
+options:
+  bundleIdPrefix: pw.dbu
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+packages:
+  smoovmux-core:
+    path: "."
+
+targets:
+  smoovmux:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+    resources:
+      - path: App/Assets.xcassets
+      - path: App/Localizable.xcstrings
+    dependencies:
+      - package: smoovmux-core
+        product: TmuxCC
+      - package: smoovmux-core
+        product: SessionCore
+      - package: smoovmux-core
+        product: SmoovLog
+      - framework: GhosttyKit.xcframework
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: pw.dbu.smoovmux
+        PRODUCT_NAME: smoovmux
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/smoovmux.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(inherited)"
+          - "$(SRCROOT)"

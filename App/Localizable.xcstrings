@@ -1,0 +1,16 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "smoovmux" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "smoovmux"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
