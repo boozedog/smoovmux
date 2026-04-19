@@ -1,8 +1,10 @@
-import XCTest
+import Testing
+
 @testable import TmuxCC
 
-final class TmuxCCTests: XCTestCase {
-	func testControlModeFlag() {
-		XCTAssertEqual(TmuxCC.controlModeFlag, "-CC")
-	}
+@Suite("TmuxCC namespace")
+struct TmuxCCTests {
+  @Test func controlModeFlag() {
+    #expect(TmuxCC.controlModeFlag == "-CC")
+  }
 }

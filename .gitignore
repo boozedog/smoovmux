@@ -37,3 +37,8 @@ secrets.plist
 
 # Worktrees (per projects CLAUDE.md)
 .worktrees/
+
+# devenv / direnv
+.devenv/
+.devenv.flake.nix
+.direnv/

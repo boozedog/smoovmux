@@ -1,4 +1,0 @@
-[tools]
-# Keep in sync with ghostty/build.zig.zon .minimum_zig_version when bumping the submodule.
-zig = "0.15.2"
-xcodegen = "2.44.1"
