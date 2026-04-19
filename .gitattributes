@@ -1,0 +1,4 @@
+# Treat the bundled tmux binary as binary so git diff doesn't try to render it.
+# It is committed plainly (not LFS) — the universal binary is small enough that
+# LFS overhead is not worth it. See App/Resources/bin/BUILD.md.
+App/Resources/bin/tmux binary

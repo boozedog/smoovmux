@@ -1,0 +1,5 @@
+tmux 3.6a
+libevent 2.1.12-stable (statically linked from nixpkgs pkgsStatic)
+built 2026-04-19T23:17:06Z
+arch arm64
+min-macos 15.0

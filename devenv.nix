@@ -10,6 +10,13 @@
 #   - swiftlint   → linting (see .swiftlint.yml)
 #   - gitleaks    → secret scanning
 #   - gnumake     → for the Makefile (qa, fmt, lint targets)
+#   - autoconf, automake, libtool, pkg-config, bison
+#                 → required by scripts/build-tmux.sh (#22) to build the
+#                   bundled tmux from source
+#   - libevent    → tmux's hard event-loop dep. macOS doesn't ship it; we
+#                   statically link nix's build into the bundled tmux so the
+#                   shipped binary has no /nix/store/ runtime references.
+#                   arm64-only for now (#22 phase 1)
 #
 # NOT pinned here (intentional):
 #   - `swift format` → ships with Swift 6 toolchain (xcrun swift-format)
@@ -26,6 +33,12 @@ in
     swiftlint
     gitleaks
     gnumake
+    autoconf
+    automake
+    libtool
+    pkg-config
+    bison
+    pkgsStatic.libevent
   ];
 
   # All hooks call `make <target>` so there is one source of truth.

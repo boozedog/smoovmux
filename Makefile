@@ -17,7 +17,7 @@
 SWIFT_DIRS := App Sources Tests
 SWIFT_FORMAT_CONFIG := .swift-format
 
-.PHONY: fmt fmt-check lint lint-fix qa secrets help
+.PHONY: fmt fmt-check lint lint-fix qa secrets bundle-tmux help
 
 help:
 	@awk 'BEGIN { FS = ":.*##" } /^[a-zA-Z_-]+:.*?##/ { printf "  %-12s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -39,3 +39,6 @@ qa: fmt-check lint ## what pre-commit / CI runs
 
 secrets: ## scan for committed secrets
 	gitleaks detect --source . --redact --verbose --no-git
+
+bundle-tmux: ## build & install bundled tmux into App/Resources/bin/
+	./scripts/build-tmux.sh
