@@ -1,6 +1,10 @@
 import Darwin
 import Foundation
 
+// Darwin's Swift overlay marks `fork()` unavailable. Re-declare via its C
+// symbol — we still need a real fork for the setsid + TIOCSCTTY window.
+@_silgen_name("fork") private func cFork() -> pid_t
+
 /// A spawned child process attached to a pseudo-terminal.
 ///
 /// `pty` is the parent's end of the PTY pair (POSIX "master") — read child
@@ -19,14 +23,27 @@ public enum PTYError: Error, Equatable {
   case ioctl(errno: Int32)
 }
 
-/// Thin Swift wrapper around `openpty(3)` + `posix_spawn(2)` for spawning a
-/// child process with a controlling pseudo-terminal. Shared by local tmux
-/// (M1) and remote ssh (M5).
+/// Thin Swift wrapper around `openpty(3)` + `fork(2)` + `execve(2)` for
+/// spawning a child process whose controlling tty is the PTY slave. Shared by
+/// local tmux (M1) and remote ssh (M5).
+///
+/// We can't use `posix_spawn` here: establishing a controlling tty requires
+/// `ioctl(slave, TIOCSCTTY, 0)` *between* `setsid` and `exec`, and
+/// `posix_spawn` has no hook for running custom code in that window. Without a
+/// controlling tty, `tmux -CC` emits its DCS opener and exits immediately —
+/// see ghostty's `Command.zig` / `pty.zig` for the same workaround.
 public enum PTY {
+  // macOS sys/ttycom.h: TIOCSCTTY = _IO('t', 97). Darwin's Swift overlay does
+  // not export this constant.
+  private static let tiocScttyRequest: UInt = 0x2000_7461
+
+  // swiftlint:disable function_parameter_count cyclomatic_complexity
+
   /// Spawn `executable` under a fresh PTY pair. The child runs with `setsid`
-  /// (so its end of the PTY becomes its controlling tty), default signal
-  /// handlers, and an empty signal mask. `argv[0]` is set to `executable.path`.
-  public static func spawn(  // swiftlint:disable:this function_parameter_count
+  /// and `TIOCSCTTY` so the PTY slave becomes its controlling tty, default
+  /// signal handlers, and an empty signal mask. `argv[0]` is set to
+  /// `executable.path`.
+  public static func spawn(
     executable: URL,
     arguments: [String],
     environment: [String: String],
@@ -46,51 +63,67 @@ public enum PTY {
     }
     guard openResult == 0 else { throw PTYError.openpty(errno: errno) }
 
-    var actions: posix_spawn_file_actions_t?
-    posix_spawn_file_actions_init(&actions)
-    defer { posix_spawn_file_actions_destroy(&actions) }
-    posix_spawn_file_actions_adddup2(&actions, childFD, 0)
-    posix_spawn_file_actions_adddup2(&actions, childFD, 1)
-    posix_spawn_file_actions_adddup2(&actions, childFD, 2)
-    posix_spawn_file_actions_addclose(&actions, childFD)
-    posix_spawn_file_actions_addclose(&actions, controllerFD)
-    if let cwd {
-      _ = cwd.path.withCString { posix_spawn_file_actions_addchdir_np(&actions, $0) }
+    // Pre-allocate everything the child needs as raw C pointers. The child
+    // runs between fork and execve where Swift runtime APIs (allocation,
+    // string ops, array methods) are not async-signal-safe.
+    let execPathCStr = strdup(executable.path)
+    let cwdCStr: UnsafeMutablePointer<CChar>? = cwd.map { strdup($0.path) }
+
+    let argvStrings = ([executable.path] + arguments).map { strdup($0) }
+    let envStrings = environment.map { strdup("\($0.key)=\($0.value)") }
+    let argvBuffer = UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>.allocate(
+      capacity: argvStrings.count + 1)
+    let envBuffer = UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>.allocate(
+      capacity: envStrings.count + 1)
+    for (index, ptr) in argvStrings.enumerated() { argvBuffer[index] = ptr }
+    argvBuffer[argvStrings.count] = nil
+    for (index, ptr) in envStrings.enumerated() { envBuffer[index] = ptr }
+    envBuffer[envStrings.count] = nil
+
+    defer {
+      free(execPathCStr)
+      if let cwdCStr { free(cwdCStr) }
+      for ptr in argvStrings { free(ptr) }
+      for ptr in envStrings { free(ptr) }
+      argvBuffer.deallocate()
+      envBuffer.deallocate()
     }
 
-    var attrs: posix_spawnattr_t?
-    posix_spawnattr_init(&attrs)
-    defer { posix_spawnattr_destroy(&attrs) }
-    let flags = Int16(POSIX_SPAWN_SETSID | POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK)
-    posix_spawnattr_setflags(&attrs, flags)
-    var defaultSigs = sigset_t()
-    sigfillset(&defaultSigs)
-    posix_spawnattr_setsigdefault(&attrs, &defaultSigs)
-    var maskSigs = sigset_t()
-    sigemptyset(&maskSigs)
-    posix_spawnattr_setsigmask(&attrs, &maskSigs)
-
-    let argvCStrings: [UnsafeMutablePointer<CChar>?] =
-      ([executable.path] + arguments).map { strdup($0) }
-    defer { for ptr in argvCStrings { free(ptr) } }
-    let envCStrings: [UnsafeMutablePointer<CChar>?] =
-      environment.map { strdup("\($0.key)=\($0.value)") }
-    defer { for ptr in envCStrings { free(ptr) } }
-
-    var pid: pid_t = 0
-    let spawnResult = (argvCStrings + [nil]).withUnsafeBufferPointer { argvBuf in
-      (envCStrings + [nil]).withUnsafeBufferPointer { envBuf in
-        executable.path.withCString { execPath in
-          posix_spawn(&pid, execPath, &actions, &attrs, argvBuf.baseAddress, envBuf.baseAddress)
-        }
-      }
-    }
-    // Always release the child end in the parent — the child has its own dup'd copies.
-    close(childFD)
-    guard spawnResult == 0 else {
+    let pid = cFork()
+    if pid < 0 {
+      let spawnErrno = errno
       close(controllerFD)
-      throw PTYError.spawn(errno: spawnResult)
+      close(childFD)
+      throw PTYError.spawn(errno: spawnErrno)
     }
+
+    if pid == 0 {
+      // Child. Only async-signal-safe libc calls from here until execve.
+      close(controllerFD)
+      if setsid() < 0 { _exit(127) }
+      if ioctl(childFD, tiocScttyRequest, 0) < 0 { _exit(127) }
+      if dup2(childFD, 0) < 0 { _exit(127) }
+      if dup2(childFD, 1) < 0 { _exit(127) }
+      if dup2(childFD, 2) < 0 { _exit(127) }
+      if childFD > 2 { close(childFD) }
+      if let cwdCStr, chdir(cwdCStr) < 0 { _exit(127) }
+
+      // Reset signal mask and inherited dispositions to defaults. Use
+      // `signal(3)` — deprecated in docs but perfectly fine for the simple
+      // "restore SIG_DFL" case and safe to call here.
+      var emptyMask = sigset_t()
+      sigemptyset(&emptyMask)
+      _ = sigprocmask(SIG_SETMASK, &emptyMask, nil)
+      for signo: Int32 in 1...31 {
+        _ = signal(signo, SIG_DFL)
+      }
+
+      _ = execve(execPathCStr, argvBuffer, envBuffer)
+      _exit(127)
+    }
+
+    // Parent.
+    close(childFD)
 
     // FD_CLOEXEC so a future spawn doesn't leak the controller end into another child.
     let fdFlags = fcntl(controllerFD, F_GETFD)
@@ -119,6 +152,8 @@ public enum PTY {
 
     return PTYChild(pid: pid, pty: ptyHandle, onExit: onExit)
   }
+
+  // swiftlint:enable function_parameter_count cyclomatic_complexity
 
   /// Update the controlling terminal's window size via `TIOCSWINSZ`. The child
   /// receives `SIGWINCH` if it has installed a handler.
