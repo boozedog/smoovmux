@@ -1,7 +1,8 @@
 import Foundation
 
-/// Parser + layout types for tmux `-CC` control mode.
-/// Ported from the Electron `packages/tmux-cc` — start empty, fill in as M1 lands.
+/// Namespace for tmux `-CC` control-mode constants. Types live at the module
+/// scope (`TmuxCC.Parser`, `TmuxCC.Token`) via `import TmuxCC`.
 public enum TmuxCC {
-	public static let controlModeFlag = "-CC"
+  /// The flag passed to `tmux` to enable control mode.
+  public static let controlModeFlag = "-CC"
 }

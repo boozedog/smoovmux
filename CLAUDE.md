@@ -35,10 +35,25 @@ App target in `smoovmux.xcodeproj` depends on these via local SPM package refere
 - **No telemetry.** No Sentry, no analytics, no "anonymous usage" anything.
 - **Crash reports are local-only.** Ship a crash viewer, don't phone home.
 
-## Formatting
+## Formatting & linting
 
-- **Swift:** spaces (swift-format default). Run swift-format on save.
-- **Go:** tabs (inherited from projects CLAUDE.md — no Go in this repo yet, but same rule applies if we add tooling).
+Toolchain (all pinned in `devenv.nix`):
+
+- **`swift format`** (Apple, ships with Swift 6 toolchain) — formatting. Config: `.swift-format`.
+- **swiftlint** — safety + correctness lint (force-unwraps, concurrency footguns, etc.). Config: `.swiftlint.yml`. Formatting-style rules are disabled there to avoid conflict with `swift format`.
+- **gitleaks** — secret scanning. Config: `.gitleaks.toml`. Pre-commit on staged, pre-push on full repo.
+
+Commands (see `Makefile` for the full list):
+
+- `make fmt` — autoformat in place
+- `make lint` — swiftlint, no autofix
+- `make qa` — what pre-commit hooks and CI run (fmt-check + lint)
+- `make secrets` — gitleaks scan
+
+Indent: spaces (swift-format default). **Never tabs in Swift** — projects/CLAUDE.md's tabs rule is Go-only.
+
+Other languages:
+
 - **Markdown:** 2-space indent.
 - **Shell:** 2-space indent, `set -euo pipefail` at the top.
 
@@ -58,16 +73,26 @@ The `ghostty` submodule points at `boozedog/ghostty` (our fork of `ghostty-org/g
 - Fork-sync workflow: rebase our fork's `main` onto upstream `main`, push, then update the pointer here.
 - Don't edit ghostty sources from inside this repo's submodule checkout without committing and pushing to the fork — the pointer will go stale.
 
+## Dev environment
+
+**Nix is required.** All tooling (zig, xcodegen, swiftlint, gitleaks, gnumake) is pinned in `devenv.nix` and provided via `devenv shell`. After clone:
+
+```sh
+direnv allow      # one-time, then auto on cd
+```
+
+Or invoke setup via `devenv shell -- ./scripts/setup.sh`.
+
+Zig is pinned to `0.15.2` via `mitchellh/zig-overlay` to match `ghostty/build.zig.zon .minimum_zig_version`. Bump both together.
+
 ## Build / reload
 
 Two scripts, both at the repo root:
 
-- `./scripts/setup.sh` — idempotent bootstrap: inits submodules, resolves Zig via `mise` (see `.mise.toml`), builds `GhosttyKit.xcframework`. Safe to rerun.
+- `./scripts/setup.sh` — idempotent bootstrap: inits submodules, builds `GhosttyKit.xcframework`, generates the Xcode project. Requires the devenv shell to be active.
 - `./scripts/reload.sh --tag <slug> [--launch]` — tagged Debug build. DerivedData, socket, bundle-id, and display-name are all keyed by `<tag>` so multiple tagged builds can coexist without stomping each other. Prints `App path: ...` absolute path. Writes a log path marker to `/tmp/smoovmux-last-debug-log-path`.
 
 **Never run bare `xcodebuild`** and never launch an untagged `smoovmux DEV.app` — socket and bundle-id conflicts will bite.
-
-Toolchain pins live in `.mise.toml`. Run `mise install` after clone.
 
 ## Testing
 
