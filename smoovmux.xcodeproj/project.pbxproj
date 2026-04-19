@@ -17,6 +17,7 @@
 		D65A196FEE9FE6DD6AC34523 /* SessionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1B5CAD7542000F8E9352D199 /* SessionCore */; };
 		DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */; };
 		E1F3F451A7B9F10AE690E0C1 /* GhosttyKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		EBEA37A1B8042887DBA55A19 /* BUILD.md in Resources */ = {isa = PBXBuildFile; fileRef = BAF5A06608F20F46AC17F4BE /* BUILD.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -38,11 +39,14 @@
 		1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		23F2DE025A511DFC3351B11E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		46643F458905F0387368280A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5CB327DF10D0BD2E41F28DCF /* VERSION */ = {isa = PBXFileReference; path = VERSION; sourceTree = "<group>"; };
 		70F05D4065051D622312AB53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9758DEFEA328AD5E5C57428F /* smoovmux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = smoovmux; path = .; sourceTree = SOURCE_ROOT; };
 		AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BAF5A06608F20F46AC17F4BE /* BUILD.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = BUILD.md; sourceTree = "<group>"; };
 		C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = smoovmux.entitlements; sourceTree = "<group>"; };
 		CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		DB76D584605BF7115F83F772 /* tmux */ = {isa = PBXFileReference; path = tmux; sourceTree = "<group>"; };
 		DC63E64743C627EDCB408ABF /* smoovmux.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = smoovmux.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -81,6 +85,7 @@
 				23F2DE025A511DFC3351B11E /* main.swift */,
 				CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */,
 				C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */,
+				A1009FD83126F6E43EE599D4 /* Resources */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -91,6 +96,24 @@
 				9758DEFEA328AD5E5C57428F /* smoovmux */,
 			);
 			name = Packages;
+			sourceTree = "<group>";
+		};
+		7F3A5A5C84B8D68ACB4F1CE8 /* bin */ = {
+			isa = PBXGroup;
+			children = (
+				BAF5A06608F20F46AC17F4BE /* BUILD.md */,
+				DB76D584605BF7115F83F772 /* tmux */,
+				5CB327DF10D0BD2E41F28DCF /* VERSION */,
+			);
+			path = bin;
+			sourceTree = "<group>";
+		};
+		A1009FD83126F6E43EE599D4 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7F3A5A5C84B8D68ACB4F1CE8 /* bin */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		BC36BC9E6F6CE23E33581F9D /* Frameworks */ = {
@@ -177,6 +200,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				59555B820EC2FF2F399A57B4 /* Assets.xcassets in Resources */,
+				EBEA37A1B8042887DBA55A19 /* BUILD.md in Resources */,
 				63573138A6376637B5EE44A0 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
