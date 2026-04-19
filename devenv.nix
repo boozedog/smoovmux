@@ -69,6 +69,17 @@ in
   };
 
   enterShell = ''
+    # devenv on macOS auto-provisions pkgs.apple-sdk (14.4 as of writing),
+    # exporting SDKROOT / DEVELOPER_DIR for the nix SDK. That SDK is older
+    # than the system Swift toolchain (6.x), so `swift build` / `swift test`
+    # against it fail with "no such module 'SwiftShims'". Prefer the user's
+    # Xcode install when present so SPM picks up a matching SDK; zig-based
+    # ghostty builds don't need SDKROOT, so clearing it is safe.
+    if [ -d /Applications/Xcode.app/Contents/Developer ]; then
+      export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+      unset SDKROOT
+    fi
+
     echo "smoovmux dev shell — zig $(zig version), xcodegen $(xcodegen --version 2>&1 | head -1)"
     echo "Run 'make help' for available targets."
   '';

@@ -25,6 +25,7 @@ disabled_rules:
   - trailing_comma
   - line_length          # swift-format owns line length
   - todo                 # noisy during M1; re-enable post-M1
+  - pattern_matching_keywords  # conflicts with swift-format UseLetInEveryBoundCaseVariable
 
 # Safety + correctness rules. These catch real bugs, not bikeshed style.
 opt_in_rules:
@@ -66,7 +67,6 @@ opt_in_rules:
   - operator_usage_whitespace
   - optional_enum_case_matching
   - overridden_super_call
-  - pattern_matching_keywords
   - prefer_key_path
   - prefer_self_in_static_references
   - prefer_self_type_over_type_of_self

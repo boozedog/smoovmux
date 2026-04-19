@@ -1,0 +1,3 @@
+%session-changed $0 main
+%output %1 hello\040world
+%exit

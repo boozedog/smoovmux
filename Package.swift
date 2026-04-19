@@ -13,8 +13,18 @@ let package = Package(
 	],
 	targets: [
 		.target(name: "SmoovLog", path: "Sources/SmoovLog"),
-		.target(name: "SessionCore", dependencies: ["SmoovLog"], path: "Sources/SessionCore"),
+		.target(
+			name: "SessionCore",
+			dependencies: ["SmoovLog", "TmuxCC"],
+			path: "Sources/SessionCore"
+		),
 		.target(name: "TmuxCC", path: "Sources/TmuxCC"),
 		.testTarget(name: "TmuxCCTests", dependencies: ["TmuxCC"], path: "Tests/TmuxCCTests"),
+		.testTarget(
+			name: "SessionCoreTests",
+			dependencies: ["SessionCore", "TmuxCC"],
+			path: "Tests/SessionCoreTests",
+			resources: [.copy("Fixtures")]
+		),
 	]
 )
