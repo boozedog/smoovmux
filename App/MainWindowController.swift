@@ -1,21 +1,15 @@
 import AppKit
 
 /// Single-window host. Custom tab bar lives here in M2+; for now it hosts
-/// one `SmoovSurfaceView` as its content view.
+/// the one `SmoovSurfaceView` owned by a `PaneController` as its content view.
 ///
 /// Do NOT use `addTabbedWindow` / `NSWindow.TabbingMode` — AeroSpace/yabai see
 /// native tabs as separate windows. Custom tab bar in one NSWindow. (#2, CLAUDE.md)
 final class MainWindowController: NSWindowController, NSWindowDelegate {
-  private let surfaceView: SmoovSurfaceView
+  private let pane: PaneController
 
-  init(ghosttyApp: GhosttyApp) {
-    // M1 / issue #25: no command → libghostty spawns the user's login
-    // shell from config defaults. #26 replaces this with smoovmux-relay +
-    // SMOOVMUX_PANE_SOCKET, running tmux end-to-end.
-    self.surfaceView = SmoovSurfaceView(
-      app: ghosttyApp,
-      config: SmoovSurfaceView.Config()
-    )
+  init(pane: PaneController) {
+    self.pane = pane
 
     let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
     let window = NSWindow(
@@ -27,11 +21,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     window.title = "smoovmux"
     window.tabbingMode = .disallowed
     window.center()
-    window.contentView = surfaceView
+    window.contentView = pane.surfaceView
 
     super.init(window: window)
     window.delegate = self
-    window.makeFirstResponder(surfaceView)
+    window.makeFirstResponder(pane.surfaceView)
   }
 
   required init?(coder: NSCoder) {

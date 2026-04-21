@@ -3,6 +3,7 @@ import SmoovLog
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private(set) var ghosttyApp: GhosttyApp?
+  private var pane: PaneController?
   private var windowController: MainWindowController?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -18,7 +19,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     self.ghosttyApp = app
 
-    let controller = MainWindowController(ghosttyApp: app)
+    let pane: PaneController
+    do {
+      pane = try PaneController(ghosttyApp: app)
+    } catch {
+      SmoovLog.error("PaneController init failed: \(error)")
+      NSApp.terminate(nil)
+      return
+    }
+    self.pane = pane
+
+    let controller = MainWindowController(pane: pane)
     controller.showWindow(nil)
     self.windowController = controller
     NSApp.activate(ignoringOtherApps: true)
