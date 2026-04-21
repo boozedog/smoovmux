@@ -83,7 +83,15 @@ direnv allow      # one-time, then auto on cd
 
 Or invoke setup via `devenv shell -- ./scripts/setup.sh`.
 
-Zig is pinned to `0.15.2` via `mitchellh/zig-overlay` to match `ghostty/build.zig.zon .minimum_zig_version`. Bump both together.
+Zig is **not** pinned through nix. Ghostty's `build.zig.zon .minimum_zig_version = "0.15.2"`, and on macOS 26+ the Xcode SDK's `libSystem.tbd` drops standalone `arm64-macos` (keeps only `arm64e-macos`); Zig 0.15.2's LLD fork can't reconcile the two, so every link fails with `undefined symbol: _abort` etc. (ghostty-org/ghostty#11991, codeberg.org/ziglang/zig#31658.) The fix is a patch to `src/link/MachO/Dylib.zig` that only exists in the Homebrew formula — no nix-zig build carries it, and zig isn't backporting to 0.15.x. Install the patched build via the `boozedog/zig015` tap (one-time):
+
+```sh
+brew tap-new --no-git boozedog/zig015
+brew extract --version=0.15.2 zig boozedog/zig015
+brew install boozedog/zig015/zig@0.15.2
+```
+
+`devenv.nix` prepends `/opt/homebrew/opt/zig@0.15.2/bin` to `PATH` so `devenv shell` picks it up automatically. Bump both zig and ghostty's pin together when upstream lands 0.16 migration (ghostty-org/ghostty#12228).
 
 ## Build / reload
 

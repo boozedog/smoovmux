@@ -16,9 +16,15 @@ Native macOS tmux-first terminal multiplexer, built on [libghostty](https://gith
 ```sh
 git clone --recurse-submodules https://github.com/boozedog/smoovmux.git
 cd smoovmux
-mise install                          # pins zig + xcodegen
+
+# One-time: install patched zig 0.15.2 (macOS 26 needs a libSystem.tbd fix
+# that only exists in Homebrew's formula — see CLAUDE.md "Dev environment").
+brew tap-new --no-git boozedog/zig015
+brew extract --version=0.15.2 zig boozedog/zig015
+brew install boozedog/zig015/zig@0.15.2
+
+direnv allow                          # activates devenv (xcodegen, swiftlint, …)
 ./scripts/setup.sh                    # builds GhosttyKit.xcframework
-xcodegen                              # generates smoovmux.xcodeproj
 ./scripts/reload.sh --tag dev --launch
 ```
 

@@ -6,13 +6,5 @@ inputs:
     inputs:
       nixpkgs:
         follows: nixpkgs
-  # Mitchell Hashimoto's overlay — gives us pinnable historical zig versions.
-  # Required because we must match `ghostty/build.zig.zon .minimum_zig_version`
-  # exactly, and nixpkgs only tracks one zig version at a time.
-  zig:
-    url: github:mitchellh/zig-overlay
-    inputs:
-      nixpkgs:
-        follows: nixpkgs
 
 allowUnfree: true

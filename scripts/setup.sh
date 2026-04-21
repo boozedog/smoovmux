@@ -50,9 +50,21 @@ fi
 
 if [ "$needs_build" -eq 1 ]; then
   log "building GhosttyKit.xcframework (ghostty @ ${GHOSTTY_HEAD:0:12})"
+  # Ensure Apple's /usr/bin/libtool wins over nix's GNU libtool for this
+  # invocation — zig's xcframework step runs `libtool -static -o …` which
+  # is Apple-flavoured. Nix's libtool is only on PATH for autotools
+  # (libtoolize) and rejects Apple flags.
+  SHIM="$REPO_ROOT/.zig-bin-shim"
+  rm -rf "$SHIM" && mkdir -p "$SHIM"
+  ln -sfn /usr/bin/libtool "$SHIM/libtool"
+  # -Demit-macos-app=false: we don't need ghostty's own .app here, only the
+  # xcframework. ghostty defaults macos_app to true when emit-xcframework
+  # is set, and that step invokes xcodebuild (requires full Xcode + extra
+  # setup). Smoovmux only needs GhosttyKit.xcframework.
   ( cd "$REPO_ROOT/ghostty" \
-    && zig build \
+    && PATH="$SHIM:$PATH" zig build \
       -Demit-xcframework=true \
+      -Demit-macos-app=false \
       -Dxcframework-target=universal \
       -Doptimize=ReleaseFast )
   if [ -d "$REPO_ROOT/ghostty/macos/GhosttyKit.xcframework" ]; then

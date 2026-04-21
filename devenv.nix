@@ -1,11 +1,10 @@
-{ pkgs, lib, inputs, ... }:
+{ pkgs, lib, ... }:
 
 # devenv shell + git-hooks for smoovmux. Single source of truth for dev tooling.
 #
 # Activation: `direnv allow` (uses .envrc) or `devenv shell` directly.
 #
 # Pinned tools:
-#   - zig 0.15.2  → must match ghostty/build.zig.zon .minimum_zig_version
 #   - xcodegen    → for regenerating smoovmux.xcodeproj from project.yml
 #   - swiftlint   → linting (see .swiftlint.yml)
 #   - gitleaks    → secret scanning
@@ -22,13 +21,14 @@
 #   - `swift format` → ships with Swift 6 toolchain (xcrun swift-format)
 #   - Xcode itself   → managed by user / xcode-install / Apple
 #   - ghostty source → currently a git submodule; tracked by #27 to move to nix
+#   - zig           → Homebrew (`zig@0.15.2` from the `boozedog/zig015` tap,
+#                     which carries the Xcode-26 patch from homebrew-core that
+#                     isn't in any nix-zig build). Upstream bug:
+#                     ghostty-org/ghostty#11991, codeberg.org/ziglang/zig#31658.
+#                     See README.md / CLAUDE.md for the setup commands.
 
-let
-  zigPinned = inputs.zig.packages.${pkgs.stdenv.hostPlatform.system}."0.15.2";
-in
 {
   packages = with pkgs; [
-    zigPinned
     xcodegen
     swiftlint
     gitleaks
@@ -38,6 +38,7 @@ in
     libtool
     pkg-config
     bison
+    gettext # msgfmt — ghostty's zig build compiles .po translations
     pkgsStatic.libevent
   ];
 
@@ -93,7 +94,19 @@ in
       unset SDKROOT
     fi
 
-    echo "smoovmux dev shell — zig $(zig version), xcodegen $(xcodegen --version 2>&1 | head -1)"
+    # Put Homebrew's patched zig@0.15.2 at the front of PATH. We can't
+    # pin zig through nix because the zig-overlay / nixpkgs 0.15.2 builds
+    # don't carry the Xcode 26.4 libSystem.tbd patch. See devenv.nix
+    # header for links, and README.md for the install command.
+    if [ -x /opt/homebrew/opt/zig@0.15.2/bin/zig ]; then
+      export PATH="/opt/homebrew/opt/zig@0.15.2/bin:$PATH"
+    fi
+
+    if command -v zig >/dev/null 2>&1; then
+      echo "smoovmux dev shell — zig $(zig version), xcodegen $(xcodegen --version 2>&1 | head -1)"
+    else
+      echo "smoovmux dev shell — zig NOT FOUND (run 'brew install boozedog/zig015/zig@0.15.2')"
+    fi
     echo "Run 'make help' for available targets."
   '';
 }
