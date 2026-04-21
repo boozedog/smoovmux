@@ -8,36 +8,26 @@
 
 /* Begin PBXBuildFile section */
 		04541042F412C7116BC2F981 /* TmuxCC in Frameworks */ = {isa = PBXBuildFile; productRef = A886712DBF464A5C79DD0260 /* TmuxCC */; };
+		04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */; };
 		088804B6B7809B7574993ABE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F2DE025A511DFC3351B11E /* main.swift */; };
 		21C5190A2C7AB642B60327D9 /* SmoovLog in Frameworks */ = {isa = PBXBuildFile; productRef = C67CFDE7E11DB034CD808C94 /* SmoovLog */; };
+		4BB46980230B71A09302305D /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26B555E1A92393E1C7D3FEDE /* Carbon.framework */; };
 		4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */; };
+		53C38D1C088C7DF34D849E95 /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */; };
 		59555B820EC2FF2F399A57B4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70F05D4065051D622312AB53 /* Assets.xcassets */; };
 		63573138A6376637B5EE44A0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */; };
+		67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */; };
 		AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; };
 		D65A196FEE9FE6DD6AC34523 /* SessionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1B5CAD7542000F8E9352D199 /* SessionCore */; };
 		DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */; };
-		E1F3F451A7B9F10AE690E0C1 /* GhosttyKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		EBEA37A1B8042887DBA55A19 /* BUILD.md in Resources */ = {isa = PBXBuildFile; fileRef = BAF5A06608F20F46AC17F4BE /* BUILD.md */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		F68E80D9DA32271309055199 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				E1F3F451A7B9F10AE690E0C1 /* GhosttyKit.xcframework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
 		1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		23F2DE025A511DFC3351B11E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		26B555E1A92393E1C7D3FEDE /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		46643F458905F0387368280A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		5CB327DF10D0BD2E41F28DCF /* VERSION */ = {isa = PBXFileReference; path = VERSION; sourceTree = "<group>"; };
 		70F05D4065051D622312AB53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -46,8 +36,11 @@
 		BAF5A06608F20F46AC17F4BE /* BUILD.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = BUILD.md; sourceTree = "<group>"; };
 		C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = smoovmux.entitlements; sourceTree = "<group>"; };
 		CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoovSurfaceView.swift; sourceTree = "<group>"; };
 		DB76D584605BF7115F83F772 /* tmux */ = {isa = PBXFileReference; path = tmux; sourceTree = "<group>"; };
 		DC63E64743C627EDCB408ABF /* smoovmux.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = smoovmux.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyApp.swift; sourceTree = "<group>"; };
+		F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSEvent+Ghostty.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +52,7 @@
 				D65A196FEE9FE6DD6AC34523 /* SessionCore in Frameworks */,
 				21C5190A2C7AB642B60327D9 /* SmoovLog in Frameworks */,
 				AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */,
+				4BB46980230B71A09302305D /* Carbon.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,11 +74,14 @@
 			children = (
 				AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */,
 				70F05D4065051D622312AB53 /* Assets.xcassets */,
+				E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */,
 				46643F458905F0387368280A /* Info.plist */,
 				1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */,
 				23F2DE025A511DFC3351B11E /* main.swift */,
 				CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */,
+				F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */,
 				C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */,
+				D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */,
 				A1009FD83126F6E43EE599D4 /* Resources */,
 			);
 			path = App;
@@ -119,6 +116,7 @@
 		BC36BC9E6F6CE23E33581F9D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				26B555E1A92393E1C7D3FEDE /* Carbon.framework */,
 				0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */,
 			);
 			name = Frameworks;
@@ -142,7 +140,6 @@
 				6EBFA17F46021DE654015CEE /* Sources */,
 				F2BDE8C39BB7E78AA860F50B /* Resources */,
 				C6A46CB9FDED27EE0744E08B /* Frameworks */,
-				F68E80D9DA32271309055199 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -213,7 +210,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */,
+				53C38D1C088C7DF34D849E95 /* GhosttyApp.swift in Sources */,
 				4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */,
+				04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */,
+				67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */,
 				088804B6B7809B7574993ABE /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -274,6 +274,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD = "$(TOOLCHAIN_DIR)/usr/bin/clang";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -305,6 +306,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				OTHER_LDFLAGS = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = pw.dbu.smoovmux;
 				PRODUCT_NAME = smoovmux;
 				SDKROOT = macosx;
@@ -358,6 +360,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD = "$(TOOLCHAIN_DIR)/usr/bin/clang";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -388,6 +391,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				OTHER_LDFLAGS = "-lstdc++";
 				PRODUCT_BUNDLE_IDENTIFIER = pw.dbu.smoovmux;
 				PRODUCT_NAME = smoovmux;
 				SDKROOT = macosx;

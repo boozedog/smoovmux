@@ -76,13 +76,20 @@ if [ ! -d "$REPO_ROOT/smoovmux.xcodeproj" ] || [ "$REPO_ROOT/project.yml" -nt "$
 fi
 
 log "building (DerivedData=$DERIVED)"
+# LD=clang: Xcode 26 regression — the partial "Ld" step for SPM modules
+# builds clang-driver flags (-isysroot, -iframework, -nostdlib,
+# -fobjc-link-runtime) but invokes raw ld, which rejects them. Routing LD
+# through clang lets the driver translate them. Command-line override
+# propagates to SPM package targets; project.yml base settings do not.
+# Remove once Apple fixes it.
+XCODE_TOOLCHAIN="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
 xcodebuild \
   -project smoovmux.xcodeproj \
   -scheme smoovmux \
   -configuration Debug \
   -derivedDataPath "$DERIVED" \
   PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-  PRODUCT_MODULE_NAME=smoovmux \
+  LD="$XCODE_TOOLCHAIN/usr/bin/clang" \
   INFOPLIST_PREPROCESS=YES \
   GCC_PREPROCESSOR_DEFINITIONS='$(inherited) SMOOVMUX_TAG='"\"$TAG\"" \
   build 2>&1 | tail -40

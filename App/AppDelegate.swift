@@ -2,13 +2,25 @@ import AppKit
 import SmoovLog
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+  private(set) var ghosttyApp: GhosttyApp?
   private var windowController: MainWindowController?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     SmoovLog.info("smoovmux launched")
-    let controller = MainWindowController()
+
+    let app: GhosttyApp
+    do {
+      app = try GhosttyApp()
+    } catch {
+      SmoovLog.error("GhosttyApp init failed: \(error)")
+      NSApp.terminate(nil)
+      return
+    }
+    self.ghosttyApp = app
+
+    let controller = MainWindowController(ghosttyApp: app)
     controller.showWindow(nil)
-    windowController = controller
+    self.windowController = controller
     NSApp.activate(ignoringOtherApps: true)
   }
 

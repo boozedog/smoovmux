@@ -12,6 +12,13 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "15.0"
     DEAD_CODE_STRIPPING: YES
     ENABLE_USER_SCRIPT_SANDBOXING: NO
+    # Xcode 26 regression: the "Ld" task for SPM Swift modules (a partial
+    # link that bundles a module's object files into one .o) builds a
+    # clang-driver-style command line but invokes `ld` directly, which
+    # rejects flags like `-isysroot`, `-iframework`, `-nostdlib`, and
+    # `-fobjc-link-runtime`. Pointing LD at clang lets the driver translate
+    # those into real ld flags. Remove once Apple fixes it.
+    LD: $(TOOLCHAIN_DIR)/usr/bin/clang
 
 packages:
   smoovmux-core:
@@ -37,8 +44,14 @@ targets:
         product: SessionCore
       - package: smoovmux-core
         product: SmoovLog
+      # GhosttyKit.xcframework's macOS slice is a static archive
+      # (`ghostty-internal.a`). Static archives aren't embedded — the code
+      # is linked into the app binary at build time. `embed: false` keeps
+      # codesign from choking on a .a file in `Contents/Frameworks/`.
       - framework: GhosttyKit.xcframework
-        embed: true
+        embed: false
+      # libghostty pulls in Carbon for TIS* keyboard-layout introspection.
+      - sdk: Carbon.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: pw.dbu.smoovmux
@@ -47,6 +60,10 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/smoovmux.entitlements
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: YES
+        # ghostty-internal.a pulls in glslang (C++). Upstream's Ghostty.app
+        # links libstdc++ explicitly — we need the same for libghostty's
+        # shader compiler to find std::runtime_error et al.
+        OTHER_LDFLAGS: -lstdc++
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
