@@ -19,6 +19,24 @@ struct WorkspaceTabListTests {
     #expect(list.selectedTab == tab)
   }
 
+  @Test("initialization drops an invalid selected tab")
+  func initializationDropsInvalidSelection() {
+    let first = WorkspaceTabRecord(id: tabID(1), title: "one")
+    let list = WorkspaceTabList(tabs: [first], selectedTabId: tabID(99))
+
+    #expect(list.selectedTabId == first.id)
+    #expect(list.selectedTab == first)
+  }
+
+  @Test("adding a tab can use a custom title")
+  func addTabCanUseCustomTitle() {
+    var list = WorkspaceTabList()
+    let tab = list.addTab(id: tabID(1), title: "repo")
+
+    #expect(tab.title == "repo")
+    #expect(list.tabs == [tab])
+  }
+
   @Test("adding a tab without selecting preserves the current selected tab")
   func addWithoutSelectingPreservesSelection() {
     var list = WorkspaceTabList()
@@ -100,6 +118,19 @@ struct WorkspaceTabListTests {
 
     list.closeTab(second)
 
+    #expect(list.tabs.map(\.id) == [first])
+    #expect(list.selectedTabId == first)
+  }
+
+  @Test("closing an unknown tab is ignored")
+  func closingUnknownTabIsIgnored() {
+    var list = WorkspaceTabList()
+    let first = tabID(1)
+    list.addTab(id: first)
+
+    let didClose = list.closeTab(tabID(99))
+
+    #expect(didClose == false)
     #expect(list.tabs.map(\.id) == [first])
     #expect(list.selectedTabId == first)
   }

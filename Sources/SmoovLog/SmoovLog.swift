@@ -31,10 +31,10 @@ public enum SmoovLog {
 
 /// Redact sensitive substrings from a string before logging.
 /// Current policy: aliases OK, hostnames/usernames/keys must be redacted by the caller.
-public func redact(_ s: String) -> String {
+public func redact(_ message: String) -> String {
   // Placeholder — expand as SSH config handling lands.
-  s.replacingOccurrences(
-    of: #"(?i)(password|token|secret|key)=[^\s]+"#,
+  message.replacingOccurrences(
+    of: #"(?i)([A-Za-z0-9_-]*(?:password|token|secret|key))=[^\s]+"#,
     with: "$1=<redacted>",
     options: .regularExpression)
 }

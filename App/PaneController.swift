@@ -1,6 +1,7 @@
 import AppKit
 import GhosttyKit
 import SmoovLog
+import WorkspacePanes
 
 /// Owns one workspace pane tree.
 ///
@@ -15,14 +16,16 @@ final class PaneController {
   let rootView = NSView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
 
   private let ghosttyApp: GhosttyApp
+  private var paneTree = WorkspacePaneTree()
   private var surfaceViews: [SmoovSurfaceView] = []
+  private var paneIdsBySurfaceView: [ObjectIdentifier: UUID] = [:]
   private weak var focusedSurfaceView: SmoovSurfaceView?
 
   init(ghosttyApp: GhosttyApp) {
     self.ghosttyApp = ghosttyApp
     rootView.wantsLayer = true
 
-    let surfaceView = makeSurfaceView()
+    let surfaceView = makeSurfaceView(id: paneTree.selectedPaneId)
     surfaceViews = [surfaceView]
     focusedSurfaceView = surfaceView
     installRootSubview(surfaceView)
@@ -38,7 +41,11 @@ final class PaneController {
   }
 
   func closePane() {
-    guard let surfaceView = focusedSurfaceView, surfaceViews.count > 1 else { return }
+    guard let surfaceView = focusedSurfaceView,
+      surfaceViews.count > 1,
+      let paneId = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)],
+      paneTree.closePane(paneId)
+    else { return }
     surfaceView.requestClosePane()
     collapse(surfaceView)
   }
@@ -46,13 +53,26 @@ final class PaneController {
   private enum SplitDirection {
     case right
     case down
+
+    var paneTreeDirection: WorkspacePaneSplitDirection {
+      switch self {
+      case .right:
+        return .right
+      case .down:
+        return .down
+      }
+    }
   }
 
-  private func makeSurfaceView() -> SmoovSurfaceView {
+  private func makeSurfaceView(id: UUID) -> SmoovSurfaceView {
     let surfaceView = SmoovSurfaceView(app: ghosttyApp, config: SmoovSurfaceView.Config())
+    paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] = id
     surfaceView.onFocus = { [weak self, weak surfaceView] in
-      guard let surfaceView else { return }
-      self?.focusedSurfaceView = surfaceView
+      guard let self, let surfaceView else { return }
+      focusedSurfaceView = surfaceView
+      if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] {
+        paneTree.selectPane(id)
+      }
     }
     surfaceView.onSplitRequested = { [weak self] direction in
       switch direction {
@@ -71,8 +91,11 @@ final class PaneController {
   }
 
   private func splitFocusedSurface(direction: SplitDirection) {
-    guard let target = focusedSurfaceView else { return }
-    let newSurfaceView = makeSurfaceView()
+    guard let target = focusedSurfaceView,
+      let targetId = paneIdsBySurfaceView[ObjectIdentifier(target)],
+      let newPaneId = paneTree.splitPane(targetId, direction: direction.paneTreeDirection)
+    else { return }
+    let newSurfaceView = makeSurfaceView(id: newPaneId)
     surfaceViews.append(newSurfaceView)
 
     let splitView = NSSplitView()
@@ -94,6 +117,7 @@ final class PaneController {
 
   private func collapse(_ surfaceView: SmoovSurfaceView) {
     surfaceViews.removeAll { $0 === surfaceView }
+    paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] = nil
 
     guard let parentSplitView = surfaceView.superview as? NSSplitView else { return }
     let siblings = parentSplitView.arrangedSubviews.filter { $0 !== surfaceView }

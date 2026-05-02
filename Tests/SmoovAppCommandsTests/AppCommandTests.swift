@@ -4,6 +4,31 @@ import Testing
 
 @Suite("App command shortcuts")
 struct AppCommandTests {
+  @Test("all commands have user-visible titles")
+  func allCommandsHaveTitles() {
+    for command in AppCommand.allCases {
+      #expect(command.title.isEmpty == false)
+    }
+  }
+
+  @Test("shortcut-bearing commands do not collide")
+  func shortcutsDoNotCollide() {
+    let shortcuts = AppCommand.allCases.compactMap(\.shortcut)
+
+    #expect(Set(shortcuts).count == shortcuts.count)
+  }
+
+  @Test("new tab is Command-T")
+  func newTabShortcut() {
+    #expect(AppCommand.newTab.shortcut == KeyboardShortcutSpec(key: "t", modifiers: [.command]))
+  }
+
+  @Test("next and previous tab shortcuts use square brackets")
+  func tabNavigationShortcuts() {
+    #expect(AppCommand.nextTab.shortcut == KeyboardShortcutSpec(key: "]", modifiers: [.command]))
+    #expect(AppCommand.previousTab.shortcut == KeyboardShortcutSpec(key: "[", modifiers: [.command]))
+  }
+
   @Test("split right is Command-D")
   func splitRightShortcut() {
     #expect(AppCommand.splitRight.shortcut == KeyboardShortcutSpec(key: "d", modifiers: [.command]))

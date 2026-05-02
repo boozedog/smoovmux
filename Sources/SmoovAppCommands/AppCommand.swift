@@ -1,4 +1,4 @@
-public struct KeyboardShortcutModifiers: OptionSet, Equatable, Sendable {
+public struct KeyboardShortcutModifiers: OptionSet, Equatable, Hashable, Sendable {
   public let rawValue: UInt8
 
   public init(rawValue: UInt8) {
@@ -9,7 +9,7 @@ public struct KeyboardShortcutModifiers: OptionSet, Equatable, Sendable {
   public static let shift = Self(rawValue: 1 << 1)
 }
 
-public struct KeyboardShortcutSpec: Equatable, Sendable {
+public struct KeyboardShortcutSpec: Equatable, Hashable, Sendable {
   public let key: String
   public let modifiers: KeyboardShortcutModifiers
 

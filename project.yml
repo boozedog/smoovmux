@@ -42,6 +42,8 @@ targets:
         product: SmoovAppCommands
       - package: smoovmux-core
         product: WorkspaceTabs
+      - package: smoovmux-core
+        product: WorkspacePanes
       # GhosttyKit.xcframework's macOS slice is a static archive
       # (`ghostty-internal.a`). Static archives aren't embedded — the code
       # is linked into the app binary at build time. `embed: false` keeps

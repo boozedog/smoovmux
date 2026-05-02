@@ -20,6 +20,7 @@
 		63573138A6376637B5EE44A0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */; };
 		67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */; };
 		7111E8D01CCA53728B108A4B /* WorkspaceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C3EC08550B2F97E3315A631 /* WorkspaceTab.swift */; };
+		762A9CE85581CA9A47E1E2A7 /* WorkspacePanes in Frameworks */ = {isa = PBXBuildFile; productRef = 5D354A3035840860E55054C3 /* WorkspacePanes */; };
 		AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; };
 		BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B28811F6C750E579A75303B /* TabbedRootView.swift */; };
 		D65A196FEE9FE6DD6AC34523 /* SmoovLog in Frameworks */ = {isa = PBXBuildFile; productRef = C67CFDE7E11DB034CD808C94 /* SmoovLog */; };
@@ -55,6 +56,7 @@
 				D65A196FEE9FE6DD6AC34523 /* SmoovLog in Frameworks */,
 				21C5190A2C7AB642B60327D9 /* SmoovAppCommands in Frameworks */,
 				4798649405F880A07E6FCF35 /* WorkspaceTabs in Frameworks */,
+				762A9CE85581CA9A47E1E2A7 /* WorkspacePanes in Frameworks */,
 				AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */,
 				4BB46980230B71A09302305D /* Carbon.framework in Frameworks */,
 			);
@@ -140,6 +142,7 @@
 				C67CFDE7E11DB034CD808C94 /* SmoovLog */,
 				A2192B250ECC3800246E5450 /* SmoovAppCommands */,
 				C148F9B0BDE089FA4EA495BC /* WorkspaceTabs */,
+				5D354A3035840860E55054C3 /* WorkspacePanes */,
 			);
 			productName = smoovmux;
 			productReference = DC63E64743C627EDCB408ABF /* smoovmux.app */;
@@ -447,6 +450,10 @@
 		1B5CAD7542000F8E9352D199 /* SessionCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SessionCore;
+		};
+		5D354A3035840860E55054C3 /* WorkspacePanes */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorkspacePanes;
 		};
 		A2192B250ECC3800246E5450 /* SmoovAppCommands */ = {
 			isa = XCSwiftPackageProductDependency;

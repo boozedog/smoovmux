@@ -11,11 +11,13 @@ let package = Package(
 		.library(name: "SmoovLog", targets: ["SmoovLog"]),
 		.library(name: "SmoovAppCommands", targets: ["SmoovAppCommands"]),
 		.library(name: "WorkspaceTabs", targets: ["WorkspaceTabs"]),
+		.library(name: "WorkspacePanes", targets: ["WorkspacePanes"]),
 	],
 	targets: [
 		.target(name: "SmoovLog", path: "Sources/SmoovLog"),
 		.target(name: "SmoovAppCommands", path: "Sources/SmoovAppCommands"),
 		.target(name: "WorkspaceTabs", path: "Sources/WorkspaceTabs"),
+		.target(name: "WorkspacePanes", path: "Sources/WorkspacePanes"),
 		.target(
 			name: "SessionCore",
 			dependencies: ["SmoovLog"],
@@ -35,6 +37,16 @@ let package = Package(
 			name: "SmoovAppCommandsTests",
 			dependencies: ["SmoovAppCommands"],
 			path: "Tests/SmoovAppCommandsTests"
+		),
+		.testTarget(
+			name: "WorkspacePanesTests",
+			dependencies: ["WorkspacePanes"],
+			path: "Tests/WorkspacePanesTests"
+		),
+		.testTarget(
+			name: "SmoovLogTests",
+			dependencies: ["SmoovLog"],
+			path: "Tests/SmoovLogTests"
 		),
 	]
 )
