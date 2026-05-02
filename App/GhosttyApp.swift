@@ -83,9 +83,34 @@ final class GhosttyApp {
   }
 
   private static let actionCallback: @convention(c) (ghostty_app_t?, ghostty_target_s, ghostty_action_s) -> Bool = {
-    _, _, action in
-    SmoovLog.info("ghostty action tag=\(action.tag.rawValue) (unhandled)")
-    return true
+    _, target, action in
+    switch action.tag {
+    case GHOSTTY_ACTION_NEW_SPLIT:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttySplitAction(action.action.new_split)
+      }
+      return true
+    case GHOSTTY_ACTION_CLOSE_WINDOW:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyCloseAction()
+      }
+      return true
+    default:
+      SmoovLog.info("ghostty action tag=\(action.tag.rawValue) (unhandled)")
+      return true
+    }
+  }
+
+  private static func surfaceView(from target: ghostty_target_s) -> SmoovSurfaceView? {
+    guard target.tag == GHOSTTY_TARGET_SURFACE,
+      let surface = target.target.surface,
+      let userdata = ghostty_surface_userdata(surface)
+    else {
+      return nil
+    }
+    return Unmanaged<SmoovSurfaceView>.fromOpaque(userdata).takeUnretainedValue()
   }
 
   private static let readClipboardCallback:

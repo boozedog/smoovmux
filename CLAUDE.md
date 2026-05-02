@@ -33,6 +33,12 @@ App target in `smoovmux.xcodeproj` depends on these via local SPM package refere
 - **No telemetry.** No Sentry, no analytics, no "anonymous usage" anything.
 - **Crash reports are local-only.** Ship a crash viewer, don't phone home.
 
+## Development workflow
+
+- **Default to TDD.** Before changing production code, first write or update a focused test that fails for the intended behavior or bug fix. Run the relevant test to confirm the failure, then implement the smallest production change that makes it pass.
+- If a change is genuinely not testable yet (for example early UI scaffolding with no harness), call that out explicitly before implementing and prefer extracting testable model/policy logic rather than skipping tests silently.
+- Keep tests close to the behavior: pure model logic in SPM/unit tests; AppKit/SwiftUI integration only where unit seams are impractical.
+
 ## Formatting & linting
 
 Toolchain (all pinned in `devenv.nix`):

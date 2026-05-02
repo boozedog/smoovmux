@@ -1,9 +1,11 @@
 import AppKit
+import SmoovAppCommands
 import SmoovLog
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private(set) var ghosttyApp: GhosttyApp?
-  private var pane: PaneController?
+  private var tabManager: WorkspaceTabManager?
   private var windowController: MainWindowController?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -20,10 +22,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     self.ghosttyApp = app
 
-    let pane = PaneController(ghosttyApp: app)
-    self.pane = pane
+    let tabManager = WorkspaceTabManager(ghosttyApp: app)
+    tabManager.addTab()
+    self.tabManager = tabManager
 
-    let controller = MainWindowController(pane: pane)
+    let controller = MainWindowController(tabManager: tabManager)
     controller.showWindow(nil)
     self.windowController = controller
     NSApp.activate(ignoringOtherApps: true)
@@ -46,6 +49,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       keyEquivalent: "q"
     )
 
+    let fileMenuItem = NSMenuItem()
+    mainMenu.addItem(fileMenuItem)
+    let fileMenu = NSMenu(title: "File")
+    fileMenuItem.submenu = fileMenu
+    addMenuItem(AppCommand.newTab, to: fileMenu, action: #selector(Self.newTab(_:)))
+    addMenuItem(AppCommand.closeTab, to: fileMenu, action: #selector(Self.closeTab(_:)))
+    fileMenu.addItem(NSMenuItem.separator())
+    addMenuItem(AppCommand.splitRight, to: fileMenu, action: #selector(Self.splitRight(_:)))
+    addMenuItem(AppCommand.splitDown, to: fileMenu, action: #selector(Self.splitDown(_:)))
+    addMenuItem(AppCommand.closePane, to: fileMenu, action: #selector(Self.closePane(_:)))
+    fileMenu.addItem(NSMenuItem.separator())
+    addMenuItem(AppCommand.nextTab, to: fileMenu, action: #selector(Self.selectNextTab(_:)))
+    addMenuItem(AppCommand.previousTab, to: fileMenu, action: #selector(Self.selectPreviousTab(_:)))
+
     let editMenuItem = NSMenuItem()
     mainMenu.addItem(editMenuItem)
     let editMenu = NSMenu(title: "Edit")
@@ -57,5 +74,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
 
     NSApp.mainMenu = mainMenu
+  }
+
+  @objc private func newTab(_ sender: Any?) {
+    windowController?.newTab(sender)
+  }
+
+  @objc private func closeTab(_ sender: Any?) {
+    windowController?.closeTab(sender)
+  }
+
+  @objc private func splitRight(_ sender: Any?) {
+    windowController?.splitRight(sender)
+  }
+
+  @objc private func splitDown(_ sender: Any?) {
+    windowController?.splitDown(sender)
+  }
+
+  @objc private func closePane(_ sender: Any?) {
+    windowController?.closePane(sender)
+  }
+
+  @objc private func selectNextTab(_ sender: Any?) {
+    windowController?.selectNextTab(sender)
+  }
+
+  @objc private func selectPreviousTab(_ sender: Any?) {
+    windowController?.selectPreviousTab(sender)
+  }
+
+  private func addMenuItem(_ command: AppCommand, to menu: NSMenu, action: Selector) {
+    let shortcut = command.shortcut
+    let item = menu.addItem(
+      withTitle: command.title,
+      action: action,
+      keyEquivalent: shortcut?.key ?? ""
+    )
+    item.target = self
+    if let shortcut {
+      item.keyEquivalentModifierMask = shortcut.modifiers.eventModifierFlags
+    }
+  }
+}
+
+extension KeyboardShortcutModifiers {
+  fileprivate var eventModifierFlags: NSEvent.ModifierFlags {
+    var flags: NSEvent.ModifierFlags = []
+    if contains(.command) {
+      flags.insert(.command)
+    }
+    if contains(.shift) {
+      flags.insert(.shift)
+    }
+    return flags
   }
 }

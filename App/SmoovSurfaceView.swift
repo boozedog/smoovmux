@@ -21,6 +21,9 @@ final class SmoovSurfaceView: NSView {
 
   /// Called on `setFrameSize` whenever libghostty recomputes the cell grid.
   var onResize: ((UInt16, UInt16) -> Void)?
+  var onFocus: (() -> Void)?
+  var onSplitRequested: ((ghostty_action_split_direction_e) -> Void)?
+  var onCloseRequested: (() -> Void)?
 
   nonisolated(unsafe) private var surface: ghostty_surface_t?
   private var focused = false
@@ -118,6 +121,29 @@ final class SmoovSurfaceView: NSView {
     }
   }
 
+  // MARK: - Pane actions
+
+  func splitRight() {
+    onSplitRequested?(GHOSTTY_SPLIT_DIRECTION_RIGHT)
+  }
+
+  func splitDown() {
+    onSplitRequested?(GHOSTTY_SPLIT_DIRECTION_DOWN)
+  }
+
+  func requestClosePane() {
+    guard let surface else { return }
+    ghostty_surface_request_close(surface)
+  }
+
+  func handleGhosttySplitAction(_ direction: ghostty_action_split_direction_e) {
+    onSplitRequested?(direction)
+  }
+
+  func handleGhosttyCloseAction() {
+    onCloseRequested?()
+  }
+
   // MARK: - NSView overrides
 
   override var acceptsFirstResponder: Bool { true }
@@ -126,6 +152,7 @@ final class SmoovSurfaceView: NSView {
     let ok = super.becomeFirstResponder()
     if ok, let surface {
       focused = true
+      onFocus?()
       ghostty_surface_set_focus(surface, true)
     }
     return ok

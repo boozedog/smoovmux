@@ -1,15 +1,16 @@
 import AppKit
+import SwiftUI
 
-/// Single-window host. Custom tab bar lives here in M2+; for now it hosts
-/// the one `SmoovSurfaceView` owned by a `PaneController` as its content view.
+/// Single-window host for custom workspace tabs.
 ///
-/// Do NOT use `addTabbedWindow` / `NSWindow.TabbingMode` — AeroSpace/yabai see
-/// native tabs as separate windows. Custom tab bar in one NSWindow. (#2, CLAUDE.md)
+/// Do NOT use `addTabbedWindow` / native `NSWindow` tabs — AeroSpace/yabai see
+/// native tabs as separate windows. Custom tab chrome stays inside one NSWindow.
+/// (#2, CLAUDE.md)
 final class MainWindowController: NSWindowController, NSWindowDelegate {
-  private let pane: PaneController
+  let tabManager: WorkspaceTabManager
 
-  init(pane: PaneController) {
-    self.pane = pane
+  init(tabManager: WorkspaceTabManager) {
+    self.tabManager = tabManager
 
     let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
     let window = NSWindow(
@@ -21,13 +22,41 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     window.title = "smoovmux"
     window.tabbingMode = .disallowed
     window.center()
-    window.contentView = pane.surfaceView
+    window.contentView = NSHostingView(rootView: TabbedRootView(tabManager: tabManager))
 
     super.init(window: window)
     window.delegate = self
-    window.makeFirstResponder(pane.surfaceView)
   }
 
+  @objc func newTab(_ sender: Any?) {
+    tabManager.addTab()
+  }
+
+  @objc func closeTab(_ sender: Any?) {
+    tabManager.closeSelectedTab()
+  }
+
+  @objc func splitRight(_ sender: Any?) {
+    tabManager.selectedPane?.splitRight()
+  }
+
+  @objc func splitDown(_ sender: Any?) {
+    tabManager.selectedPane?.splitDown()
+  }
+
+  @objc func closePane(_ sender: Any?) {
+    tabManager.selectedPane?.closePane()
+  }
+
+  @objc func selectNextTab(_ sender: Any?) {
+    tabManager.selectNextTab()
+  }
+
+  @objc func selectPreviousTab(_ sender: Any?) {
+    tabManager.selectPreviousTab()
+  }
+
+  @available(*, unavailable)
   required init?(coder: NSCoder) {
     fatalError("init(coder:) not supported")
   }
