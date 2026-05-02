@@ -244,6 +244,68 @@ final class SmoovSurfaceView: NSView {
     // Intentionally empty. keyDown already fired ghostty_surface_key; we
     // just swallow the selector here to avoid NSBeep.
   }
+
+  // MARK: - Clipboard
+
+  @objc func copy(_ sender: Any?) {
+    guard let selectedText else { return }
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(selectedText, forType: .string)
+  }
+
+  @objc func cut(_ sender: Any?) {
+    copy(sender)
+  }
+
+  @objc func paste(_ sender: Any?) {
+    guard
+      let surface,
+      let text = NSPasteboard.general.string(forType: .string),
+      !text.isEmpty
+    else { return }
+
+    text.withCString { ptr in
+      ghostty_surface_text(surface, ptr, UInt(text.utf8.count))
+    }
+  }
+
+  override func selectAll(_ sender: Any?) {
+    // Terminal select-all needs scrollback-aware support from libghostty.
+    // Keep the selector present for menu validation, but disabled for now.
+  }
+
+  func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+    switch item.action {
+    case #selector(copy(_:)), #selector(cut(_:)):
+      return selectedText != nil
+    case #selector(paste(_:)):
+      return NSPasteboard.general.canReadItem(withDataConformingToTypes: [NSPasteboard.PasteboardType.string.rawValue])
+    case #selector(selectAll(_:)):
+      return false
+    default:
+      return true
+    }
+  }
+
+  private var selectedText: String? {
+    guard let surface, ghostty_surface_has_selection(surface) else { return nil }
+
+    var text = ghostty_text_s(
+      tl_px_x: 0,
+      tl_px_y: 0,
+      offset_start: 0,
+      offset_len: 0,
+      text: nil,
+      text_len: 0
+    )
+    guard ghostty_surface_read_selection(surface, &text) else { return nil }
+    defer { ghostty_surface_free_text(surface, &text) }
+    guard let pointer = text.text, text.text_len > 0 else { return nil }
+
+    let data = Data(bytes: pointer, count: Int(text.text_len))
+    return String(data: data, encoding: .utf8)
+  }
 }
 
 // MARK: - NSTextInputClient (text path)
