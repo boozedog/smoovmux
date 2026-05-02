@@ -7,12 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		04541042F412C7116BC2F981 /* TmuxCC in Frameworks */ = {isa = PBXBuildFile; productRef = A886712DBF464A5C79DD0260 /* TmuxCC */; };
+		04541042F412C7116BC2F981 /* SessionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1B5CAD7542000F8E9352D199 /* SessionCore */; };
 		04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */; };
 		088804B6B7809B7574993ABE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F2DE025A511DFC3351B11E /* main.swift */; };
-		21C5190A2C7AB642B60327D9 /* SmoovLog in Frameworks */ = {isa = PBXBuildFile; productRef = C67CFDE7E11DB034CD808C94 /* SmoovLog */; };
-		4798649405F880A07E6FCF35 /* PaneRelay in Frameworks */ = {isa = PBXBuildFile; productRef = 4F0FDDE3BBB4CB5BEB3303A7 /* PaneRelay */; };
-		4A37C4B3BDE4736C825840FF /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DB80B20AABBD86DA6657B3C /* main.swift */; };
 		4BB46980230B71A09302305D /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26B555E1A92393E1C7D3FEDE /* Carbon.framework */; };
 		4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */; };
 		53C38D1C088C7DF34D849E95 /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */; };
@@ -21,39 +18,23 @@
 		63573138A6376637B5EE44A0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */; };
 		67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */; };
 		AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; };
-		D65A196FEE9FE6DD6AC34523 /* SessionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1B5CAD7542000F8E9352D199 /* SessionCore */; };
+		D65A196FEE9FE6DD6AC34523 /* SmoovLog in Frameworks */ = {isa = PBXBuildFile; productRef = C67CFDE7E11DB034CD808C94 /* SmoovLog */; };
 		DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */; };
-		EBEA37A1B8042887DBA55A19 /* BUILD.md in Resources */ = {isa = PBXBuildFile; fileRef = BAF5A06608F20F46AC17F4BE /* BUILD.md */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		166453A8E992B2CB199F8997 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 6DB4F95B5133EFA021116D7B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 01222EEB278BB46C6439409C;
-			remoteInfo = "smoovmux-relay";
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
 		1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		1DB80B20AABBD86DA6657B3C /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		23F2DE025A511DFC3351B11E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		26B555E1A92393E1C7D3FEDE /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		46643F458905F0387368280A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		5CB327DF10D0BD2E41F28DCF /* VERSION */ = {isa = PBXFileReference; path = VERSION; sourceTree = "<group>"; };
 		70F05D4065051D622312AB53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9758DEFEA328AD5E5C57428F /* smoovmux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = smoovmux; path = .; sourceTree = SOURCE_ROOT; };
 		AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		BAF5A06608F20F46AC17F4BE /* BUILD.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = BUILD.md; sourceTree = "<group>"; };
 		C07F05AE7F0D5E97754CA401 /* PaneController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneController.swift; sourceTree = "<group>"; };
 		C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = smoovmux.entitlements; sourceTree = "<group>"; };
 		CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
-		D97BD811858CDE6DC4B33BAE /* smoovmux-relay */ = {isa = PBXFileReference; includeInIndex = 0; path = "smoovmux-relay"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoovSurfaceView.swift; sourceTree = "<group>"; };
-		DB76D584605BF7115F83F772 /* tmux */ = {isa = PBXFileReference; path = tmux; sourceTree = "<group>"; };
 		DC63E64743C627EDCB408ABF /* smoovmux.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = smoovmux.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyApp.swift; sourceTree = "<group>"; };
 		F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSEvent+Ghostty.swift"; sourceTree = "<group>"; };
@@ -64,10 +45,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				04541042F412C7116BC2F981 /* TmuxCC in Frameworks */,
-				D65A196FEE9FE6DD6AC34523 /* SessionCore in Frameworks */,
-				21C5190A2C7AB642B60327D9 /* SmoovLog in Frameworks */,
-				4798649405F880A07E6FCF35 /* PaneRelay in Frameworks */,
+				04541042F412C7116BC2F981 /* SessionCore in Frameworks */,
+				D65A196FEE9FE6DD6AC34523 /* SmoovLog in Frameworks */,
 				AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */,
 				4BB46980230B71A09302305D /* Carbon.framework in Frameworks */,
 			);
@@ -81,7 +60,6 @@
 			children = (
 				39C35CFFEAA852CAB73706CC /* App */,
 				614592A606C3589291D162A2 /* Packages */,
-				6EF504CC696E163B8B11DAD3 /* Sources */,
 				BC36BC9E6F6CE23E33581F9D /* Frameworks */,
 				F0B5A17B1ADBC3BF39355679 /* Products */,
 			);
@@ -101,7 +79,6 @@
 				C07F05AE7F0D5E97754CA401 /* PaneController.swift */,
 				C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */,
 				D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */,
-				A1009FD83126F6E43EE599D4 /* Resources */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -112,40 +89,6 @@
 				9758DEFEA328AD5E5C57428F /* smoovmux */,
 			);
 			name = Packages;
-			sourceTree = "<group>";
-		};
-		6EF504CC696E163B8B11DAD3 /* Sources */ = {
-			isa = PBXGroup;
-			children = (
-				B66759D523546F83BBB283BE /* smoovmux-relay */,
-			);
-			path = Sources;
-			sourceTree = "<group>";
-		};
-		7F3A5A5C84B8D68ACB4F1CE8 /* bin */ = {
-			isa = PBXGroup;
-			children = (
-				BAF5A06608F20F46AC17F4BE /* BUILD.md */,
-				DB76D584605BF7115F83F772 /* tmux */,
-				5CB327DF10D0BD2E41F28DCF /* VERSION */,
-			);
-			path = bin;
-			sourceTree = "<group>";
-		};
-		A1009FD83126F6E43EE599D4 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				7F3A5A5C84B8D68ACB4F1CE8 /* bin */,
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		B66759D523546F83BBB283BE /* smoovmux-relay */ = {
-			isa = PBXGroup;
-			children = (
-				1DB80B20AABBD86DA6657B3C /* main.swift */,
-			);
-			path = "smoovmux-relay";
 			sourceTree = "<group>";
 		};
 		BC36BC9E6F6CE23E33581F9D /* Frameworks */ = {
@@ -160,7 +103,6 @@
 		F0B5A17B1ADBC3BF39355679 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D97BD811858CDE6DC4B33BAE /* smoovmux-relay */,
 				DC63E64743C627EDCB408ABF /* smoovmux.app */,
 			);
 			name = Products;
@@ -169,23 +111,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		01222EEB278BB46C6439409C /* smoovmux-relay */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E21F70E34D4C9F64821C7816 /* Build configuration list for PBXNativeTarget "smoovmux-relay" */;
-			buildPhases = (
-				25A7990286C10D14850C033B /* Sources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "smoovmux-relay";
-			packageProductDependencies = (
-			);
-			productName = "smoovmux-relay";
-			productReference = D97BD811858CDE6DC4B33BAE /* smoovmux-relay */;
-			productType = "com.apple.product-type.tool";
-		};
 		22C886BEE57EF7583B7C997F /* smoovmux */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C476F8A285A64E36AB42C5B5 /* Build configuration list for PBXNativeTarget "smoovmux" */;
@@ -193,19 +118,16 @@
 				6EBFA17F46021DE654015CEE /* Sources */,
 				F2BDE8C39BB7E78AA860F50B /* Resources */,
 				C6A46CB9FDED27EE0744E08B /* Frameworks */,
-				C78110D485EA9CAFE9A7A8B4 /* Embed Contents/Resources/bin */,
+				B91C47DFEA24C51FA1EF64A0 /* Embed Ghostty Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				11905A3322A197ED75C38EEB /* PBXTargetDependency */,
 			);
 			name = smoovmux;
 			packageProductDependencies = (
-				A886712DBF464A5C79DD0260 /* TmuxCC */,
 				1B5CAD7542000F8E9352D199 /* SessionCore */,
 				C67CFDE7E11DB034CD808C94 /* SmoovLog */,
-				4F0FDDE3BBB4CB5BEB3303A7 /* PaneRelay */,
 			);
 			productName = smoovmux;
 			productReference = DC63E64743C627EDCB408ABF /* smoovmux.app */;
@@ -220,9 +142,6 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					01222EEB278BB46C6439409C = {
-						ProvisioningStyle = Automatic;
-					};
 					22C886BEE57EF7583B7C997F = {
 						ProvisioningStyle = Automatic;
 					};
@@ -246,7 +165,6 @@
 			projectRoot = "";
 			targets = (
 				22C886BEE57EF7583B7C997F /* smoovmux */,
-				01222EEB278BB46C6439409C /* smoovmux-relay */,
 			);
 		};
 /* End PBXProject section */
@@ -257,7 +175,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				59555B820EC2FF2F399A57B4 /* Assets.xcassets in Resources */,
-				EBEA37A1B8042887DBA55A19 /* BUILD.md in Resources */,
 				63573138A6376637B5EE44A0 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -265,7 +182,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		C78110D485EA9CAFE9A7A8B4 /* Embed Contents/Resources/bin */ = {
+		B91C47DFEA24C51FA1EF64A0 /* Embed Ghostty Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -273,33 +190,21 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/App/Resources/bin/tmux",
-				"$(SRCROOT)/App/Resources/bin/VERSION",
-				"$(BUILT_PRODUCTS_DIR)/smoovmux-relay",
+				"$(SRCROOT)/ghostty/zig-out/share/terminfo/78/xterm-ghostty",
 			);
-			name = "Embed Contents/Resources/bin";
+			name = "Embed Ghostty Resources";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/bin/tmux",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/bin/VERSION",
-				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/bin/smoovmux-relay",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/terminfo/78/xterm-ghostty",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\nSRC_DIR=\"${SRCROOT}/App/Resources/bin\"\nDEST_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources/bin\"\nmkdir -p \"$DEST_DIR\"\ncp \"$SRC_DIR/tmux\" \"$DEST_DIR/tmux\"\ncp \"$SRC_DIR/VERSION\" \"$DEST_DIR/VERSION\"\ncp \"${BUILT_PRODUCTS_DIR}/smoovmux-relay\" \"$DEST_DIR/smoovmux-relay\"\ncodesign --force --sign - \"$DEST_DIR/smoovmux-relay\"\n";
+			shellScript = "set -euo pipefail\nSRC_SHARE=\"${SRCROOT}/ghostty/zig-out/share\"\nDEST_RESOURCES=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources\"\n\nif [ ! -d \"$SRC_SHARE/terminfo\" ] || [ ! -d \"$SRC_SHARE/ghostty\" ]; then\n  echo \"error: Ghostty resources missing under $SRC_SHARE\" >&2\n  echo \"run ./scripts/setup.sh to rebuild GhosttyKit.xcframework and resources\" >&2\n  exit 1\nfi\n\nrm -rf \"$DEST_RESOURCES/terminfo\" \"$DEST_RESOURCES/ghostty\"\nditto \"$SRC_SHARE/terminfo\" \"$DEST_RESOURCES/terminfo\"\nditto \"$SRC_SHARE/ghostty\" \"$DEST_RESOURCES/ghostty\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		25A7990286C10D14850C033B /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				4A37C4B3BDE4736C825840FF /* main.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		6EBFA17F46021DE654015CEE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -315,14 +220,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		11905A3322A197ED75C38EEB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 01222EEB278BB46C6439409C /* smoovmux-relay */;
-			targetProxy = 166453A8E992B2CB199F8997 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		17D3C3E69F2B2AC453E1E6E7 /* Debug */ = {
@@ -389,23 +286,6 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-			};
-			name = Debug;
-		};
-		60E59C07B8B5AD17C2265D45 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = "pw.dbu.smoovmux-relay";
-				PRODUCT_NAME = "smoovmux-relay";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
@@ -494,23 +374,6 @@
 			};
 			name = Release;
 		};
-		C79E0673F065F544D1889177 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = NO;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = "pw.dbu.smoovmux-relay";
-				PRODUCT_NAME = "smoovmux-relay";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-			};
-			name = Release;
-		};
 		CD3325E5D78F6D26C8B8399B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -557,15 +420,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		E21F70E34D4C9F64821C7816 /* Build configuration list for PBXNativeTarget "smoovmux-relay" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				60E59C07B8B5AD17C2265D45 /* Debug */,
-				C79E0673F065F544D1889177 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -579,14 +433,6 @@
 		1B5CAD7542000F8E9352D199 /* SessionCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SessionCore;
-		};
-		4F0FDDE3BBB4CB5BEB3303A7 /* PaneRelay */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = PaneRelay;
-		};
-		A886712DBF464A5C79DD0260 /* TmuxCC */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = TmuxCC;
 		};
 		C67CFDE7E11DB034CD808C94 /* SmoovLog */ = {
 			isa = XCSwiftPackageProductDependency;

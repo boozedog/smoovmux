@@ -19,14 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     self.ghosttyApp = app
 
-    let pane: PaneController
-    do {
-      pane = try PaneController(ghosttyApp: app)
-    } catch {
-      SmoovLog.error("PaneController init failed: \(error)")
-      NSApp.terminate(nil)
-      return
-    }
+    let pane = PaneController(ghosttyApp: app)
     self.pane = pane
 
     let controller = MainWindowController(pane: pane)

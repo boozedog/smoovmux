@@ -5,11 +5,10 @@
 #   - DerivedData path  (/tmp/smoovmux-derived-<tag>)
 #   - bundle id         (pw.dbu.smoovmux.dev.<tag>)
 #   - display name      ("smoovmux DEV <tag>")
-#   - tmux socket        (SMOOVMUX_TMUX_SOCKET=/tmp/smoovmux-tmux-<tag>.sock)
 #   - log path           (/tmp/smoovmux-debug-<tag>.log)
 #
-# Multiple tagged builds coexist. An untagged build is rejected on purpose —
-# bare `xcodebuild` or "smoovmux DEV.app" collide on sockets and bundle ids.
+# Multiple tagged builds coexist. An untagged build is rejected on purpose
+# so bare `xcodebuild` or "smoovmux DEV.app" do not collide on bundle ids.
 #
 # Usage:
 #   ./scripts/reload.sh --tag <slug> [--launch]
@@ -115,6 +114,5 @@ printf 'Log path: %s\n' "$LOG_PATH"
 if [ "$LAUNCH" -eq 1 ]; then
   log "launching"
   SMOOVMUX_TAG="$TAG" \
-  SMOOVMUX_TMUX_SOCKET="/tmp/smoovmux-tmux-$TAG.sock" \
   open -n "$APP_PATH" --stdout "$LOG_PATH" --stderr "$LOG_PATH"
 fi

@@ -1,7 +1,6 @@
 import Foundation
 
-/// Kind of tmux-backed session. Every pane in smoovmux is a tmux pane; the
-/// kind captures *where* the tmux server is running.
+/// Kind of session hosted by smoovmux.
 public enum SessionKind: Sendable, Equatable {
   case localShell
   case ssh(host: String)

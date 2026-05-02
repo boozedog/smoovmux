@@ -36,21 +36,21 @@ struct BinaryResolverTests {
 
   @Test func overrideIsUsedWhenExecutable() throws {
     let override = "/bin/ls"
-    let url = try BinaryResolver.resolve("tmux", override: override)
+    let url = try BinaryResolver.resolve("ssh", override: override)
     #expect(url.path == override)
   }
 
   @Test func overrideThatIsMissingThrowsNotExecutable() {
     let bogus = "/tmp/smoovmux-bogus-\(UUID().uuidString)"
     #expect(throws: BinaryResolver.ResolveError.notExecutable(path: bogus)) {
-      _ = try BinaryResolver.resolve("tmux", override: bogus)
+      _ = try BinaryResolver.resolve("ssh", override: bogus)
     }
   }
 
   @Test func overrideThatPointsAtDirectoryThrowsNotExecutable() {
     let dir = "/tmp"
     #expect(throws: BinaryResolver.ResolveError.notExecutable(path: dir)) {
-      _ = try BinaryResolver.resolve("tmux", override: dir)
+      _ = try BinaryResolver.resolve("ssh", override: dir)
     }
   }
 
@@ -61,7 +61,7 @@ struct BinaryResolverTests {
     defer { try? FileManager.default.removeItem(atPath: path) }
 
     #expect(throws: BinaryResolver.ResolveError.notExecutable(path: path)) {
-      _ = try BinaryResolver.resolve("tmux", override: path)
+      _ = try BinaryResolver.resolve("ssh", override: path)
     }
   }
 
@@ -81,7 +81,7 @@ struct BinaryResolverTests {
 
   @Test func overridePreemptsFallback() throws {
     let url = try BinaryResolver.resolve(
-      "tmux",
+      "ssh",
       override: "/bin/ls",
       fallback: "/bin/cat"
     )

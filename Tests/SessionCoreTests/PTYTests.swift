@@ -4,7 +4,7 @@ import Testing
 
 @testable import SessionCore
 
-@Suite("PTY")
+@Suite("PTY", .serialized)
 struct PTYTests {
   @Test func spawnCatEchoesAndForwards() async throws {
     let child = try PTY.spawn(

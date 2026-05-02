@@ -33,28 +33,11 @@ targets:
     resources:
       - path: App/Assets.xcassets
       - path: App/Localizable.xcstrings
-      # App/Resources/bin/ is copied into Contents/Resources/bin/ via the
-      # postBuildScript below rather than a resources phase — xcodegen
-      # 2.44 ignores `type: folder` and expands the directory into a
-      # PBXGroup, which drops the `tmux` executable and `VERSION` from
-      # the Resources build phase. Doing the copy explicitly also lets
-      # the same phase drop `smoovmux-relay` next to them. See #22, #26.
     dependencies:
-      - package: smoovmux-core
-        product: TmuxCC
       - package: smoovmux-core
         product: SessionCore
       - package: smoovmux-core
         product: SmoovLog
-      - package: smoovmux-core
-        product: PaneRelay
-      # Ensures the relay tool is built before the app; its binary is
-      # dropped into Contents/Resources/bin/ by the post-build script
-      # below. We don't embed it via Xcode's "Embed & Sign" because that
-      # lands CLI tools under Contents/MacOS/, not a nested Resources dir.
-      - target: smoovmux-relay
-        embed: false
-        link: false
       # GhosttyKit.xcframework's macOS slice is a static archive
       # (`ghostty-internal.a`). Static archives aren't embedded — the code
       # is linked into the app binary at build time. `embed: false` keeps
@@ -82,42 +65,26 @@ targets:
           - "$(inherited)"
           - "$(SRCROOT)"
     postBuildScripts:
-      - name: Embed Contents/Resources/bin
-        # Populates the bundled `bin/` directory with the committed tmux
-        # + VERSION from App/Resources/bin and the freshly-built
-        # smoovmux-relay from $BUILT_PRODUCTS_DIR. The relay is ad-hoc
-        # signed so it launches under hardened runtime locally; the
-        # committed tmux is already ad-hoc signed by scripts/build-tmux.sh.
-        # Release signing happens in the (future) release pipeline.
-        # See #22, #26.
+      - name: Embed Ghostty Resources
+        # libghostty discovers resources by walking up from the app binary and
+        # looking for Contents/Resources/terminfo/78/xterm-ghostty. Once found,
+        # it exposes Contents/Resources/ghostty as GHOSTTY_RESOURCES_DIR and
+        # sets TERMINFO to Contents/Resources/terminfo for child shells.
         script: |
           set -euo pipefail
-          SRC_DIR="${SRCROOT}/App/Resources/bin"
-          DEST_DIR="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources/bin"
-          mkdir -p "$DEST_DIR"
-          cp "$SRC_DIR/tmux" "$DEST_DIR/tmux"
-          cp "$SRC_DIR/VERSION" "$DEST_DIR/VERSION"
-          cp "${BUILT_PRODUCTS_DIR}/smoovmux-relay" "$DEST_DIR/smoovmux-relay"
-          codesign --force --sign - "$DEST_DIR/smoovmux-relay"
-        inputFiles:
-          - $(SRCROOT)/App/Resources/bin/tmux
-          - $(SRCROOT)/App/Resources/bin/VERSION
-          - $(BUILT_PRODUCTS_DIR)/smoovmux-relay
-        outputFiles:
-          - $(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/bin/tmux
-          - $(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/bin/VERSION
-          - $(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/bin/smoovmux-relay
+          SRC_SHARE="${SRCROOT}/ghostty/zig-out/share"
+          DEST_RESOURCES="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources"
 
-  smoovmux-relay:
-    type: tool
-    platform: macOS
-    sources:
-      - path: Sources/smoovmux-relay
-    settings:
-      base:
-        PRODUCT_NAME: smoovmux-relay
-        SKIP_INSTALL: YES
-        CODE_SIGN_STYLE: Automatic
-        # Stand-alone CLI; no entitlements, no hardened runtime at build
-        # time — the post-build copy into the app re-signs ad-hoc.
-        ENABLE_HARDENED_RUNTIME: NO
+          if [ ! -d "$SRC_SHARE/terminfo" ] || [ ! -d "$SRC_SHARE/ghostty" ]; then
+            echo "error: Ghostty resources missing under $SRC_SHARE" >&2
+            echo "run ./scripts/setup.sh to rebuild GhosttyKit.xcframework and resources" >&2
+            exit 1
+          fi
+
+          rm -rf "$DEST_RESOURCES/terminfo" "$DEST_RESOURCES/ghostty"
+          ditto "$SRC_SHARE/terminfo" "$DEST_RESOURCES/terminfo"
+          ditto "$SRC_SHARE/ghostty" "$DEST_RESOURCES/ghostty"
+        inputFiles:
+          - $(SRCROOT)/ghostty/zig-out/share/terminfo/78/xterm-ghostty
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Contents/Resources/terminfo/78/xterm-ghostty

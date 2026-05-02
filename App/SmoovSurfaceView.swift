@@ -6,15 +6,9 @@ import SmoovLog
 ///
 /// Architecture note: libghostty owns the PTY for this surface. Whatever
 /// binary we put in `Config.command` runs as the PTY child, and bytes flow
-/// through ghostty's own termio backend — not through Swift. That's why
-/// there is no `write(_:)` or `onInput` API here, despite issue #25's
-/// original API sketch. Smoovmux passes `smoovmux-relay` + a
-/// `SMOOVMUX_PANE_SOCKET` env var from the outside; the relay bridges to
-/// tmux-CC. See #26/#29/`Sources/smoovmux-relay`.
-///
-/// For M1 / issue #25 alone, `Config.command` is left nil so libghostty
-/// spawns the user's login shell from its config defaults — that's enough
-/// to prove rendering + typing work before we layer tmux on top in #26.
+/// through ghostty's own termio backend, not through Swift. Leaving
+/// `Config.command` nil makes libghostty spawn the user's login shell from
+/// its config defaults.
 @MainActor
 final class SmoovSurfaceView: NSView {
   struct Config {
@@ -26,7 +20,6 @@ final class SmoovSurfaceView: NSView {
   private(set) var cellSize: (cols: UInt16, rows: UInt16) = (0, 0)
 
   /// Called on `setFrameSize` whenever libghostty recomputes the cell grid.
-  /// Upstream (#26) uses this to tell tmux `refresh-client -C <cols>x<rows>`.
   var onResize: ((UInt16, UInt16) -> Void)?
 
   nonisolated(unsafe) private var surface: ghostty_surface_t?

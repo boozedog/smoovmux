@@ -24,14 +24,15 @@ public enum PTYError: Error, Equatable {
 }
 
 /// Thin Swift wrapper around `openpty(3)` + `fork(2)` + `execve(2)` for
-/// spawning a child process whose controlling tty is the PTY slave. Shared by
-/// local tmux (M1) and remote ssh (M5).
+/// spawning a child process whose controlling tty is the PTY slave. Useful for
+/// app-owned local sessions and future remote/session supervisor work.
 ///
 /// We can't use `posix_spawn` here: establishing a controlling tty requires
 /// `ioctl(slave, TIOCSCTTY, 0)` *between* `setsid` and `exec`, and
 /// `posix_spawn` has no hook for running custom code in that window. Without a
-/// controlling tty, `tmux -CC` emits its DCS opener and exits immediately —
-/// see ghostty's `Command.zig` / `pty.zig` for the same workaround.
+/// controlling tty, interactive programs can detect a degraded terminal and
+/// exit or disable job-control behavior; see ghostty's `Command.zig` /
+/// `pty.zig` for the same workaround.
 public enum PTY {
   // macOS sys/ttycom.h: TIOCSCTTY = _IO('t', 97). Darwin's Swift overlay does
   // not export this constant.

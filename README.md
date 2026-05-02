@@ -1,14 +1,14 @@
 # smoovmux
 
-Native macOS tmux-first terminal multiplexer, built on [libghostty](https://github.com/ghostty-org/ghostty).
+Native macOS terminal workspace, built on [libghostty](https://github.com/ghostty-org/ghostty).
 
-**Status:** M0 scaffold. Nothing user-facing works yet.
+**Status:** M1 prototype. One terminal pane renders and accepts input.
 
 ## Stack
 
 - Swift 6 · AppKit (hot paths) · SwiftUI (chrome)
 - libghostty via `GhosttyKit.xcframework` (our fork, vendored as a submodule)
-- SwiftData · tmux control mode (`-CC`)
+- SwiftData
 - macOS 15+
 
 ## Dev quickstart
@@ -30,6 +30,6 @@ direnv allow                          # activates devenv (xcodegen, swiftlint, �
 
 ## Contributing
 
-Read [CLAUDE.md](./CLAUDE.md) first — it covers the load-bearing rules (tmux mandatory, no native NSWindow tabs, privacy constraints, git signing, build tagging).
+Read [CLAUDE.md](./CLAUDE.md) first — it covers the load-bearing rules (no native NSWindow tabs, privacy constraints, git signing, build tagging).
 
 Milestones and issues: <https://github.com/boozedog/smoovmux/issues>

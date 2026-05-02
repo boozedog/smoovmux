@@ -2,21 +2,20 @@ import Darwin
 import Foundation
 import SmoovLog
 
-/// Resolves external binaries (`tmux`, `ssh`, `git`, `lazygit`, login shell)
+/// Resolves external binaries (`ssh`, `git`, `lazygit`, login shell)
 /// against the user's interactive-shell `PATH`, not launchd's minimal one.
 ///
 /// Resolution order for a given binary `name`:
 ///
 ///   1. **Explicit override** — a path supplied by settings (`ssh.path`,
-///      `tmux.path`, ...). If the override is non-empty it is used verbatim;
+///      `git.path`, ...). If the override is non-empty it is used verbatim;
 ///      the resolver refuses to fall through when an override is set but
 ///      unusable, so the user sees a clear error instead of silent fallback.
 ///   2. **Login-shell PATH** — `$SHELL -l -c 'printf %s "$PATH"'` is run once
 ///      per app session and the result is cached. Each directory is walked in
 ///      order looking for a regular file that's executable by us.
-///   3. **Fallback path** — an app-supplied default (e.g. the bundled `tmux`
-///      inside `Contents/Resources/bin/`). Only consulted if the PATH search
-///      turned up nothing.
+///   3. **Fallback path** — an app-supplied default. Only consulted if the
+///      PATH search turned up nothing.
 ///
 /// Setting `SMOOVMUX_DEBUG_PATH=1` in the environment emits a log line for
 /// every resolution so users can diagnose why a binary was picked.
@@ -78,12 +77,12 @@ public enum BinaryResolver {
   /// Resolve `name` to an executable file URL.
   ///
   /// - Parameters:
-  ///   - name: Binary basename (e.g. `"tmux"`).
+  ///   - name: Binary basename (e.g. `"ssh"`).
   ///   - override: User-supplied absolute path. When non-nil and non-empty
   ///     the resolver refuses to fall back — unusable overrides throw
   ///     `.notExecutable`.
   ///   - fallback: Absolute path consulted last, after the PATH search. Used
-  ///     for the bundled `tmux` inside the .app.
+  ///     for app-provided helpers.
   public static func resolve(
     _ name: String,
     override: String? = nil,

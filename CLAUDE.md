@@ -1,10 +1,10 @@
 # smoovmux — Claude context
 
-Native macOS app. A tmux-first terminal multiplexer built on libghostty, with optional SSH.
+Native macOS terminal workspace built on libghostty, with optional SSH.
 
 ## Core principles (load-bearing rules)
 
-- **tmux is mandatory.** Every pane is a tmux pane. No non-tmux mode. (#16)
+- **tmux is just a terminal app.** Users who want tmux run it inside a normal smoovmux pane; smoovmux does not control tmux with `-CC`.
 - **Never use native `NSWindow` tabs.** No `addTabbedWindow`, no `tabbingMode`. AeroSpace/yabai see native tabs as separate windows. Custom tab bar in a single NSWindow. (#2)
 - **AppKit on hot paths, SwiftUI on chrome.** Terminal surface, window controller → AppKit. Settings, sidebar, palette → SwiftUI. (#1)
 - **External binaries resolved via user's login-shell PATH**, not launchd's minimal env. (#19)
@@ -15,14 +15,12 @@ Native macOS app. A tmux-first terminal multiplexer built on libghostty, with op
 - **UI:** AppKit for terminal surface + window management; SwiftUI for settings, sidebar, command palette.
 - **Rendering:** libghostty via `GhosttyKit.xcframework`, built from our `ghostty` submodule (fork of `ghostty-org/ghostty`).
 - **Persistence:** SwiftData (macOS 15+). Schema decisions locked in #4.
-- **tmux wire format:** `-CC` control mode. Decision in #3.
 - **SSH:** TBD in #5. Assume system `ssh(1)` until decided.
 - **Deployment target:** macOS 15 (required for cleaner SwiftData APIs).
 
 ## Modules (SPM, at repo root)
 
-- `TmuxCC` — control-mode parser + layout types. Zero deps. Has unit tests.
-- `SessionCore` — `Session` protocol + session-kind enums. No AppKit/SwiftUI deps.
+- `SessionCore` — `Session` protocol, session-kind enums, PTY helpers, binary resolution. No AppKit/SwiftUI deps.
 - `SmoovLog` — logging facade + `redact()`. Pure value types.
 
 App target in `smoovmux.xcodeproj` depends on these via local SPM package reference.
@@ -118,7 +116,6 @@ Reserved. Populate when we start wiring the surface view in M1. For now, the sho
 ## Reference clones on this machine
 
 - `~/projects/cmux` — another libghostty-based macOS app; CLAUDE.md has a pitfall list worth skimming.
-- `~/projects/iterm2` — canonical tmux-CC reference (`sources/Tmux*.m`).
 - `~/projects/ghostty` — upstream, for `macos/Sources/` and `src/apprt/embedded.zig` C API.
 
 ## Milestones
