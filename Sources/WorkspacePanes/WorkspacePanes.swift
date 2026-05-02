@@ -7,9 +7,11 @@ public enum WorkspacePaneSplitDirection: String, Equatable, Sendable {
 
 public struct WorkspacePaneLeaf: Equatable, Identifiable, Sendable {
   public let id: UUID
+  public var cwd: URL?
 
-  public init(id: UUID = UUID()) {
+  public init(id: UUID = UUID(), cwd: URL? = nil) {
     self.id = id
+    self.cwd = cwd
   }
 }
 
@@ -60,6 +62,14 @@ public struct WorkspacePaneTree: Equatable, Sendable {
     root.leaves
   }
 
+  public var selectedPane: WorkspacePaneLeaf? {
+    root.leaf(id: selectedPaneId)
+  }
+
+  public var lastKnownCwd: URL? {
+    leaves.reversed().compactMap(\.cwd).first
+  }
+
   @discardableResult
   public mutating func selectPane(_ id: UUID) -> Bool {
     guard root.containsLeaf(id: id) else { return false }
@@ -74,6 +84,23 @@ public struct WorkspacePaneTree: Equatable, Sendable {
     splitId: UUID = UUID()
   ) -> UUID? {
     splitPane(selectedPaneId, direction: direction, newPaneId: newPaneId, splitId: splitId)
+  }
+
+  @discardableResult
+  public mutating func updateCwd(_ cwd: URL?, for paneId: UUID) -> Bool {
+    guard
+      let next = root.replacingLeaf(
+        id: paneId,
+        with: { leaf in
+          var nextLeaf = leaf
+          nextLeaf.cwd = cwd
+          return .leaf(nextLeaf)
+        })
+    else {
+      return false
+    }
+    root = next
+    return true
   }
 
   @discardableResult
@@ -92,7 +119,7 @@ public struct WorkspacePaneTree: Equatable, Sendable {
               id: splitId,
               direction: direction,
               first: .leaf(leaf),
-              second: .leaf(WorkspacePaneLeaf(id: newPaneId))
+              second: .leaf(WorkspacePaneLeaf(id: newPaneId, cwd: leaf.cwd))
             )
           )
         })
@@ -144,6 +171,15 @@ extension WorkspacePaneNode {
       return leaf.id == id
     case .split(let split):
       return split.first.containsLeaf(id: id) || split.second.containsLeaf(id: id)
+    }
+  }
+
+  fileprivate func leaf(id: UUID) -> WorkspacePaneLeaf? {
+    switch self {
+    case .leaf(let leaf):
+      return leaf.id == id ? leaf : nil
+    case .split(let split):
+      return split.first.leaf(id: id) ?? split.second.leaf(id: id)
     }
   }
 

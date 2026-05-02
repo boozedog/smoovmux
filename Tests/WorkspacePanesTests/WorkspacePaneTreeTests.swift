@@ -15,6 +15,16 @@ struct WorkspacePaneTreeTests {
     #expect(tree.root == .leaf(WorkspacePaneLeaf(id: id)))
   }
 
+  @Test("initial tree can track the root pane cwd")
+  func initialTreeCanTrackRootPaneCwd() {
+    let id = paneID(1)
+    let cwd = URL(fileURLWithPath: "/Users/alice/src/smoovmux")
+    let tree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(id: id, cwd: cwd)))
+
+    #expect(tree.selectedPane?.cwd == cwd)
+    #expect(tree.lastKnownCwd == cwd)
+  }
+
   @Test("invalid initial selection falls back to first leaf")
   func invalidInitialSelectionFallsBackToFirstLeaf() {
     let first = paneID(1)
@@ -63,6 +73,32 @@ struct WorkspacePaneTreeTests {
           second: .leaf(WorkspacePaneLeaf(id: second))
         )
     )
+  }
+
+  @Test("splitting selected pane inherits its cwd")
+  func splittingSelectedPaneInheritsCwd() {
+    let first = paneID(1)
+    let second = paneID(2)
+    let cwd = URL(fileURLWithPath: "/Users/alice/src/smoovmux")
+    var tree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(id: first, cwd: cwd)))
+
+    tree.splitSelectedPane(direction: .right, newPaneId: second, splitId: paneID(10))
+
+    #expect(tree.leaves.map(\.cwd) == [cwd, cwd])
+    #expect(tree.selectedPane?.cwd == cwd)
+  }
+
+  @Test("updating a pane cwd updates last known cwd")
+  func updatingPaneCwdUpdatesLastKnownCwd() {
+    let first = paneID(1)
+    let cwd = URL(fileURLWithPath: "/tmp/repo")
+    var tree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(id: first)))
+
+    let didUpdate = tree.updateCwd(cwd, for: first)
+
+    #expect(didUpdate == true)
+    #expect(tree.selectedPane?.cwd == cwd)
+    #expect(tree.lastKnownCwd == cwd)
   }
 
   @Test("split direction is preserved for vertical split")

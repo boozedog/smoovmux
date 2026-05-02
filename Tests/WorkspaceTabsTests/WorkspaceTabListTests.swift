@@ -37,6 +37,30 @@ struct WorkspaceTabListTests {
     #expect(list.tabs == [tab])
   }
 
+  @Test("adding a tab names it from cwd basename when available")
+  func addTabNamesFromCwdBasename() {
+    var list = WorkspaceTabList()
+    let tab = list.addTab(id: tabID(1), cwd: URL(fileURLWithPath: "/Users/alice/src/smoovmux"))
+
+    #expect(tab.title == "smoovmux")
+    #expect(tab.cwd == URL(fileURLWithPath: "/Users/alice/src/smoovmux"))
+  }
+
+  @Test("updating cwd renames a default-titled tab but preserves custom titles")
+  func updatingCwdRenamesDefaultTitleOnly() {
+    var list = WorkspaceTabList()
+    let first = list.addTab(id: tabID(1))
+    let second = list.addTab(id: tabID(2), title: "custom")
+
+    list.updateCwd(URL(fileURLWithPath: "/tmp/repo"), for: first.id)
+    list.updateCwd(URL(fileURLWithPath: "/tmp/other"), for: second.id)
+
+    #expect(list.tabs[0].title == "repo")
+    #expect(list.tabs[0].cwd == URL(fileURLWithPath: "/tmp/repo"))
+    #expect(list.tabs[1].title == "custom")
+    #expect(list.tabs[1].cwd == URL(fileURLWithPath: "/tmp/other"))
+  }
+
   @Test("adding a tab without selecting preserves the current selected tab")
   func addWithoutSelectingPreservesSelection() {
     var list = WorkspaceTabList()

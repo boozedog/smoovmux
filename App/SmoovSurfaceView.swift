@@ -12,7 +12,8 @@ import SmoovLog
 @MainActor
 final class SmoovSurfaceView: NSView {
   struct Config {
-    var command: String?
+    var command: String? = nil
+    var workingDirectory: URL? = nil
     var env: [String: String] = [:]
   }
 
@@ -24,6 +25,7 @@ final class SmoovSurfaceView: NSView {
   var onFocus: (() -> Void)?
   var onSplitRequested: ((ghostty_action_split_direction_e) -> Void)?
   var onCloseRequested: (() -> Void)?
+  var onCwdChanged: ((URL) -> Void)?
 
   nonisolated(unsafe) private var surface: ghostty_surface_t?
   private var focused = false
@@ -95,26 +97,36 @@ final class SmoovSurfaceView: NSView {
       return step(0, [])
     }
 
+    func withOptionalCString<T>(
+      _ string: String?,
+      _ body: (UnsafePointer<CChar>?) -> T
+    ) -> T {
+      guard let string else { return body(nil) }
+      return string.withCString(body)
+    }
+
     let command = config.command
-    return (command ?? "").withCString { cCommand -> ghostty_surface_t? in
-      if command != nil {
-        cfg.command = cCommand
-      }
-      return withCStrings(envKeys) { keyPtrs in
-        withCStrings(envValues) { valuePtrs in
-          var entries = [ghostty_env_var_s]()
-          entries.reserveCapacity(envKeys.count)
-          for i in 0..<envKeys.count {
-            entries.append(ghostty_env_var_s(key: keyPtrs[i], value: valuePtrs[i]))
-          }
-          return entries.withUnsafeMutableBufferPointer { buffer in
-            cfg.env_vars = buffer.baseAddress
-            cfg.env_var_count = envKeys.count
-            guard let s = ghostty_surface_new(app.cValue, &cfg) else {
-              SmoovLog.error("ghostty_surface_new returned nil")
-              return nil
+    let workingDirectory = config.workingDirectory?.path
+    return withOptionalCString(command) { cCommand -> ghostty_surface_t? in
+      cfg.command = cCommand
+      return withOptionalCString(workingDirectory) { cWorkingDirectory in
+        cfg.working_directory = cWorkingDirectory
+        return withCStrings(envKeys) { keyPtrs in
+          withCStrings(envValues) { valuePtrs in
+            var entries = [ghostty_env_var_s]()
+            entries.reserveCapacity(envKeys.count)
+            for i in 0..<envKeys.count {
+              entries.append(ghostty_env_var_s(key: keyPtrs[i], value: valuePtrs[i]))
             }
-            return s
+            return entries.withUnsafeMutableBufferPointer { buffer in
+              cfg.env_vars = buffer.baseAddress
+              cfg.env_var_count = envKeys.count
+              guard let s = ghostty_surface_new(app.cValue, &cfg) else {
+                SmoovLog.error("ghostty_surface_new returned nil")
+                return nil
+              }
+              return s
+            }
           }
         }
       }
@@ -142,6 +154,11 @@ final class SmoovSurfaceView: NSView {
 
   func handleGhosttyCloseAction() {
     onCloseRequested?()
+  }
+
+  func handleGhosttyPwdAction(_ pwd: String) {
+    guard !pwd.isEmpty else { return }
+    onCwdChanged?(URL(fileURLWithPath: pwd))
   }
 
   // MARK: - NSView overrides

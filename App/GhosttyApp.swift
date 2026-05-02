@@ -97,6 +97,13 @@ final class GhosttyApp {
         surfaceView.handleGhosttyCloseAction()
       }
       return true
+    case GHOSTTY_ACTION_PWD:
+      guard let surfaceView = surfaceView(from: target), let pwd = action.action.pwd.pwd else { return false }
+      let cwd = String(cString: pwd)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyPwdAction(cwd)
+      }
+      return true
     default:
       SmoovLog.info("ghostty action tag=\(action.tag.rawValue) (unhandled)")
       return true

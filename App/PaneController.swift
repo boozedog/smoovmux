@@ -16,13 +16,16 @@ final class PaneController {
   let rootView = NSView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
 
   private let ghosttyApp: GhosttyApp
-  private var paneTree = WorkspacePaneTree()
+  private let onCwdChange: (URL) -> Void
+  private var paneTree: WorkspacePaneTree
   private var surfaceViews: [SmoovSurfaceView] = []
   private var paneIdsBySurfaceView: [ObjectIdentifier: UUID] = [:]
   private weak var focusedSurfaceView: SmoovSurfaceView?
 
-  init(ghosttyApp: GhosttyApp) {
+  init(ghosttyApp: GhosttyApp, initialCwd: URL? = nil, onCwdChange: @escaping (URL) -> Void = { _ in }) {
     self.ghosttyApp = ghosttyApp
+    self.onCwdChange = onCwdChange
+    self.paneTree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(cwd: initialCwd)))
     rootView.wantsLayer = true
 
     let surfaceView = makeSurfaceView(id: paneTree.selectedPaneId)
@@ -65,7 +68,10 @@ final class PaneController {
   }
 
   private func makeSurfaceView(id: UUID) -> SmoovSurfaceView {
-    let surfaceView = SmoovSurfaceView(app: ghosttyApp, config: SmoovSurfaceView.Config())
+    let surfaceView = SmoovSurfaceView(
+      app: ghosttyApp,
+      config: SmoovSurfaceView.Config(workingDirectory: cwd(for: id))
+    )
     paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] = id
     surfaceView.onFocus = { [weak self, weak surfaceView] in
       guard let self, let surfaceView else { return }
@@ -87,7 +93,18 @@ final class PaneController {
     surfaceView.onCloseRequested = { [weak self] in
       self?.closePane()
     }
+    surfaceView.onCwdChanged = { [weak self, weak surfaceView] cwd in
+      guard let self, let surfaceView,
+        let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)]
+      else { return }
+      paneTree.updateCwd(cwd, for: id)
+      onCwdChange(cwd)
+    }
     return surfaceView
+  }
+
+  private func cwd(for paneId: UUID) -> URL? {
+    paneTree.leaves.first { $0.id == paneId }?.cwd
   }
 
   private func splitFocusedSurface(direction: SplitDirection) {

@@ -3,10 +3,14 @@ import Foundation
 public struct WorkspaceTabRecord: Identifiable, Equatable, Sendable {
   public let id: UUID
   public var title: String
+  public var cwd: URL?
+  public var usesAutomaticTitle: Bool
 
-  public init(id: UUID = UUID(), title: String) {
+  public init(id: UUID = UUID(), title: String, cwd: URL? = nil, usesAutomaticTitle: Bool = false) {
     self.id = id
     self.title = title
+    self.cwd = cwd
+    self.usesAutomaticTitle = usesAutomaticTitle
   }
 }
 
@@ -27,21 +31,39 @@ public struct WorkspaceTabList: Equatable, Sendable {
       } ?? tabs.first?.id
   }
 
+  public var lastKnownCwd: URL? {
+    tabs.reversed().compactMap(\.cwd).first
+  }
+
   @discardableResult
   public mutating func addTab(
     id: UUID = UUID(),
     title: String? = nil,
+    cwd: URL? = nil,
     select: Bool = true
   ) -> WorkspaceTabRecord {
+    let automaticTitle = title == nil
     let tab = WorkspaceTabRecord(
       id: id,
-      title: title ?? "Terminal \(tabs.count + 1)"
+      title: title ?? Self.title(for: cwd, fallbackIndex: tabs.count + 1),
+      cwd: cwd,
+      usesAutomaticTitle: automaticTitle
     )
     tabs.append(tab)
     if select || selectedTabId == nil {
       selectedTabId = tab.id
     }
     return tab
+  }
+
+  @discardableResult
+  public mutating func updateCwd(_ cwd: URL?, for id: UUID) -> Bool {
+    guard let index = tabs.firstIndex(where: { $0.id == id }) else { return false }
+    tabs[index].cwd = cwd
+    if tabs[index].usesAutomaticTitle {
+      tabs[index].title = Self.title(for: cwd, fallbackIndex: index + 1)
+    }
+    return true
   }
 
   @discardableResult
@@ -80,5 +102,11 @@ public struct WorkspaceTabList: Equatable, Sendable {
 
     let nextIndex = (currentIndex + offset + tabs.count) % tabs.count
     selectedTabId = tabs[nextIndex].id
+  }
+
+  private static func title(for cwd: URL?, fallbackIndex: Int) -> String {
+    guard let cwd else { return "Terminal \(fallbackIndex)" }
+    let component = cwd.standardizedFileURL.lastPathComponent
+    return component.isEmpty ? "Terminal \(fallbackIndex)" : component
   }
 }

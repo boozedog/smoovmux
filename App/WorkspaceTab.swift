@@ -28,8 +28,14 @@ final class WorkspaceTabManager: ObservableObject {
 
   @discardableResult
   func addTab(select: Bool = true) -> WorkspaceTabRecord {
-    let tab = tabList.addTab(select: select)
-    panesByTabId[tab.id] = PaneController(ghosttyApp: ghosttyApp)
+    let tab = tabList.addTab(cwd: tabList.lastKnownCwd, select: select)
+    panesByTabId[tab.id] = PaneController(
+      ghosttyApp: ghosttyApp,
+      initialCwd: tab.cwd,
+      onCwdChange: { [weak self] cwd in
+        self?.tabList.updateCwd(cwd, for: tab.id)
+      }
+    )
     return tab
   }
 
