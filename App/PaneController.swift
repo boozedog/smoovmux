@@ -126,6 +126,8 @@ final class PaneController {
     splitView.addArrangedSubview(newSurfaceView)
     focusedSurfaceView = newSurfaceView
 
+    scheduleBalanceSplits()
+
     DispatchQueue.main.async { [weak newSurfaceView] in
       guard let newSurfaceView, let window = newSurfaceView.window else { return }
       window.makeFirstResponder(newSurfaceView)
@@ -148,7 +150,53 @@ final class PaneController {
 
     replace(parentSplitView, with: sibling)
     focusedSurfaceView = firstSurface(in: sibling) ?? surfaceViews.last
+    scheduleBalanceSplits()
     focusSelectedSurface()
+  }
+
+  private func scheduleBalanceSplits() {
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      rootView.layoutSubtreeIfNeeded()
+      balanceSplits(in: rootView)
+    }
+  }
+
+  private func balanceSplits(in view: NSView) {
+    guard let splitView = view as? NSSplitView else {
+      for subview in view.subviews {
+        balanceSplits(in: subview)
+      }
+      return
+    }
+
+    splitView.layoutSubtreeIfNeeded()
+    if splitView.arrangedSubviews.count == 2 {
+      let first = splitView.arrangedSubviews[0]
+      let second = splitView.arrangedSubviews[1]
+      let firstWeight = balanceWeight(of: first, matching: splitView.isVertical)
+      let secondWeight = balanceWeight(of: second, matching: splitView.isVertical)
+      let totalWeight = firstWeight + secondWeight
+      let length = splitView.isVertical ? splitView.bounds.width : splitView.bounds.height
+      let availableLength = length - splitView.dividerThickness
+      if totalWeight > 0, availableLength > 0 {
+        let position = availableLength * CGFloat(firstWeight) / CGFloat(totalWeight)
+        splitView.setPosition(position, ofDividerAt: 0)
+      }
+    }
+
+    for subview in splitView.arrangedSubviews {
+      balanceSplits(in: subview)
+    }
+  }
+
+  private func balanceWeight(of view: NSView, matching isVertical: Bool) -> Int {
+    guard let splitView = view as? NSSplitView, splitView.isVertical == isVertical else {
+      return 1
+    }
+    return splitView.arrangedSubviews.reduce(0) { total, subview in
+      total + balanceWeight(of: subview, matching: isVertical)
+    }
   }
 
   private func replace(_ oldView: NSView, with newView: NSView) {

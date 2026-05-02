@@ -166,6 +166,60 @@ struct WorkspacePaneTreeTests {
     #expect(tree.selectedPaneId == first)
   }
 
+  @Test("nested same-axis splits balance by visible leaf count")
+  func nestedSameAxisSplitsBalanceByLeafCount() {
+    let first = paneID(1)
+    let second = paneID(2)
+    let third = paneID(3)
+    let innerSplitId = paneID(10)
+    let outerSplitId = paneID(11)
+    let tree = WorkspacePaneTree(
+      root: split(
+        id: outerSplitId,
+        direction: .right,
+        first: .leaf(WorkspacePaneLeaf(id: first)),
+        second: split(
+          id: innerSplitId,
+          direction: .right,
+          first: .leaf(WorkspacePaneLeaf(id: second)),
+          second: .leaf(WorkspacePaneLeaf(id: third))
+        )
+      )
+    )
+
+    let fractions = tree.balancedSplitFractions
+
+    #expect(fractions[outerSplitId] == 1.0 / 3.0)
+    #expect(fractions[innerSplitId] == 0.5)
+  }
+
+  @Test("mixed-axis splits balance each group independently")
+  func mixedAxisSplitsBalanceIndependently() {
+    let first = paneID(1)
+    let second = paneID(2)
+    let third = paneID(3)
+    let innerSplitId = paneID(10)
+    let outerSplitId = paneID(11)
+    let tree = WorkspacePaneTree(
+      root: split(
+        id: outerSplitId,
+        direction: .right,
+        first: .leaf(WorkspacePaneLeaf(id: first)),
+        second: split(
+          id: innerSplitId,
+          direction: .down,
+          first: .leaf(WorkspacePaneLeaf(id: second)),
+          second: .leaf(WorkspacePaneLeaf(id: third))
+        )
+      )
+    )
+
+    let fractions = tree.balancedSplitFractions
+
+    #expect(fractions[outerSplitId] == 0.5)
+    #expect(fractions[innerSplitId] == 0.5)
+  }
+
   @Test("closing nested leaf collapses only its parent split")
   func closingNestedLeafCollapsesParent() {
     let first = paneID(1)

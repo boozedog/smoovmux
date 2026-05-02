@@ -70,6 +70,10 @@ public struct WorkspacePaneTree: Equatable, Sendable {
     leaves.reversed().compactMap(\.cwd).first
   }
 
+  public var balancedSplitFractions: [UUID: Double] {
+    root.balancedSplitFractions
+  }
+
   @discardableResult
   public mutating func selectPane(_ id: UUID) -> Bool {
     guard root.containsLeaf(id: id) else { return false }
@@ -147,6 +151,32 @@ public struct WorkspacePaneTree: Equatable, Sendable {
 }
 
 extension WorkspacePaneNode {
+  fileprivate var balancedSplitFractions: [UUID: Double] {
+    switch self {
+    case .leaf:
+      return [:]
+    case .split(let split):
+      let firstWeight = split.first.balanceWeight(for: split.direction)
+      let secondWeight = split.second.balanceWeight(for: split.direction)
+      var fractions = split.first.balancedSplitFractions.merging(split.second.balancedSplitFractions) { first, _ in
+        first
+      }
+      fractions[split.id] = Double(firstWeight) / Double(firstWeight + secondWeight)
+      return fractions
+    }
+  }
+
+  private func balanceWeight(for direction: WorkspacePaneSplitDirection) -> Int {
+    switch self {
+    case .leaf:
+      return 1
+    case .split(let split) where split.direction == direction:
+      return split.first.balanceWeight(for: direction) + split.second.balanceWeight(for: direction)
+    case .split:
+      return 1
+    }
+  }
+
   fileprivate var firstLeafId: UUID {
     switch self {
     case .leaf(let leaf):
