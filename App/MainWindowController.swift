@@ -23,7 +23,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
       backing: .buffered,
       defer: false
     )
-    window.title = "smoovmux"
+    window.title = Self.title(for: tabManager)
     window.titleVisibility = .hidden
     window.titlebarAppearsTransparent = true
     window.isMovableByWindowBackground = true
@@ -37,8 +37,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     super.init(window: window)
     window.delegate = self
     tabManager.onStateChange = { [weak self] in
+      self?.updateWindowTitle()
       self?.saveState()
     }
+    updateWindowTitle()
   }
 
   @objc func newTab(_ sender: Any?) {
@@ -87,6 +89,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
 
   func saveState() {
     stateStore.save(tabManager.snapshot(windowFrame: window.map { WorkspaceWindowFrame($0.frame) }))
+  }
+
+  private func updateWindowTitle() {
+    window?.title = Self.title(for: tabManager)
+  }
+
+  private static func title(for tabManager: WorkspaceTabManager) -> String {
+    tabManager.selectedTabTitle
   }
 
   @available(*, unavailable)

@@ -44,6 +44,17 @@ private struct WorkspaceMainArea: View {
   var body: some View {
     VStack(spacing: 0) {
       HStack(spacing: 6) {
+        HStack(spacing: 8) {
+          Text(tabManager.selectedPaneCwdDisplay)
+            .foregroundStyle(.secondary)
+          Text("•")
+            .foregroundStyle(.secondary.opacity(0.7))
+          Text(tabManager.topBarTitle)
+            .foregroundStyle(.primary.opacity(0.92))
+        }
+        .font(AppFonts.monospaced(size: 13, weight: .semibold))
+        .lineLimit(1)
+        .truncationMode(.tail)
         Spacer()
         ChromeIconButton(systemName: "rectangle.split.2x1", help: "Split Right") {
           tabManager.showLauncher(action: .splitRight)
@@ -62,6 +73,7 @@ private struct WorkspaceMainArea: View {
           tabManager.toggleRightSidebar()
         }
       }
+      .padding(.leading, 12)
       .padding(.trailing, 12)
       .frame(height: 42)
       .background(AppChromeColors.sidebarBackground)

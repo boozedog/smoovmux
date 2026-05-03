@@ -19,12 +19,14 @@ final class WorkspaceTabManager: ObservableObject {
   @Published var rightSidebarState = WorkspaceRightSidebarState()
   @Published private(set) var rightSidebarPane: CommandPaneController?
   @Published private(set) var rightSidebarMessage: String?
+  @Published private(set) var activePaneTitle: String?
 
   private let ghosttyApp: GhosttyApp
   private var panesByTabId: [UUID: PaneController] = [:]
   private let gitRootResolver = GitRootResolver()
   private var currentRightSidebarGitRoot: URL?
   private var rightSidebarRefreshTask: Task<Void, Never>?
+  private var rightSidebarAutoOpenTask: Task<Void, Never>?
   var onStateChange: (() -> Void)?
 
   var tabs: [WorkspaceTabRecord] {
@@ -48,6 +50,30 @@ final class WorkspaceTabManager: ObservableObject {
     selectedPane?.windowTitle ?? selectedTabTitle
   }
 
+  var topBarTitle: String {
+    if selectedPane?.selectedPaneCommand == nil {
+      return loginShellExecutableName
+    }
+    return activePaneTitle ?? selectedPaneCommandKind
+  }
+
+  var selectedPaneCwdDisplay: String {
+    activeCwd?.path.abbreviatedHomePathForTopBar ?? "~"
+  }
+
+  var selectedPaneCommandKind: String {
+    guard let command = selectedPane?.selectedPaneCommand else { return loginShellExecutableName }
+    let firstToken = command.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? command
+    let basename = URL(fileURLWithPath: firstToken).lastPathComponent
+    return basename.isEmpty ? command : basename
+  }
+
+  private var loginShellExecutableName: String {
+    let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "shell"
+    let basename = URL(fileURLWithPath: shell).lastPathComponent
+    return basename.isEmpty ? "shell" : basename
+  }
+
   var selectedPaneIsZoomed: Bool {
     selectedPane?.isZoomed ?? false
   }
@@ -64,6 +90,7 @@ final class WorkspaceTabManager: ObservableObject {
   func addTab(select: Bool = true, command: String? = nil) -> WorkspaceTabRecord {
     let tab = tabList.addTab(cwd: tabList.lastKnownCwd, select: select)
     panesByTabId[tab.id] = makePaneController(tabId: tab.id, initialCwd: tab.cwd, command: command)
+    updateActivePaneTitle()
     onStateChange?()
     return tab
   }
@@ -75,6 +102,8 @@ final class WorkspaceTabManager: ObservableObject {
     for tab in state.tabs {
       panesByTabId[tab.record.id] = makePaneController(tabId: tab.record.id, paneTree: tab.paneTree)
     }
+    updateSelectedTabCwd()
+    updateActivePaneTitle()
     onStateChange?()
     if rightSidebarState.isOpen {
       refreshRightSidebar()
@@ -123,21 +152,27 @@ final class WorkspaceTabManager: ObservableObject {
 
   func selectTab(_ id: UUID) {
     if tabList.selectTab(id) {
+      updateSelectedTabCwd()
+      updateActivePaneTitle()
       onStateChange?()
-      refreshRightSidebarIfOpen()
+      handleActiveCwdChanged()
     }
   }
 
   func selectNextTab() {
     tabList.selectNextTab()
+    updateSelectedTabCwd()
+    updateActivePaneTitle()
     onStateChange?()
-    refreshRightSidebarIfOpen()
+    handleActiveCwdChanged()
   }
 
   func selectPreviousTab() {
     tabList.selectPreviousTab()
+    updateSelectedTabCwd()
+    updateActivePaneTitle()
     onStateChange?()
-    refreshRightSidebarIfOpen()
+    handleActiveCwdChanged()
   }
 
   func closeSelectedTab() {
@@ -149,7 +184,7 @@ final class WorkspaceTabManager: ObservableObject {
     guard tabList.closeTab(id) else { return }
     panesByTabId[id] = nil
     onStateChange?()
-    refreshRightSidebarIfOpen()
+    handleActiveCwdChanged()
   }
 
   func setRightSidebarWidth(_ width: Double) {
@@ -158,6 +193,8 @@ final class WorkspaceTabManager: ObservableObject {
   }
 
   func toggleRightSidebar() {
+    rightSidebarAutoOpenTask?.cancel()
+    rightSidebarAutoOpenTask = nil
     rightSidebarState.isOpen.toggle()
     if rightSidebarState.isOpen {
       refreshRightSidebar()
@@ -182,9 +219,32 @@ final class WorkspaceTabManager: ObservableObject {
     }
   }
 
-  private func refreshRightSidebarIfOpen() {
+  private func handleActiveCwdChanged() {
     if rightSidebarState.isOpen {
       refreshRightSidebar()
+    } else {
+      autoOpenRightSidebarIfGitRepo()
+    }
+  }
+
+  private func autoOpenRightSidebarIfGitRepo() {
+    guard let cwd = activeCwd else { return }
+    rightSidebarAutoOpenTask?.cancel()
+    rightSidebarAutoOpenTask = Task { [weak self] in
+      guard let self else { return }
+      let gitRoot: URL?
+      do {
+        gitRoot = try await gitRootResolver.resolve(cwd: cwd)
+      } catch {
+        return
+      }
+      guard !Task.isCancelled, let gitRoot else { return }
+      guard rightSidebarState.isOpen == false else { return }
+      guard activeCwd?.standardizedFileURL == cwd.standardizedFileURL else { return }
+
+      rightSidebarState.isOpen = true
+      onStateChange?()
+      await openRightSidebar(gitRoot: gitRoot)
     }
   }
 
@@ -214,6 +274,10 @@ final class WorkspaceTabManager: ObservableObject {
       return
     }
 
+    await openRightSidebar(gitRoot: gitRoot)
+  }
+
+  private func openRightSidebar(gitRoot: URL) async {
     let lazygitURL: URL
     do {
       lazygitURL = try BinaryResolver.resolve("lazygit")
@@ -234,6 +298,15 @@ final class WorkspaceTabManager: ObservableObject {
     rightSidebarPane = CommandPaneController(ghosttyApp: ghosttyApp, command: lazygitURL.path, cwd: gitRoot)
   }
 
+  private func updateSelectedTabCwd() {
+    guard let selectedTabId else { return }
+    tabList.updateCwd(panesByTabId[selectedTabId]?.selectedCwd, for: selectedTabId)
+  }
+
+  private func updateActivePaneTitle() {
+    activePaneTitle = selectedPane?.selectedTerminalTitle
+  }
+
   private func makePaneController(tabId: UUID, initialCwd: URL?, command: String? = nil) -> PaneController {
     PaneController(
       ghosttyApp: ghosttyApp,
@@ -242,10 +315,13 @@ final class WorkspaceTabManager: ObservableObject {
       onCwdChange: { [weak self] cwd in
         self?.tabList.updateCwd(cwd, for: tabId)
         self?.onStateChange?()
-        self?.refreshRightSidebarIfOpen()
+        self?.handleActiveCwdChanged()
       },
       onStateChange: { [weak self] in
         self?.onStateChange?()
+      },
+      onTitleChange: { [weak self] in
+        self?.updateActivePaneTitle()
       }
     )
   }
@@ -257,11 +333,22 @@ final class WorkspaceTabManager: ObservableObject {
       onCwdChange: { [weak self] cwd in
         self?.tabList.updateCwd(cwd, for: tabId)
         self?.onStateChange?()
-        self?.refreshRightSidebarIfOpen()
+        self?.handleActiveCwdChanged()
       },
       onStateChange: { [weak self] in
         self?.onStateChange?()
+      },
+      onTitleChange: { [weak self] in
+        self?.updateActivePaneTitle()
       }
     )
+  }
+}
+
+extension String {
+  fileprivate var abbreviatedHomePathForTopBar: String {
+    let home = NSHomeDirectory()
+    guard hasPrefix(home) else { return self }
+    return "~" + dropFirst(home.count)
   }
 }

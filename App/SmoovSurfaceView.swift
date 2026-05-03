@@ -24,6 +24,7 @@ final class SmoovSurfaceView: NSView {
   var onResize: ((UInt16, UInt16) -> Void)?
   var onFocus: (() -> Void)?
   var onFocusChanged: ((Bool) -> Void)?
+  var onTitleChanged: ((String) -> Void)?
   var onSplitRequested: ((ghostty_action_split_direction_e) -> Void)?
   var onCloseRequested: (() -> Void)?
   var onCwdChanged: ((URL) -> Void)?
@@ -160,6 +161,10 @@ final class SmoovSurfaceView: NSView {
   func handleGhosttyPwdAction(_ pwd: String) {
     guard !pwd.isEmpty else { return }
     onCwdChanged?(URL(fileURLWithPath: pwd))
+  }
+
+  func handleGhosttySetTitleAction(_ title: String) {
+    onTitleChanged?(title)
   }
 
   // MARK: - NSView overrides

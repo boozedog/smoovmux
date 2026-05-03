@@ -120,6 +120,24 @@ final class GhosttyApp {
         surfaceView.handleGhosttyPwdAction(cwd)
       }
       return true
+    case GHOSTTY_ACTION_SET_TITLE:
+      guard let surfaceView = surfaceView(from: target),
+        let title = action.action.set_title.title
+      else { return false }
+      let value = String(cString: title)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttySetTitleAction(value)
+      }
+      return true
+    case GHOSTTY_ACTION_SET_TAB_TITLE:
+      guard let surfaceView = surfaceView(from: target),
+        let title = action.action.set_tab_title.title
+      else { return false }
+      let value = String(cString: title)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttySetTitleAction(value)
+      }
+      return true
     default:
       SmoovLog.info("ghostty action tag=\(action.tag.rawValue) (unhandled)")
       return true

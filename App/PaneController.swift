@@ -16,10 +16,12 @@ final class PaneController {
   let rootView = NSView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
 
   private let ghosttyApp: GhosttyApp
-  private let onCwdChange: (URL) -> Void
+  private let onCwdChange: (URL?) -> Void
   private let onStateChange: () -> Void
+  private let onTitleChange: () -> Void
   private var paneTree: WorkspacePaneTree
   private var commandsByPaneId: [UUID: String] = [:]
+  private var titlesByPaneId: [UUID: String] = [:]
   private var surfaceViews: [SmoovSurfaceView] = []
   private var paneIdsBySurfaceView: [ObjectIdentifier: UUID] = [:]
   private weak var focusedSurfaceView: SmoovSurfaceView?
@@ -30,12 +32,14 @@ final class PaneController {
     ghosttyApp: GhosttyApp,
     initialCwd: URL? = nil,
     command: String? = nil,
-    onCwdChange: @escaping (URL) -> Void = { _ in },
-    onStateChange: @escaping () -> Void = {}
+    onCwdChange: @escaping (URL?) -> Void = { _ in },
+    onStateChange: @escaping () -> Void = {},
+    onTitleChange: @escaping () -> Void = {}
   ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
+    self.onTitleChange = onTitleChange
     self.paneTree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(cwd: initialCwd, command: command)))
     if let command {
       commandsByPaneId[paneTree.selectedPaneId] = command
@@ -52,12 +56,14 @@ final class PaneController {
   init(
     ghosttyApp: GhosttyApp,
     paneTree: WorkspacePaneTree,
-    onCwdChange: @escaping (URL) -> Void = { _ in },
-    onStateChange: @escaping () -> Void = {}
+    onCwdChange: @escaping (URL?) -> Void = { _ in },
+    onStateChange: @escaping () -> Void = {},
+    onTitleChange: @escaping () -> Void = {}
   ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
+    self.onTitleChange = onTitleChange
     self.paneTree = paneTree
     self.commandsByPaneId = Dictionary(
       uniqueKeysWithValues: paneTree.leaves.compactMap { leaf in
@@ -82,6 +88,15 @@ final class PaneController {
 
   var isZoomed: Bool {
     zoomedPaneId != nil
+  }
+
+  var selectedTerminalTitle: String? {
+    let title = titlesByPaneId[paneTree.selectedPaneId]?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return title?.isEmpty == false ? title : nil
+  }
+
+  var selectedPaneCommand: String? {
+    paneTree.selectedPane?.command
   }
 
   var windowTitle: String {
@@ -148,6 +163,8 @@ final class PaneController {
       guard let self, let surfaceView else { return }
       focusedSurfaceView = surfaceView
       if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)], paneTree.selectPane(id) {
+        onCwdChange(cwd(for: id))
+        onTitleChange()
         onStateChange()
       }
     }
@@ -173,12 +190,24 @@ final class PaneController {
     surfaceView.onCloseRequested = { [weak self] in
       self?.closePane()
     }
+    surfaceView.onTitleChanged = { [weak self, weak surfaceView] title in
+      guard let self, let surfaceView,
+        let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)],
+        titlesByPaneId[id] != title
+      else { return }
+      titlesByPaneId[id] = title
+      if id == paneTree.selectedPaneId {
+        onTitleChange()
+      }
+    }
     surfaceView.onCwdChanged = { [weak self, weak surfaceView] cwd in
       guard let self, let surfaceView,
         let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)]
       else { return }
       paneTree.updateCwd(cwd, for: id)
-      onCwdChange(cwd)
+      if id == paneTree.selectedPaneId {
+        onCwdChange(cwd)
+      }
       onStateChange()
     }
     return surfaceView
@@ -251,6 +280,7 @@ final class PaneController {
     surfaceViews.removeAll { $0 === surfaceView }
     if let paneId = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] {
       commandsByPaneId[paneId] = nil
+      titlesByPaneId[paneId] = nil
     }
     paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] = nil
 
