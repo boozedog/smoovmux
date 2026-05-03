@@ -7,11 +7,11 @@ import SmoovLog
 /// requires (`ghostty_runtime_config_s`) are routed through `@convention(c)`
 /// trampolines that hop back to the main actor before touching Swift state.
 ///
+/// Smoovmux loads Ghostty's default config files before finalizing so terminal
+/// preferences such as font and colors match the user's Ghostty setup. We do
+/// not load CLI args because smoovmux owns its own process arguments.
+///
 /// What's deliberately *not* done:
-/// - No `ghostty_config_load_default_files` / `_load_cli_args` /
-///   `_load_recursive_files`. Smoovmux does not read Ghostty's user config;
-///   we only need a finalized default config so the surface has sane values
-///   (font, colors, keybinds irrelevant to us).
 /// - No OSC 52 clipboard plumbing — stubs return `false`/no-op.
 /// - `action_cb` logs unknown actions and returns `true`. We'll expand in
 ///   later milestones as specific actions matter (e.g. window close).
@@ -35,6 +35,8 @@ final class GhosttyApp {
     guard let config = ghostty_config_new() else {
       throw InitError.configNew
     }
+    ghostty_config_load_default_files(config)
+    ghostty_config_load_recursive_files(config)
     ghostty_config_finalize(config)
     self.config = config
 

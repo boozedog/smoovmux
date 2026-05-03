@@ -19,6 +19,7 @@ final class PaneController {
   private let onCwdChange: (URL) -> Void
   private let onStateChange: () -> Void
   private var paneTree: WorkspacePaneTree
+  private var commandsByPaneId: [UUID: String] = [:]
   private var surfaceViews: [SmoovSurfaceView] = []
   private var paneIdsBySurfaceView: [ObjectIdentifier: UUID] = [:]
   private weak var focusedSurfaceView: SmoovSurfaceView?
@@ -26,13 +27,17 @@ final class PaneController {
   init(
     ghosttyApp: GhosttyApp,
     initialCwd: URL? = nil,
+    command: String? = nil,
     onCwdChange: @escaping (URL) -> Void = { _ in },
     onStateChange: @escaping () -> Void = {}
   ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
-    self.paneTree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(cwd: initialCwd)))
+    self.paneTree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(cwd: initialCwd, command: command)))
+    if let command {
+      commandsByPaneId[paneTree.selectedPaneId] = command
+    }
     rootView.wantsLayer = true
 
     let surfaceView = makeSurfaceView(id: paneTree.selectedPaneId)
@@ -52,6 +57,11 @@ final class PaneController {
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
     self.paneTree = paneTree
+    self.commandsByPaneId = Dictionary(
+      uniqueKeysWithValues: paneTree.leaves.compactMap { leaf in
+        leaf.command.map { (leaf.id, $0) }
+      }
+    )
     rootView.wantsLayer = true
 
     let view = makeView(for: paneTree.root)
@@ -64,12 +74,19 @@ final class PaneController {
     paneTree
   }
 
-  func splitRight() {
-    splitFocusedSurface(direction: .right)
+  var windowTitle: String {
+    let leaf = paneTree.selectedPane
+    let cwd = leaf?.cwd?.path.abbreviatedHomePath ?? "~"
+    let command = leaf?.command ?? "shell"
+    return "\(cwd) — \(command)"
   }
 
-  func splitDown() {
-    splitFocusedSurface(direction: .down)
+  func splitRight(command: String? = nil) {
+    splitFocusedSurface(direction: .right, command: command)
+  }
+
+  func splitDown(command: String? = nil) {
+    splitFocusedSurface(direction: .down, command: command)
   }
 
   func closePane() {
@@ -100,13 +117,14 @@ final class PaneController {
   private func makeSurfaceView(id: UUID) -> SmoovSurfaceView {
     let surfaceView = SmoovSurfaceView(
       app: ghosttyApp,
-      config: SmoovSurfaceView.Config(workingDirectory: cwd(for: id))
+      config: SmoovSurfaceView.Config(command: commandsByPaneId[id], workingDirectory: cwd(for: id))
     )
     paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] = id
     surfaceView.onFocus = { [weak self, weak surfaceView] in
       guard let self, let surfaceView else { return }
       focusedSurfaceView = surfaceView
       if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)], paneTree.selectPane(id) {
+        updateFocusRing()
         onStateChange()
       }
     }
@@ -138,16 +156,20 @@ final class PaneController {
     paneTree.leaves.first { $0.id == paneId }?.cwd
   }
 
-  private func splitFocusedSurface(direction: SplitDirection) {
+  private func splitFocusedSurface(direction: SplitDirection, command: String?) {
     guard let target = focusedSurfaceView,
       let targetId = paneIdsBySurfaceView[ObjectIdentifier(target)],
       let newPaneId = paneTree.splitPane(targetId, direction: direction.paneTreeDirection)
     else { return }
+    if let command {
+      commandsByPaneId[newPaneId] = command
+      paneTree.updateCommand(command, for: newPaneId)
+    }
     let newSurfaceView = makeSurfaceView(id: newPaneId)
     surfaceViews.append(newSurfaceView)
     onStateChange()
 
-    let splitView = NSSplitView()
+    let splitView = PaneSplitView()
     splitView.isVertical = direction == .right
     splitView.dividerStyle = .thin
 
@@ -157,6 +179,7 @@ final class PaneController {
     splitView.addArrangedSubview(target)
     splitView.addArrangedSubview(newSurfaceView)
     focusedSurfaceView = newSurfaceView
+    updateFocusRing()
 
     scheduleBalanceSplits()
 
@@ -176,7 +199,7 @@ final class PaneController {
       }
       return surfaceView
     case .split(let split):
-      let splitView = NSSplitView()
+      let splitView = PaneSplitView()
       splitView.isVertical = split.direction == .right
       splitView.dividerStyle = .thin
       splitView.addArrangedSubview(makeView(for: split.first))
@@ -188,6 +211,9 @@ final class PaneController {
 
   private func collapse(_ surfaceView: SmoovSurfaceView) {
     surfaceViews.removeAll { $0 === surfaceView }
+    if let paneId = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] {
+      commandsByPaneId[paneId] = nil
+    }
     paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] = nil
 
     guard let parentSplitView = surfaceView.superview as? NSSplitView else { return }
@@ -202,6 +228,7 @@ final class PaneController {
 
     replace(parentSplitView, with: sibling)
     focusedSurfaceView = firstSurface(in: sibling) ?? surfaceViews.last
+    updateFocusRing()
     scheduleBalanceSplits()
     focusSelectedSurface()
   }
@@ -293,10 +320,40 @@ final class PaneController {
     return nil
   }
 
+  private func updateFocusRing() {
+    for surfaceView in surfaceViews {
+      surfaceView.wantsLayer = true
+      let isFocused = surfaceView === focusedSurfaceView
+      surfaceView.layer?.borderWidth = isFocused ? 1.5 : 0
+      surfaceView.layer?.borderColor = NSColor.systemBlue.withAlphaComponent(0.95).cgColor
+      surfaceView.layer?.shadowColor = NSColor.systemBlue.cgColor
+      surfaceView.layer?.shadowOpacity = isFocused ? 0.45 : 0
+      surfaceView.layer?.shadowRadius = isFocused ? 8 : 0
+      surfaceView.layer?.shadowOffset = .zero
+      surfaceView.layer?.masksToBounds = false
+    }
+  }
+
   private func focusSelectedSurface() {
     DispatchQueue.main.async { [weak self] in
-      guard let surfaceView = self?.focusedSurfaceView, let window = surfaceView.window else { return }
+      guard let self, let surfaceView = focusedSurfaceView, let window = surfaceView.window else { return }
+      updateFocusRing()
       window.makeFirstResponder(surfaceView)
     }
+  }
+}
+
+private final class PaneSplitView: NSSplitView {
+  override func drawDivider(in rect: NSRect) {
+    GhosttyConfigColors.dividerColor.setFill()
+    rect.fill()
+  }
+}
+
+extension String {
+  fileprivate var abbreviatedHomePath: String {
+    let home = NSHomeDirectory()
+    guard hasPrefix(home) else { return self }
+    return "~" + dropFirst(home.count)
   }
 }

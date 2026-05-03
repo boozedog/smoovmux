@@ -11,7 +11,9 @@
 		04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */; };
 		088804B6B7809B7574993ABE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F2DE025A511DFC3351B11E /* main.swift */; };
 		21C5190A2C7AB642B60327D9 /* SmoovAppCommands in Frameworks */ = {isa = PBXBuildFile; productRef = A2192B250ECC3800246E5450 /* SmoovAppCommands */; };
+		31492ADA5B4EE0EA429B3DFF /* GhosttyConfigColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0529FF91B247CF34935A59B6 /* GhosttyConfigColors.swift */; };
 		36BB1F6735B52CD6F46356D8 /* WorkspaceStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2300D8C52B9B6CF4FBBAF2B3 /* WorkspaceStateStore.swift */; };
+		44412CC9749D7FDD28A8EB40 /* PaneLauncher in Frameworks */ = {isa = PBXBuildFile; productRef = 526523EBF3DF01E3C2284662 /* PaneLauncher */; };
 		4798649405F880A07E6FCF35 /* WorkspaceTabs in Frameworks */ = {isa = PBXBuildFile; productRef = C148F9B0BDE089FA4EA495BC /* WorkspaceTabs */; };
 		4BB46980230B71A09302305D /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26B555E1A92393E1C7D3FEDE /* Carbon.framework */; };
 		4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */; };
@@ -31,6 +33,7 @@
 
 /* Begin PBXFileReference section */
 		0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
+		0529FF91B247CF34935A59B6 /* GhosttyConfigColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyConfigColors.swift; sourceTree = "<group>"; };
 		1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		2300D8C52B9B6CF4FBBAF2B3 /* WorkspaceStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStateStore.swift; sourceTree = "<group>"; };
 		23F2DE025A511DFC3351B11E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -61,6 +64,7 @@
 				4798649405F880A07E6FCF35 /* WorkspaceTabs in Frameworks */,
 				762A9CE85581CA9A47E1E2A7 /* WorkspacePanes in Frameworks */,
 				CA970142BB93ACA4411A6166 /* WorkspaceState in Frameworks */,
+				44412CC9749D7FDD28A8EB40 /* PaneLauncher in Frameworks */,
 				AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */,
 				4BB46980230B71A09302305D /* Carbon.framework in Frameworks */,
 			);
@@ -85,6 +89,7 @@
 				AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */,
 				70F05D4065051D622312AB53 /* Assets.xcassets */,
 				E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */,
+				0529FF91B247CF34935A59B6 /* GhosttyConfigColors.swift */,
 				46643F458905F0387368280A /* Info.plist */,
 				1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */,
 				23F2DE025A511DFC3351B11E /* main.swift */,
@@ -149,6 +154,7 @@
 				C148F9B0BDE089FA4EA495BC /* WorkspaceTabs */,
 				5D354A3035840860E55054C3 /* WorkspacePanes */,
 				9340354FEEEACC7329FCCD20 /* WorkspaceState */,
+				526523EBF3DF01E3C2284662 /* PaneLauncher */,
 			);
 			productName = smoovmux;
 			productReference = DC63E64743C627EDCB408ABF /* smoovmux.app */;
@@ -232,6 +238,7 @@
 			files = (
 				DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */,
 				53C38D1C088C7DF34D849E95 /* GhosttyApp.swift in Sources */,
+				31492ADA5B4EE0EA429B3DFF /* GhosttyConfigColors.swift in Sources */,
 				4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */,
 				04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */,
 				5A3B5EDCD95A29AD63AA679F /* PaneController.swift in Sources */,
@@ -457,6 +464,10 @@
 		1B5CAD7542000F8E9352D199 /* SessionCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SessionCore;
+		};
+		526523EBF3DF01E3C2284662 /* PaneLauncher */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PaneLauncher;
 		};
 		5D354A3035840860E55054C3 /* WorkspacePanes */ = {
 			isa = XCSwiftPackageProductDependency;

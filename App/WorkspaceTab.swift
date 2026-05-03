@@ -1,12 +1,19 @@
 import Combine
 import Foundation
+import PaneLauncher
 import WorkspacePanes
 import WorkspaceState
 import WorkspaceTabs
 
+struct PaneLauncherPresentation: Identifiable, Equatable {
+  let id = UUID()
+  var action: PaneLaunchAction
+}
+
 @MainActor
 final class WorkspaceTabManager: ObservableObject {
   @Published private var tabList = WorkspaceTabList()
+  @Published var launcherPresentation: PaneLauncherPresentation?
 
   private let ghosttyApp: GhosttyApp
   private var panesByTabId: [UUID: PaneController] = [:]
@@ -25,14 +32,22 @@ final class WorkspaceTabManager: ObservableObject {
     return panesByTabId[selectedTabId]
   }
 
+  var selectedTabTitle: String {
+    tabList.selectedTab?.title ?? "Terminal"
+  }
+
+  var selectedPaneTitle: String {
+    selectedPane?.windowTitle ?? selectedTabTitle
+  }
+
   init(ghosttyApp: GhosttyApp) {
     self.ghosttyApp = ghosttyApp
   }
 
   @discardableResult
-  func addTab(select: Bool = true) -> WorkspaceTabRecord {
+  func addTab(select: Bool = true, command: String? = nil) -> WorkspaceTabRecord {
     let tab = tabList.addTab(cwd: tabList.lastKnownCwd, select: select)
-    panesByTabId[tab.id] = makePaneController(tabId: tab.id, initialCwd: tab.cwd)
+    panesByTabId[tab.id] = makePaneController(tabId: tab.id, initialCwd: tab.cwd, command: command)
     onStateChange?()
     return tab
   }
@@ -57,6 +72,27 @@ final class WorkspaceTabManager: ObservableObject {
       selectedTabId: tabList.selectedTabId,
       windowFrame: windowFrame
     )
+  }
+
+  func showLauncher(action: PaneLaunchAction = .newTab) {
+    let resolvedAction = selectedPane == nil && action != .newTab ? .newTab : action
+    launcherPresentation = PaneLauncherPresentation(action: resolvedAction)
+  }
+
+  func dismissLauncher() {
+    launcherPresentation = nil
+  }
+
+  func launch(_ request: PaneLaunchRequest) {
+    switch request.action {
+    case .newTab:
+      addTab(command: request.command)
+    case .splitRight:
+      selectedPane?.splitRight(command: request.command)
+    case .splitDown:
+      selectedPane?.splitDown(command: request.command)
+    }
+    dismissLauncher()
   }
 
   func selectTab(_ id: UUID) {
@@ -86,10 +122,11 @@ final class WorkspaceTabManager: ObservableObject {
     onStateChange?()
   }
 
-  private func makePaneController(tabId: UUID, initialCwd: URL?) -> PaneController {
+  private func makePaneController(tabId: UUID, initialCwd: URL?, command: String? = nil) -> PaneController {
     PaneController(
       ghosttyApp: ghosttyApp,
       initialCwd: initialCwd,
+      command: command,
       onCwdChange: { [weak self] cwd in
         self?.tabList.updateCwd(cwd, for: tabId)
         self?.onStateChange?()

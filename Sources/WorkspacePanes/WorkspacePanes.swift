@@ -8,10 +8,12 @@ public enum WorkspacePaneSplitDirection: String, Codable, Equatable, Sendable {
 public struct WorkspacePaneLeaf: Codable, Equatable, Identifiable, Sendable {
   public let id: UUID
   public var cwd: URL?
+  public var command: String?
 
-  public init(id: UUID = UUID(), cwd: URL? = nil) {
+  public init(id: UUID = UUID(), cwd: URL? = nil, command: String? = nil) {
     self.id = id
     self.cwd = cwd
+    self.command = command
   }
 }
 
@@ -99,12 +101,28 @@ public struct WorkspacePaneTree: Codable, Equatable, Sendable {
 
   @discardableResult
   public mutating func updateCwd(_ cwd: URL?, for paneId: UUID) -> Bool {
+    updateLeaf(paneId) { leaf in
+      leaf.cwd = cwd
+    }
+  }
+
+  @discardableResult
+  public mutating func updateCommand(_ command: String?, for paneId: UUID) -> Bool {
+    updateLeaf(paneId) { leaf in
+      leaf.command = command
+    }
+  }
+
+  private mutating func updateLeaf(
+    _ paneId: UUID,
+    update: (inout WorkspacePaneLeaf) -> Void
+  ) -> Bool {
     guard
       let next = root.replacingLeaf(
         id: paneId,
         with: { leaf in
           var nextLeaf = leaf
-          nextLeaf.cwd = cwd
+          update(&nextLeaf)
           return .leaf(nextLeaf)
         })
     else {

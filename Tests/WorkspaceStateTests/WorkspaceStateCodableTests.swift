@@ -22,7 +22,7 @@ struct WorkspaceStateCodableTests {
           id: split,
           direction: .right,
           first: .leaf(WorkspacePaneLeaf(id: firstPane, cwd: firstCwd)),
-          second: .leaf(WorkspacePaneLeaf(id: secondPane, cwd: secondCwd))
+          second: .leaf(WorkspacePaneLeaf(id: secondPane, cwd: secondCwd, command: "pi"))
         )
       ),
       selectedPaneId: secondPane
@@ -50,6 +50,7 @@ struct WorkspaceStateCodableTests {
     #expect(decoded.tabs.map(\.record.id) == [firstTab, secondTab])
     #expect(decoded.selectedTabId == secondTab)
     #expect(decoded.tabs[0].paneTree == paneTree)
+    #expect(decoded.tabs[0].paneTree.leaves[1].command == "pi")
     #expect(decoded.windowFrame == WorkspaceWindowFrame(x: 10, y: 20, width: 1200, height: 800))
   }
 

@@ -1,4 +1,5 @@
 import AppKit
+import PaneLauncher
 import SwiftUI
 import WorkspaceState
 
@@ -15,7 +16,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     self.tabManager = tabManager
     self.stateStore = stateStore
 
-    let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable]
+    let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
     let window = NSWindow(
       contentRect: restoredWindowFrame?.rect ?? NSRect(x: 0, y: 0, width: 960, height: 600),
       styleMask: styleMask,
@@ -23,6 +24,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
       defer: false
     )
     window.title = "smoovmux"
+    window.titleVisibility = .hidden
+    window.titlebarAppearsTransparent = true
+    window.isMovableByWindowBackground = true
+    window.backgroundColor = .black
     window.tabbingMode = .disallowed
     if restoredWindowFrame == nil {
       window.center()
@@ -37,7 +42,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
   }
 
   @objc func newTab(_ sender: Any?) {
-    tabManager.addTab()
+    tabManager.showLauncher(action: .newTab)
   }
 
   @objc func closeTab(_ sender: Any?) {
@@ -45,11 +50,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
   }
 
   @objc func splitRight(_ sender: Any?) {
-    tabManager.selectedPane?.splitRight()
+    tabManager.showLauncher(action: .splitRight)
   }
 
   @objc func splitDown(_ sender: Any?) {
-    tabManager.selectedPane?.splitDown()
+    tabManager.showLauncher(action: .splitDown)
   }
 
   @objc func closePane(_ sender: Any?) {
@@ -76,7 +81,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     saveState()
   }
 
-  private func saveState() {
+  func saveState() {
     stateStore.save(tabManager.snapshot(windowFrame: window.map { WorkspaceWindowFrame($0.frame) }))
   }
 
