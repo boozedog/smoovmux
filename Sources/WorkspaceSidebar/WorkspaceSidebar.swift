@@ -1,3 +1,11 @@
+public struct WorkspaceLeftSidebarState: Codable, Equatable, Sendable {
+  public var isOpen: Bool
+
+  public init(isOpen: Bool = true) {
+    self.isOpen = isOpen
+  }
+}
+
 public struct WorkspaceRightSidebarState: Codable, Equatable, Sendable {
   public static let minimumWidth = 240.0
   public static let maximumWidth = 640.0

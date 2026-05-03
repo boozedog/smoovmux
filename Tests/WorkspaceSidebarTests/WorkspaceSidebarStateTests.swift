@@ -2,9 +2,14 @@ import Foundation
 import Testing
 import WorkspaceSidebar
 
-@Suite("Workspace right sidebar state")
+@Suite("Workspace sidebar state")
 struct WorkspaceSidebarStateTests {
-  @Test("defaults closed with standard width")
+  @Test("left sidebar defaults open")
+  func leftSidebarDefaultState() {
+    #expect(WorkspaceLeftSidebarState().isOpen)
+  }
+
+  @Test("right sidebar defaults closed with standard width")
   func defaultState() {
     let state = WorkspaceRightSidebarState()
 

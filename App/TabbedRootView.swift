@@ -9,8 +9,10 @@ struct TabbedRootView: View {
   var body: some View {
     ZStack {
       HStack(spacing: 0) {
-        WorkspaceTabSidebar(tabManager: tabManager)
-          .frame(width: 184)
+        if tabManager.leftSidebarState.isOpen {
+          WorkspaceTabSidebar(tabManager: tabManager)
+            .frame(width: 184)
+        }
 
         WorkspaceMainArea(tabManager: tabManager)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -44,6 +46,9 @@ private struct WorkspaceMainArea: View {
   var body: some View {
     VStack(spacing: 0) {
       HStack(spacing: 6) {
+        ChromeIconButton(systemName: "sidebar.left", help: "Toggle Screens Sidebar") {
+          tabManager.toggleLeftSidebar()
+        }
         HStack(spacing: 8) {
           Text(tabManager.selectedPaneCwdDisplay)
             .foregroundStyle(.secondary)
@@ -76,7 +81,10 @@ private struct WorkspaceMainArea: View {
       .padding(.leading, 12)
       .padding(.trailing, 12)
       .frame(height: 42)
-      .background(AppChromeColors.sidebarBackground)
+      .background {
+        WindowDragArea()
+          .background(AppChromeColors.sidebarBackground)
+      }
       .overlay(alignment: .bottom) {
         Rectangle()
           .fill(AppChromeColors.chromeBorder)
@@ -171,6 +179,20 @@ private struct GitRightSidebar: View {
       .onEnded { _ in
         resizeStartWidth = nil
       }
+  }
+}
+
+private struct WindowDragArea: NSViewRepresentable {
+  func makeNSView(context: Context) -> WindowDragNSView {
+    WindowDragNSView()
+  }
+
+  func updateNSView(_ nsView: WindowDragNSView, context: Context) {}
+}
+
+private final class WindowDragNSView: NSView {
+  override func mouseDown(with event: NSEvent) {
+    window?.performDrag(with: event)
   }
 }
 

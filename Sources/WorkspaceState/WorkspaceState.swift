@@ -31,12 +31,14 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
   public var tabs: [Tab]
   public var selectedTabId: UUID
   public var windowFrame: WorkspaceWindowFrame?
+  public var leftSidebar: WorkspaceLeftSidebarState
   public var rightSidebar: WorkspaceRightSidebarState
 
   public init(
     tabs: [Tab],
     selectedTabId: UUID?,
     windowFrame: WorkspaceWindowFrame?,
+    leftSidebar: WorkspaceLeftSidebarState = WorkspaceLeftSidebarState(),
     rightSidebar: WorkspaceRightSidebarState = WorkspaceRightSidebarState()
   ) {
     let normalizedTabs = tabs.isEmpty ? [Self.defaultTab()] : tabs
@@ -46,6 +48,7 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
         normalizedTabs.contains { $0.record.id == id } ? id : nil
       } ?? normalizedTabs[0].record.id
     self.windowFrame = windowFrame
+    self.leftSidebar = leftSidebar
     self.rightSidebar = rightSidebar
   }
 
@@ -54,10 +57,19 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
     let tabs = try container.decodeIfPresent([Tab].self, forKey: .tabs) ?? []
     let selectedTabId = try container.decodeIfPresent(UUID.self, forKey: .selectedTabId)
     let windowFrame = try container.decodeIfPresent(WorkspaceWindowFrame.self, forKey: .windowFrame)
+    let leftSidebar =
+      try container.decodeIfPresent(WorkspaceLeftSidebarState.self, forKey: .leftSidebar)
+      ?? WorkspaceLeftSidebarState()
     let rightSidebar =
       try container.decodeIfPresent(WorkspaceRightSidebarState.self, forKey: .rightSidebar)
       ?? WorkspaceRightSidebarState()
-    self.init(tabs: tabs, selectedTabId: selectedTabId, windowFrame: windowFrame, rightSidebar: rightSidebar)
+    self.init(
+      tabs: tabs,
+      selectedTabId: selectedTabId,
+      windowFrame: windowFrame,
+      leftSidebar: leftSidebar,
+      rightSidebar: rightSidebar
+    )
   }
 
   public static func empty() -> Self {

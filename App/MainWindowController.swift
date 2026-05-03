@@ -26,7 +26,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     window.title = Self.title(for: tabManager)
     window.titleVisibility = .hidden
     window.titlebarAppearsTransparent = true
-    window.isMovableByWindowBackground = true
+    window.isMovableByWindowBackground = false
     window.backgroundColor = .black
     window.tabbingMode = .disallowed
     if restoredWindowFrame == nil {
@@ -38,9 +38,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     window.delegate = self
     tabManager.onStateChange = { [weak self] in
       self?.updateWindowTitle()
+      self?.updateTrafficLights()
       self?.saveState()
     }
     updateWindowTitle()
+    updateTrafficLights()
   }
 
   @objc func newTab(_ sender: Any?) {
@@ -93,6 +95,18 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
 
   private func updateWindowTitle() {
     window?.title = Self.title(for: tabManager)
+  }
+
+  private func updateTrafficLights() {
+    guard let window else { return }
+    let shouldHide = !tabManager.leftSidebarState.isOpen
+    for button in [
+      NSWindow.ButtonType.closeButton,
+      NSWindow.ButtonType.miniaturizeButton,
+      NSWindow.ButtonType.zoomButton,
+    ] {
+      window.standardWindowButton(button)?.isHidden = shouldHide
+    }
   }
 
   private static func title(for tabManager: WorkspaceTabManager) -> String {

@@ -42,6 +42,7 @@ struct WorkspaceStateCodableTests {
       ],
       selectedTabId: secondTab,
       windowFrame: WorkspaceWindowFrame(x: 10, y: 20, width: 1200, height: 800),
+      leftSidebar: WorkspaceLeftSidebarState(isOpen: false),
       rightSidebar: WorkspaceRightSidebarState(isOpen: true, width: 380)
     )
 
@@ -54,6 +55,7 @@ struct WorkspaceStateCodableTests {
     #expect(decoded.tabs[0].paneTree == paneTree)
     #expect(decoded.tabs[0].paneTree.leaves[1].command == "pi")
     #expect(decoded.windowFrame == WorkspaceWindowFrame(x: 10, y: 20, width: 1200, height: 800))
+    #expect(decoded.leftSidebar == WorkspaceLeftSidebarState(isOpen: false))
     #expect(decoded.rightSidebar == WorkspaceRightSidebarState(isOpen: true, width: 380))
   }
 
@@ -86,6 +88,7 @@ struct WorkspaceStateCodableTests {
 
     let decoded = try JSONDecoder().decode(WorkspaceState.self, from: Data(json.utf8))
 
+    #expect(decoded.leftSidebar == WorkspaceLeftSidebarState())
     #expect(decoded.rightSidebar == WorkspaceRightSidebarState())
   }
 

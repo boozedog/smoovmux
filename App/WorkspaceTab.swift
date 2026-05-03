@@ -16,6 +16,7 @@ struct PaneLauncherPresentation: Identifiable, Equatable {
 final class WorkspaceTabManager: ObservableObject {
   @Published private var tabList = WorkspaceTabList()
   @Published var launcherPresentation: PaneLauncherPresentation?
+  @Published var leftSidebarState = WorkspaceLeftSidebarState()
   @Published var rightSidebarState = WorkspaceRightSidebarState()
   @Published private(set) var rightSidebarPane: CommandPaneController?
   @Published private(set) var rightSidebarMessage: String?
@@ -98,6 +99,7 @@ final class WorkspaceTabManager: ObservableObject {
   func restore(_ state: WorkspaceState) {
     panesByTabId.removeAll()
     tabList = WorkspaceTabList(tabs: state.tabs.map(\.record), selectedTabId: state.selectedTabId)
+    leftSidebarState = state.leftSidebar
     rightSidebarState = state.rightSidebar
     for tab in state.tabs {
       panesByTabId[tab.record.id] = makePaneController(tabId: tab.record.id, paneTree: tab.paneTree)
@@ -120,6 +122,7 @@ final class WorkspaceTabManager: ObservableObject {
       },
       selectedTabId: tabList.selectedTabId,
       windowFrame: windowFrame,
+      leftSidebar: leftSidebarState,
       rightSidebar: rightSidebarState
     )
   }
@@ -185,6 +188,11 @@ final class WorkspaceTabManager: ObservableObject {
     panesByTabId[id] = nil
     onStateChange?()
     handleActiveCwdChanged()
+  }
+
+  func toggleLeftSidebar() {
+    leftSidebarState.isOpen.toggle()
+    onStateChange?()
   }
 
   func setRightSidebarWidth(_ width: Double) {
