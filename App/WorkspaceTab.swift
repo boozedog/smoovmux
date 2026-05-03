@@ -143,6 +143,11 @@ final class WorkspaceTabManager: ObservableObject {
     refreshRightSidebarIfOpen()
   }
 
+  func setRightSidebarWidth(_ width: Double) {
+    rightSidebarState.setWidth(width)
+    onStateChange?()
+  }
+
   func toggleRightSidebar() {
     rightSidebarState.isOpen.toggle()
     if rightSidebarState.isOpen {

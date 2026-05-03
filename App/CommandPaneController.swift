@@ -14,6 +14,9 @@ final class CommandPaneController {
       app: ghosttyApp,
       config: SmoovSurfaceView.Config(command: command, workingDirectory: cwd)
     )
+    surfaceView.onFocusChanged = { [weak self] focused in
+      self?.updateFocusRing(focused: focused)
+    }
     installSurfaceView()
     SmoovLog.info("command pane launched")
   }
@@ -23,6 +26,13 @@ final class CommandPaneController {
       guard let self, let window = surfaceView.window else { return }
       window.makeFirstResponder(surfaceView)
     }
+  }
+
+  private func updateFocusRing(focused: Bool) {
+    rootView.wantsLayer = true
+    rootView.layer?.borderWidth = focused ? 1 : 0
+    rootView.layer?.borderColor = NSColor.systemBlue.withAlphaComponent(0.95).cgColor
+    rootView.layer?.masksToBounds = false
   }
 
   private func installSurfaceView() {

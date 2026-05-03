@@ -23,6 +23,7 @@ final class PaneController {
   private var surfaceViews: [SmoovSurfaceView] = []
   private var paneIdsBySurfaceView: [ObjectIdentifier: UUID] = [:]
   private weak var focusedSurfaceView: SmoovSurfaceView?
+  private weak var activeSurfaceView: SmoovSurfaceView?
 
   init(
     ghosttyApp: GhosttyApp,
@@ -128,9 +129,17 @@ final class PaneController {
       guard let self, let surfaceView else { return }
       focusedSurfaceView = surfaceView
       if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)], paneTree.selectPane(id) {
-        updateFocusRing()
         onStateChange()
       }
+    }
+    surfaceView.onFocusChanged = { [weak self, weak surfaceView] focused in
+      guard let self, let surfaceView else { return }
+      if focused {
+        activeSurfaceView = surfaceView
+      } else if activeSurfaceView === surfaceView {
+        activeSurfaceView = nil
+      }
+      updateFocusRing()
     }
     surfaceView.onSplitRequested = { [weak self] direction in
       switch direction {
@@ -327,8 +336,8 @@ final class PaneController {
   private func updateFocusRing() {
     for surfaceView in surfaceViews {
       surfaceView.wantsLayer = true
-      let isFocused = surfaceView === focusedSurfaceView
-      surfaceView.layer?.borderWidth = isFocused ? 1 : 0
+      let isActive = surfaceView === activeSurfaceView
+      surfaceView.layer?.borderWidth = isActive ? 1 : 0
       surfaceView.layer?.borderColor = NSColor.systemBlue.withAlphaComponent(0.95).cgColor
       surfaceView.layer?.shadowColor = NSColor.systemBlue.cgColor
       surfaceView.layer?.shadowOpacity = 0

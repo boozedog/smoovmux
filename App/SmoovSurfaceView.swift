@@ -23,6 +23,7 @@ final class SmoovSurfaceView: NSView {
   /// Called on `setFrameSize` whenever libghostty recomputes the cell grid.
   var onResize: ((UInt16, UInt16) -> Void)?
   var onFocus: (() -> Void)?
+  var onFocusChanged: ((Bool) -> Void)?
   var onSplitRequested: ((ghostty_action_split_direction_e) -> Void)?
   var onCloseRequested: (() -> Void)?
   var onCwdChanged: ((URL) -> Void)?
@@ -170,6 +171,7 @@ final class SmoovSurfaceView: NSView {
     if ok, let surface {
       focused = true
       onFocus?()
+      onFocusChanged?(true)
       ghostty_surface_set_focus(surface, true)
     }
     return ok
@@ -179,6 +181,7 @@ final class SmoovSurfaceView: NSView {
     let ok = super.resignFirstResponder()
     if ok, let surface {
       focused = false
+      onFocusChanged?(false)
       ghostty_surface_set_focus(surface, false)
     }
     return ok
@@ -212,11 +215,172 @@ final class SmoovSurfaceView: NSView {
     for area in trackingAreas { removeTrackingArea(area) }
     let area = NSTrackingArea(
       rect: bounds,
-      options: [.mouseEnteredAndExited, .mouseMoved, .activeInKeyWindow, .inVisibleRect],
+      options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
       owner: self,
       userInfo: nil
     )
     addTrackingArea(area)
+  }
+
+  // MARK: - Mouse
+
+  override func mouseDown(with event: NSEvent) {
+    window?.makeFirstResponder(self)
+    sendMousePos(event)
+    sendMouseButton(event, state: GHOSTTY_MOUSE_PRESS, button: GHOSTTY_MOUSE_LEFT)
+  }
+
+  override func mouseUp(with event: NSEvent) {
+    sendMousePos(event)
+    sendMouseButton(event, state: GHOSTTY_MOUSE_RELEASE, button: GHOSTTY_MOUSE_LEFT)
+    if let surface {
+      ghostty_surface_mouse_pressure(surface, 0, 0)
+    }
+  }
+
+  override func rightMouseDown(with event: NSEvent) {
+    window?.makeFirstResponder(self)
+    sendMousePos(event)
+    guard sendMouseButton(event, state: GHOSTTY_MOUSE_PRESS, button: GHOSTTY_MOUSE_RIGHT) else {
+      super.rightMouseDown(with: event)
+      return
+    }
+  }
+
+  override func rightMouseUp(with event: NSEvent) {
+    sendMousePos(event)
+    guard sendMouseButton(event, state: GHOSTTY_MOUSE_RELEASE, button: GHOSTTY_MOUSE_RIGHT) else {
+      super.rightMouseUp(with: event)
+      return
+    }
+  }
+
+  override func otherMouseDown(with event: NSEvent) {
+    window?.makeFirstResponder(self)
+    sendMousePos(event)
+    sendMouseButton(event, state: GHOSTTY_MOUSE_PRESS, button: mouseButton(for: event.buttonNumber))
+  }
+
+  override func otherMouseUp(with event: NSEvent) {
+    sendMousePos(event)
+    sendMouseButton(event, state: GHOSTTY_MOUSE_RELEASE, button: mouseButton(for: event.buttonNumber))
+  }
+
+  override func mouseMoved(with event: NSEvent) {
+    sendMousePos(event)
+  }
+
+  override func mouseDragged(with event: NSEvent) {
+    sendMousePos(event)
+  }
+
+  override func rightMouseDragged(with event: NSEvent) {
+    sendMousePos(event)
+  }
+
+  override func otherMouseDragged(with event: NSEvent) {
+    sendMousePos(event)
+  }
+
+  override func mouseEntered(with event: NSEvent) {
+    sendMousePos(event)
+  }
+
+  override func mouseExited(with event: NSEvent) {
+    guard let surface else { return }
+    ghostty_surface_mouse_pos(surface, -1, -1, NSEventGhostty.mods(event.modifierFlags))
+  }
+
+  override func scrollWheel(with event: NSEvent) {
+    guard let surface else { return }
+    var deltaX = event.scrollingDeltaX
+    var deltaY = event.scrollingDeltaY
+    let precision = event.hasPreciseScrollingDeltas
+    if precision {
+      deltaX *= 2
+      deltaY *= 2
+    }
+    ghostty_surface_mouse_scroll(surface, deltaX, deltaY, scrollMods(for: event, precision: precision))
+  }
+
+  override func pressureChange(with event: NSEvent) {
+    guard let surface else { return }
+    ghostty_surface_mouse_pressure(surface, UInt32(event.stage), Double(event.pressure))
+  }
+
+  private func sendMousePos(_ event: NSEvent) {
+    guard let surface else { return }
+    let pos = convert(event.locationInWindow, from: nil)
+    ghostty_surface_mouse_pos(
+      surface,
+      pos.x,
+      bounds.height - pos.y,
+      NSEventGhostty.mods(event.modifierFlags)
+    )
+  }
+
+  @discardableResult
+  private func sendMouseButton(
+    _ event: NSEvent,
+    state: ghostty_input_mouse_state_e,
+    button: ghostty_input_mouse_button_e
+  ) -> Bool {
+    guard let surface else { return false }
+    return ghostty_surface_mouse_button(surface, state, button, NSEventGhostty.mods(event.modifierFlags))
+  }
+
+  private func mouseButton(for buttonNumber: Int) -> ghostty_input_mouse_button_e {
+    switch buttonNumber {
+    case 0:
+      return GHOSTTY_MOUSE_LEFT
+    case 1:
+      return GHOSTTY_MOUSE_RIGHT
+    case 2:
+      return GHOSTTY_MOUSE_MIDDLE
+    case 3:
+      return GHOSTTY_MOUSE_EIGHT
+    case 4:
+      return GHOSTTY_MOUSE_NINE
+    case 5:
+      return GHOSTTY_MOUSE_SIX
+    case 6:
+      return GHOSTTY_MOUSE_SEVEN
+    case 7:
+      return GHOSTTY_MOUSE_FOUR
+    case 8:
+      return GHOSTTY_MOUSE_FIVE
+    case 9:
+      return GHOSTTY_MOUSE_TEN
+    case 10:
+      return GHOSTTY_MOUSE_ELEVEN
+    default:
+      return GHOSTTY_MOUSE_UNKNOWN
+    }
+  }
+
+  private func scrollMods(for event: NSEvent, precision: Bool) -> ghostty_input_scroll_mods_t {
+    var value: Int32 = precision ? 1 : 0
+    value |= Int32(mouseMomentum(for: event.momentumPhase).rawValue) << 1
+    return ghostty_input_scroll_mods_t(value)
+  }
+
+  private func mouseMomentum(for phase: NSEvent.Phase) -> ghostty_input_mouse_momentum_e {
+    switch phase {
+    case .began:
+      return GHOSTTY_MOUSE_MOMENTUM_BEGAN
+    case .stationary:
+      return GHOSTTY_MOUSE_MOMENTUM_STATIONARY
+    case .changed:
+      return GHOSTTY_MOUSE_MOMENTUM_CHANGED
+    case .ended:
+      return GHOSTTY_MOUSE_MOMENTUM_ENDED
+    case .cancelled:
+      return GHOSTTY_MOUSE_MOMENTUM_CANCELLED
+    case .mayBegin:
+      return GHOSTTY_MOUSE_MOMENTUM_MAY_BEGIN
+    default:
+      return GHOSTTY_MOUSE_MOMENTUM_NONE
+    }
   }
 
   // MARK: - Keyboard
