@@ -37,51 +37,27 @@ private struct WorkspaceMainArea: View {
   @ObservedObject var tabManager: WorkspaceTabManager
 
   var body: some View {
-    VStack(spacing: 0) {
-      WorkspaceTopBar(tabManager: tabManager)
-        .frame(height: 34)
-        .padding(.bottom, 6)
-
+    ZStack(alignment: .topTrailing) {
       TerminalSurfaceHost(pane: tabManager.selectedPane)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppChromeColors.mainBackground)
+
+      HStack(spacing: 6) {
+        ChromeIconButton(systemName: "rectangle.split.2x1", help: "Split Right") {
+          tabManager.showLauncher(action: .splitRight)
+        }
+        ChromeIconButton(systemName: "rectangle.split.1x2", help: "Split Down") {
+          tabManager.showLauncher(action: .splitDown)
+        }
+      }
+      .padding(.top, 10)
+      .padding(.trailing, 12)
     }
     .background(AppChromeColors.mainBackground)
     .overlay(alignment: .leading) {
       Rectangle()
         .fill(AppChromeColors.chromeBorder)
         .frame(width: 1)
-    }
-  }
-}
-
-private struct WorkspaceTopBar: View {
-  @ObservedObject var tabManager: WorkspaceTabManager
-
-  var body: some View {
-    HStack(spacing: 10) {
-      Text(tabManager.selectedPaneTitle)
-        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-        .lineLimit(1)
-        .foregroundStyle(.primary)
-        .padding(.leading, 22)
-
-      Spacer()
-
-      ChromeIconButton(systemName: "rectangle.split.2x1", help: "Split Right") {
-        tabManager.showLauncher(action: .splitRight)
-      }
-      ChromeIconButton(systemName: "rectangle.split.1x2", help: "Split Down") {
-        tabManager.showLauncher(action: .splitDown)
-      }
-      .padding(.trailing, 12)
-    }
-    .padding(.bottom, 8)
-    .background(AppChromeColors.mainBackground)
-    .overlay(alignment: .bottom) {
-      Rectangle()
-        .fill(AppChromeColors.chromeBorder)
-        .frame(height: 1)
     }
   }
 }
@@ -94,7 +70,7 @@ private struct ChromeIconButton: View {
   var body: some View {
     Button(action: action) {
       Image(systemName: systemName)
-        .font(.system(size: 14, weight: .medium))
+        .font(AppFonts.ui(size: 14, weight: .medium))
         .frame(width: 24, height: 24)
         .contentShape(Rectangle())
     }
@@ -118,9 +94,31 @@ private struct WorkspaceTabSidebar: View {
   @State private var flagsMonitor: Any?
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: 0) {
       Spacer()
-        .frame(height: 28)
+        .frame(height: 54)
+
+      HStack {
+        Text("SCREENS")
+          .font(AppFonts.monospaced(size: 11, weight: .semibold))
+          .tracking(0.7)
+          .foregroundStyle(.secondary)
+        Spacer()
+        Button {
+          tabManager.showLauncher(action: .newTab)
+        } label: {
+          Image(systemName: "plus")
+            .font(AppFonts.ui(size: 13, weight: .semibold))
+            .frame(width: 22, height: 22)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help("New Screen")
+        .accessibilityLabel("New Screen")
+      }
+      .padding(.horizontal, 10)
+      .padding(.bottom, 8)
 
       ScrollView {
         LazyVStack(alignment: .leading, spacing: 4) {
@@ -135,29 +133,31 @@ private struct WorkspaceTabSidebar: View {
               close: { tabManager.closeTab(tab.id) }
             )
           }
-
-          Button {
-            tabManager.showLauncher(action: .newTab)
-          } label: {
-            HStack(spacing: 8) {
-              Image(systemName: "plus")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-              Text("New Tab")
-                .font(.system(size: 15, weight: .semibold))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .contentShape(Rectangle())
-          }
-          .buttonStyle(.plain)
-          .foregroundStyle(.primary)
-          .help("New Tab")
-          .accessibilityLabel("New Tab")
         }
         .padding(.horizontal, 8)
         .padding(.bottom, 8)
       }
+
+      Spacer(minLength: 0)
+
+      Button {
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+      } label: {
+        HStack(spacing: 8) {
+          Image(systemName: "gearshape")
+            .font(AppFonts.ui(size: 12, weight: .medium))
+          Text("Settings")
+            .font(AppFonts.monospaced(size: 13, weight: .medium))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .foregroundStyle(.primary.opacity(0.9))
+      .help("Settings")
+      .accessibilityLabel("Settings")
+      .padding(.bottom, 10)
     }
     .background(AppChromeColors.sidebarBackground)
     .onAppear {
@@ -188,19 +188,24 @@ private struct WorkspaceTabRow: View {
   var body: some View {
     Button(action: select) {
       HStack(spacing: 8) {
+        Text("\(shortcutIndex)")
+          .font(AppFonts.monospaced(size: 12, weight: .medium))
+          .foregroundStyle(isSelected ? .primary : .secondary)
+          .frame(width: 14, alignment: .leading)
+
         Text(tab.title)
-          .font(.system(size: 14, weight: .semibold))
+          .font(AppFonts.monospaced(size: 13, weight: .semibold))
           .lineLimit(1)
           .frame(maxWidth: .infinity, alignment: .leading)
 
         if showShortcut {
           Text("⌘\(shortcutIndex)")
-            .font(.system(size: 12, weight: .semibold))
+            .font(AppFonts.monospaced(size: 11, weight: .semibold))
             .foregroundStyle(.secondary)
         } else if hovering, canClose {
           Button(action: close) {
             Image(systemName: "xmark")
-              .font(.system(size: 11, weight: .semibold))
+              .font(AppFonts.ui(size: 11, weight: .semibold))
               .frame(width: 16, height: 16)
           }
           .buttonStyle(.plain)
@@ -209,12 +214,16 @@ private struct WorkspaceTabRow: View {
           .accessibilityLabel("Close \(tab.title)")
         }
       }
-      .padding(.horizontal, 12)
-      .padding(.vertical, 8)
+      .padding(.horizontal, 8)
+      .padding(.vertical, 7)
       .contentShape(Rectangle())
       .background {
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-          .fill(isSelected ? Color.white.opacity(0.10) : Color.clear)
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+          .fill(isSelected ? Color.white.opacity(0.06) : Color.clear)
+      }
+      .overlay {
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+          .stroke(isSelected ? Color(nsColor: .systemBlue).opacity(0.85) : Color.clear, lineWidth: 1)
       }
     }
     .buttonStyle(.plain)
@@ -257,7 +266,7 @@ private struct PaneLauncherOverlay: View {
 
       VStack(alignment: .leading, spacing: 12) {
         Text("what to run?")
-          .font(.system(size: 11, weight: .regular))
+          .font(AppFonts.ui(size: 11))
           .tracking(0.9)
           .textCase(.uppercase)
           .foregroundStyle(.secondary)
@@ -265,12 +274,12 @@ private struct PaneLauncherOverlay: View {
         if mode == .list {
           launcherList
           Text("↑↓ select · ⏎ launch · esc shell · 1–\(rowCount) pick")
-            .font(.system(size: 11))
+            .font(AppFonts.ui(size: 11))
             .italic()
             .foregroundStyle(.secondary)
         } else {
           TextField("command to run", text: $customText)
-            .font(.system(size: 13, design: .monospaced))
+            .font(AppFonts.monospaced(size: 13))
             .textFieldStyle(.plain)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -286,7 +295,7 @@ private struct PaneLauncherOverlay: View {
             }
 
           Text("⏎ run · esc back")
-            .font(.system(size: 11))
+            .font(AppFonts.ui(size: 11))
             .italic()
             .foregroundStyle(.secondary)
         }
@@ -335,14 +344,14 @@ private struct PaneLauncherOverlay: View {
     Button(action: action) {
       HStack(spacing: 10) {
         Text("\(index + 1)")
-          .font(.system(size: 10, weight: .semibold))
+          .font(AppFonts.ui(size: 10, weight: .semibold))
           .frame(width: 18, height: 18)
           .background(selected == index ? Color.accentColor : Color(nsColor: .separatorColor))
           .foregroundStyle(selected == index ? Color(nsColor: .textBackgroundColor) : .secondary)
           .clipShape(RoundedRectangle(cornerRadius: 3))
 
         Text(title)
-          .font(.system(size: 13))
+          .font(AppFonts.ui(size: 13))
           .frame(maxWidth: .infinity, alignment: .leading)
       }
       .padding(.horizontal, 8)

@@ -33,6 +33,7 @@ targets:
     resources:
       - path: App/Assets.xcassets
       - path: App/Localizable.xcstrings
+      - path: App/Resources
     dependencies:
       - package: smoovmux-core
         product: SessionCore

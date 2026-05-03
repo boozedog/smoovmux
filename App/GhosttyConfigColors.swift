@@ -10,8 +10,7 @@ enum GhosttyConfigColors {
   }
 
   private static func configuredColor(named key: String) -> NSColor? {
-    let configURL = FileManager.default.homeDirectoryForCurrentUser
-      .appendingPathComponent(".config/ghostty/config")
+    let configURL = SmoovmuxConfig.configURL
     guard let contents = try? String(contentsOf: configURL, encoding: .utf8) else { return nil }
 
     for rawLine in contents.components(separatedBy: .newlines).reversed() {

@@ -1,0 +1,3 @@
+# Bundled smoovmux Ghostty defaults.
+# User overrides live in ~/.config/smoovmux/config.
+font-family = Maple Mono NL NF

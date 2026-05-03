@@ -324,11 +324,11 @@ final class PaneController {
     for surfaceView in surfaceViews {
       surfaceView.wantsLayer = true
       let isFocused = surfaceView === focusedSurfaceView
-      surfaceView.layer?.borderWidth = isFocused ? 1.5 : 0
+      surfaceView.layer?.borderWidth = isFocused ? 1 : 0
       surfaceView.layer?.borderColor = NSColor.systemBlue.withAlphaComponent(0.95).cgColor
       surfaceView.layer?.shadowColor = NSColor.systemBlue.cgColor
-      surfaceView.layer?.shadowOpacity = isFocused ? 0.45 : 0
-      surfaceView.layer?.shadowRadius = isFocused ? 8 : 0
+      surfaceView.layer?.shadowOpacity = 0
+      surfaceView.layer?.shadowRadius = 0
       surfaceView.layer?.shadowOffset = .zero
       surfaceView.layer?.masksToBounds = false
     }

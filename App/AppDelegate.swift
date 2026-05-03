@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var stateStore: WorkspaceStateStore?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    AppFonts.registerBundledFonts()
     SmoovLog.info("smoovmux launched")
     installMainMenu()
 

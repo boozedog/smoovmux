@@ -7,9 +7,10 @@ import SmoovLog
 /// requires (`ghostty_runtime_config_s`) are routed through `@convention(c)`
 /// trampolines that hop back to the main actor before touching Swift state.
 ///
-/// Smoovmux loads Ghostty's default config files before finalizing so terminal
-/// preferences such as font and colors match the user's Ghostty setup. We do
-/// not load CLI args because smoovmux owns its own process arguments.
+/// Smoovmux loads bundled Ghostty defaults before the user's
+/// `~/.config/smoovmux/config` so terminal preferences have app defaults while
+/// still allowing user overrides. We do not load CLI args because smoovmux owns
+/// its own process arguments.
 ///
 /// What's deliberately *not* done:
 /// - No OSC 52 clipboard plumbing — stubs return `false`/no-op.
@@ -35,8 +36,7 @@ final class GhosttyApp {
     guard let config = ghostty_config_new() else {
       throw InitError.configNew
     }
-    ghostty_config_load_default_files(config)
-    ghostty_config_load_recursive_files(config)
+    Self.loadSmoovmuxDefaults(into: config)
     ghostty_config_finalize(config)
     self.config = config
 
@@ -67,6 +67,20 @@ final class GhosttyApp {
 
   func tick() {
     ghostty_app_tick(cValue)
+  }
+
+  private static func loadSmoovmuxDefaults(into config: ghostty_config_t) {
+    if let bundledDefaultsURL = Bundle.main.url(
+      forResource: SmoovmuxConfig.bundledDefaultConfigName,
+      withExtension: nil
+    ) {
+      ghostty_config_load_file(config, bundledDefaultsURL.path)
+    }
+
+    if FileManager.default.fileExists(atPath: SmoovmuxConfig.configURL.path) {
+      ghostty_config_load_file(config, SmoovmuxConfig.configURL.path)
+      ghostty_config_load_recursive_files(config)
+    }
   }
 
   // MARK: - Runtime callbacks
