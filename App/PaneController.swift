@@ -24,6 +24,7 @@ final class PaneController {
   private var paneIdsBySurfaceView: [ObjectIdentifier: UUID] = [:]
   private weak var focusedSurfaceView: SmoovSurfaceView?
   private weak var activeSurfaceView: SmoovSurfaceView?
+  private var zoomedPaneId: UUID?
 
   init(
     ghosttyApp: GhosttyApp,
@@ -79,6 +80,10 @@ final class PaneController {
     paneTree.selectedPane?.cwd
   }
 
+  var isZoomed: Bool {
+    zoomedPaneId != nil
+  }
+
   var windowTitle: String {
     let leaf = paneTree.selectedPane
     let cwd = leaf?.cwd?.path.abbreviatedHomePath ?? "~"
@@ -94,14 +99,28 @@ final class PaneController {
     splitFocusedSurface(direction: .down, command: command)
   }
 
+  func toggleZoomSelectedPane() {
+    if zoomedPaneId == paneTree.selectedPaneId {
+      zoomedPaneId = nil
+    } else {
+      zoomedPaneId = paneTree.selectedPaneId
+    }
+    applyZoomState()
+    focusSelectedSurface()
+  }
+
   func closePane() {
     guard let surfaceView = focusedSurfaceView,
       surfaceViews.count > 1,
       let paneId = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)],
       paneTree.closePane(paneId)
     else { return }
+    if zoomedPaneId == paneId {
+      zoomedPaneId = nil
+    }
     surfaceView.requestClosePane()
     collapse(surfaceView)
+    applyZoomState()
     onStateChange()
   }
 
@@ -170,6 +189,10 @@ final class PaneController {
   }
 
   private func splitFocusedSurface(direction: SplitDirection, command: String?) {
+    if zoomedPaneId != nil {
+      zoomedPaneId = nil
+      applyZoomState()
+    }
     guard let target = focusedSurfaceView,
       let targetId = paneIdsBySurfaceView[ObjectIdentifier(target)],
       let newPaneId = paneTree.splitPane(targetId, direction: direction.paneTreeDirection)
@@ -192,7 +215,9 @@ final class PaneController {
     splitView.addArrangedSubview(target)
     splitView.addArrangedSubview(newSurfaceView)
     focusedSurfaceView = newSurfaceView
+    activeSurfaceView = newSurfaceView
     updateFocusRing()
+    applyZoomState()
 
     scheduleBalanceSplits()
 
@@ -242,8 +267,69 @@ final class PaneController {
     replace(parentSplitView, with: sibling)
     focusedSurfaceView = firstSurface(in: sibling) ?? surfaceViews.last
     updateFocusRing()
+    applyZoomState()
     scheduleBalanceSplits()
     focusSelectedSurface()
+  }
+
+  private func applyZoomState() {
+    applyZoomState(in: rootView)
+    rootView.needsLayout = true
+    rootView.layoutSubtreeIfNeeded()
+    scheduleBalanceSplits()
+  }
+
+  @discardableResult
+  private func applyZoomState(in view: NSView) -> Bool {
+    guard let zoomedPaneId else {
+      view.isHidden = false
+      for subview in view.subviews {
+        applyZoomState(in: subview)
+      }
+      return true
+    }
+
+    if let surfaceView = view as? SmoovSurfaceView {
+      let containsZoomedPane = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] == zoomedPaneId
+      surfaceView.isHidden = !containsZoomedPane
+      return containsZoomedPane
+    }
+
+    if let splitView = view as? NSSplitView {
+      var containsBySubview: [NSView: Bool] = [:]
+      for subview in splitView.arrangedSubviews {
+        containsBySubview[subview] = applyZoomState(in: subview)
+      }
+      for subview in splitView.arrangedSubviews {
+        subview.isHidden = containsBySubview[subview] != true
+      }
+      splitView.adjustSubviews()
+      DispatchQueue.main.async { [weak splitView] in
+        guard let splitView else { return }
+        self.expandZoomedSubview(in: splitView, containsBySubview: containsBySubview)
+      }
+      return containsBySubview.values.contains(true)
+    }
+
+    var containsZoomedPane = false
+    for subview in view.subviews {
+      containsZoomedPane = applyZoomState(in: subview) || containsZoomedPane
+    }
+    view.isHidden = !containsZoomedPane
+    return containsZoomedPane
+  }
+
+  private func expandZoomedSubview(in splitView: NSSplitView, containsBySubview: [NSView: Bool]) {
+    guard zoomedPaneId != nil, splitView.arrangedSubviews.count == 2 else { return }
+    splitView.layoutSubtreeIfNeeded()
+    let length = splitView.isVertical ? splitView.bounds.width : splitView.bounds.height
+    guard length > splitView.dividerThickness else { return }
+    let availableLength = length - splitView.dividerThickness
+    if containsBySubview[splitView.arrangedSubviews[0]] == true {
+      splitView.setPosition(availableLength, ofDividerAt: 0)
+    } else if containsBySubview[splitView.arrangedSubviews[1]] == true {
+      splitView.setPosition(0, ofDividerAt: 0)
+    }
   }
 
   private func scheduleBalanceSplits() {
@@ -255,6 +341,9 @@ final class PaneController {
   }
 
   private func balanceSplits(in view: NSView) {
+    if zoomedPaneId != nil {
+      return
+    }
     guard let splitView = view as? NSSplitView else {
       for subview in view.subviews {
         balanceSplits(in: subview)
@@ -358,7 +447,7 @@ final class PaneController {
 
 private final class PaneSplitView: NSSplitView {
   override func drawDivider(in rect: NSRect) {
-    GhosttyConfigColors.dividerColor.setFill()
+    NSColor.black.setFill()
     rect.fill()
   }
 }

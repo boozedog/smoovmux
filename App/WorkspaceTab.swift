@@ -48,6 +48,10 @@ final class WorkspaceTabManager: ObservableObject {
     selectedPane?.windowTitle ?? selectedTabTitle
   }
 
+  var selectedPaneIsZoomed: Bool {
+    selectedPane?.isZoomed ?? false
+  }
+
   var activeCwd: URL? {
     selectedPane?.selectedCwd ?? tabList.selectedTab?.cwd
   }
@@ -98,6 +102,11 @@ final class WorkspaceTabManager: ObservableObject {
 
   func dismissLauncher() {
     launcherPresentation = nil
+  }
+
+  func toggleSelectedPaneZoom() {
+    selectedPane?.toggleZoomSelectedPane()
+    objectWillChange.send()
   }
 
   func launch(_ request: PaneLaunchRequest) {

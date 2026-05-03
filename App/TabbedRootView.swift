@@ -16,7 +16,6 @@ struct TabbedRootView: View {
           .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         if tabManager.rightSidebarState.isOpen {
-          Divider()
           GitRightSidebar(tabManager: tabManager)
             .frame(width: tabManager.rightSidebarState.width)
         }
@@ -33,10 +32,10 @@ struct TabbedRootView: View {
 }
 
 private enum AppChromeColors {
-  static let windowBackground = Color(nsColor: NSColor(red: 0.07, green: 0.08, blue: 0.10, alpha: 1.0))
-  static let sidebarBackground = Color(nsColor: NSColor(red: 0.13, green: 0.13, blue: 0.14, alpha: 1.0))
-  static let mainBackground = Color(nsColor: NSColor(red: 0.06, green: 0.07, blue: 0.09, alpha: 1.0))
-  static let chromeBorder = Color(nsColor: GhosttyConfigColors.dividerColor)
+  static let windowBackground = Color.black
+  static let sidebarBackground = Color.black
+  static let mainBackground = Color.black
+  static let chromeBorder = Color.clear
 }
 
 private struct WorkspaceMainArea: View {
@@ -51,6 +50,13 @@ private struct WorkspaceMainArea: View {
         }
         ChromeIconButton(systemName: "rectangle.split.1x2", help: "Split Down") {
           tabManager.showLauncher(action: .splitDown)
+        }
+        ChromeIconButton(
+          systemName: tabManager.selectedPaneIsZoomed
+            ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
+          help: tabManager.selectedPaneIsZoomed ? "Unzoom Pane" : "Zoom Pane"
+        ) {
+          tabManager.toggleSelectedPaneZoom()
         }
         ChromeIconButton(systemName: "sidebar.right", help: "Toggle Git Sidebar") {
           tabManager.toggleRightSidebar()
