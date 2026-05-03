@@ -32,6 +32,7 @@
 		AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; };
 		BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B28811F6C750E579A75303B /* TabbedRootView.swift */; };
 		BEC0204C66AA32640E437C80 /* LICENSE-MapleMonoNL-NF.txt in Resources */ = {isa = PBXBuildFile; fileRef = CFF83E176423DF2FAB05966D /* LICENSE-MapleMonoNL-NF.txt */; };
+		C228431E5B8E4174E510B983 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37EA662676EE2612EEF8877 /* SettingsWindowController.swift */; };
 		C58F51D58D129B5B268B1007 /* MapleMonoNL-NF-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F465BE8D9A782A3DF560809E /* MapleMonoNL-NF-Bold.ttf */; };
 		CA970142BB93ACA4411A6166 /* WorkspaceState in Frameworks */ = {isa = PBXBuildFile; productRef = 9340354FEEEACC7329FCCD20 /* WorkspaceState */; };
 		D6190A890FACAC05E5D145AA /* AppFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A66DDE629523ECD21E4B73 /* AppFonts.swift */; };
@@ -57,6 +58,7 @@
 		81E207F787B87473523113BE /* MapleMonoNL-NF-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MapleMonoNL-NF-BoldItalic.ttf"; sourceTree = "<group>"; };
 		8C3EC08550B2F97E3315A631 /* WorkspaceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTab.swift; sourceTree = "<group>"; };
 		9758DEFEA328AD5E5C57428F /* smoovmux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = smoovmux; path = .; sourceTree = SOURCE_ROOT; };
+		A37EA662676EE2612EEF8877 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		BED3EEE3E12C4B044CF2E3E5 /* MapleMonoNL-NF-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MapleMonoNL-NF-Italic.ttf"; sourceTree = "<group>"; };
 		C07F05AE7F0D5E97754CA401 /* PaneController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneController.swift; sourceTree = "<group>"; };
@@ -129,6 +131,7 @@
 				CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */,
 				F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */,
 				C07F05AE7F0D5E97754CA401 /* PaneController.swift */,
+				A37EA662676EE2612EEF8877 /* SettingsWindowController.swift */,
 				C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */,
 				F0813FA9B51DDDDFCF9FECE1 /* SmoovmuxConfig.swift */,
 				D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */,
@@ -294,6 +297,7 @@
 				4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */,
 				04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */,
 				5A3B5EDCD95A29AD63AA679F /* PaneController.swift in Sources */,
+				C228431E5B8E4174E510B983 /* SettingsWindowController.swift in Sources */,
 				67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */,
 				A2D9C4E15761F477990961F0 /* SmoovmuxConfig.swift in Sources */,
 				BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */,

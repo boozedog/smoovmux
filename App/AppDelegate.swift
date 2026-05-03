@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private(set) var ghosttyApp: GhosttyApp?
   private var tabManager: WorkspaceTabManager?
   private var windowController: MainWindowController?
+  private var settingsWindowController: SettingsWindowController?
   private var stateStore: WorkspaceStateStore?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -62,6 +63,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     mainMenu.addItem(appMenuItem)
     let appMenu = NSMenu()
     appMenuItem.submenu = appMenu
+    let settingsItem = appMenu.addItem(
+      withTitle: "Settings…",
+      action: #selector(Self.showSettingsWindow(_:)),
+      keyEquivalent: ","
+    )
+    settingsItem.target = self
+    appMenu.addItem(NSMenuItem.separator())
     appMenu.addItem(
       withTitle: "Quit smoovmux",
       action: #selector(NSApplication.terminate(_:)),
@@ -99,6 +107,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
 
     NSApp.mainMenu = mainMenu
+  }
+
+  @objc func showSettingsWindow(_ sender: Any?) {
+    if settingsWindowController == nil {
+      settingsWindowController = SettingsWindowController()
+    }
+    settingsWindowController?.showWindow(sender)
+    settingsWindowController?.window?.makeKeyAndOrderFront(sender)
+    NSApp.activate(ignoringOtherApps: true)
   }
 
   @objc private func newTab(_ sender: Any?) {

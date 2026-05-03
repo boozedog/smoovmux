@@ -275,7 +275,11 @@ private struct WorkspaceTabSidebar: View {
       Spacer(minLength: 0)
 
       Button {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        NSApp.sendAction(
+          #selector(AppDelegate.showSettingsWindow(_:)),
+          to: NSApp.delegate,
+          from: nil
+        )
       } label: {
         HStack(spacing: 8) {
           Image(systemName: "gearshape")
