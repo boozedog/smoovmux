@@ -7,8 +7,7 @@ import WorkspaceState
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private(set) var ghosttyApp: GhosttyApp?
-  private var tabManager: WorkspaceTabManager?
-  private var windowController: MainWindowController?
+  private var windowControllersById: [UUID: MainWindowController] = [:]
   private var settingsWindowController: SettingsWindowController?
   private var stateStore: WorkspaceStateStore?
 
@@ -30,32 +29,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let stateStore = WorkspaceStateStore()
     self.stateStore = stateStore
+
     let restoredState = stateStore.load()
-
-    let tabManager = WorkspaceTabManager(ghosttyApp: app)
-    if let restoredState {
-      tabManager.restore(restoredState)
+    if let restoredState, !restoredState.windows.isEmpty {
+      for windowState in restoredState.windows {
+        showWindow(id: windowState.id, workspaceState: windowState.workspace, activate: false)
+      }
     } else {
-      tabManager.addTab()
+      showLauncherWindow(activate: false)
     }
-    self.tabManager = tabManager
 
-    let controller = MainWindowController(
-      tabManager: tabManager,
-      stateStore: stateStore,
-      restoredWindowFrame: restoredState?.windowFrame
-    )
-    controller.showWindow(nil)
-    self.windowController = controller
+    if let selectedWindowId = restoredState?.selectedWindowId,
+      let selectedWindow = windowControllersById[selectedWindowId]
+    {
+      selectedWindow.window?.makeKeyAndOrderFront(nil)
+    } else {
+      windowControllersById.values.first?.window?.makeKeyAndOrderFront(nil)
+    }
     NSApp.activate(ignoringOtherApps: true)
   }
 
   func applicationWillTerminate(_ notification: Notification) {
-    windowController?.saveStateImmediately()
+    saveStateImmediately()
   }
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-    true
+    false
+  }
+
+  func applicationDidBecomeActive(_ notification: Notification) {
+    if windowControllersById.isEmpty {
+      showLauncherWindow(activate: true)
+    }
   }
 
   private func cleanupDroppedImages() {
@@ -90,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     mainMenu.addItem(fileMenuItem)
     let fileMenu = NSMenu(title: "File")
     fileMenuItem.submenu = fileMenu
+    addMenuItem(AppCommand.newWindow, to: fileMenu, action: #selector(Self.newWindow(_:)))
     addMenuItem(AppCommand.newTab, to: fileMenu, action: #selector(Self.newTab(_:)))
     addMenuItem(AppCommand.closeTab, to: fileMenu, action: #selector(Self.closeTab(_:)))
     fileMenu.addItem(NSMenuItem.separator())
@@ -134,36 +140,106 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     NSApp.activate(ignoringOtherApps: true)
   }
 
+  @objc private func newWindow(_ sender: Any?) {
+    showLauncherWindow(activate: true)
+  }
+
   @objc private func newTab(_ sender: Any?) {
-    windowController?.newTab(sender)
+    keyMainWindowController?.newTab(sender)
   }
 
   @objc private func closeTab(_ sender: Any?) {
-    windowController?.closeTab(sender)
+    keyMainWindowController?.closeTab(sender)
   }
 
   @objc private func splitRight(_ sender: Any?) {
-    windowController?.splitRight(sender)
+    keyMainWindowController?.splitRight(sender)
   }
 
   @objc private func splitDown(_ sender: Any?) {
-    windowController?.splitDown(sender)
+    keyMainWindowController?.splitDown(sender)
   }
 
   @objc private func closePane(_ sender: Any?) {
-    windowController?.closePane(sender)
+    keyMainWindowController?.closePane(sender)
   }
 
   @objc private func toggleRightSidebar(_ sender: Any?) {
-    windowController?.toggleRightSidebar(sender)
+    keyMainWindowController?.toggleRightSidebar(sender)
   }
 
   @objc private func selectNextTab(_ sender: Any?) {
-    windowController?.selectNextTab(sender)
+    keyMainWindowController?.selectNextTab(sender)
   }
 
   @objc private func selectPreviousTab(_ sender: Any?) {
-    windowController?.selectPreviousTab(sender)
+    keyMainWindowController?.selectPreviousTab(sender)
+  }
+
+  private var keyMainWindowController: MainWindowController? {
+    (NSApp.keyWindow?.windowController as? MainWindowController)
+      ?? (NSApp.mainWindow?.windowController as? MainWindowController)
+      ?? windowControllersById.values.first
+  }
+
+  @discardableResult
+  private func showLauncherWindow(activate: Bool) -> MainWindowController? {
+    showWindow(id: UUID(), workspaceState: .empty(), activate: activate, showLauncher: true)
+  }
+
+  @discardableResult
+  private func showWindow(
+    id: UUID,
+    workspaceState: WorkspaceState,
+    activate: Bool,
+    showLauncher: Bool = false
+  ) -> MainWindowController? {
+    guard let ghosttyApp else { return nil }
+
+    let tabManager = WorkspaceTabManager(ghosttyApp: ghosttyApp)
+    tabManager.restore(workspaceState)
+    if showLauncher || workspaceState.tabs.isEmpty {
+      tabManager.showLauncher(action: .newTab)
+    }
+
+    let controller = MainWindowController(
+      id: id,
+      tabManager: tabManager,
+      restoredWindowFrame: workspaceState.windowFrame
+    )
+    controller.onRequestSave = { [weak self] in
+      self?.saveState()
+    }
+    controller.onWindowWillClose = { [weak self] id in
+      self?.windowControllersById[id] = nil
+      self?.saveStateImmediately()
+    }
+    windowControllersById[id] = controller
+    controller.showWindow(nil)
+    if activate {
+      controller.window?.makeKeyAndOrderFront(nil)
+      NSApp.activate(ignoringOtherApps: true)
+    }
+    saveState()
+    return controller
+  }
+
+  private func currentState() -> AppWorkspaceState {
+    let keyWindowId = keyMainWindowController?.id
+    let windows = windowControllersById.values
+      .sorted { $0.id.uuidString < $1.id.uuidString }
+      .map { controller in
+        AppWorkspaceState.Window(id: controller.id, workspace: controller.currentSnapshot())
+      }
+    return AppWorkspaceState(windows: windows, selectedWindowId: keyWindowId)
+  }
+
+  private func saveState() {
+    stateStore?.save(currentState())
+  }
+
+  private func saveStateImmediately() {
+    stateStore?.saveImmediately(currentState())
   }
 
   private func addMenuItem(_ command: AppCommand, to menu: NSMenu, action: Selector) {

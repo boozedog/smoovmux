@@ -18,6 +18,11 @@ struct AppCommandTests {
     #expect(Set(shortcuts).count == shortcuts.count)
   }
 
+  @Test("new window is Command-N")
+  func newWindowShortcut() {
+    #expect(AppCommand.newWindow.shortcut == KeyboardShortcutSpec(key: "n", modifiers: [.command]))
+  }
+
   @Test("new tab is Command-T")
   func newTabShortcut() {
     #expect(AppCommand.newTab.shortcut == KeyboardShortcutSpec(key: "t", modifiers: [.command]))

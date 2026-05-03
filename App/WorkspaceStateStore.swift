@@ -8,7 +8,7 @@ final class WorkspaceStateStore {
   private let url: URL
   private let encoder: JSONEncoder
   private let decoder: JSONDecoder
-  private let debouncer: WorkspaceStateSaveDebouncer
+  private let debouncer: WorkspaceStateSaveDebouncer<AppWorkspaceState>
 
   init(fileManager: FileManager = .default, bundleIdentifier: String? = Bundle.main.bundleIdentifier) {
     let supportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -31,10 +31,15 @@ final class WorkspaceStateStore {
     }
   }
 
-  func load() -> WorkspaceState? {
+  func load() -> AppWorkspaceState? {
     do {
       let data = try Data(contentsOf: url)
-      return try decoder.decode(WorkspaceState.self, from: data)
+      do {
+        return try decoder.decode(AppWorkspaceState.self, from: data)
+      } catch {
+        let legacyWorkspace = try decoder.decode(WorkspaceState.self, from: data)
+        return AppWorkspaceState(windows: [AppWorkspaceState.Window(workspace: legacyWorkspace)], selectedWindowId: nil)
+      }
     } catch CocoaError.fileReadNoSuchFile {
       return nil
     } catch {
@@ -43,13 +48,13 @@ final class WorkspaceStateStore {
     }
   }
 
-  func save(_ state: WorkspaceState) {
+  func save(_ state: AppWorkspaceState) {
     Task {
       await debouncer.schedule(state)
     }
   }
 
-  func saveImmediately(_ state: WorkspaceState) {
+  func saveImmediately(_ state: AppWorkspaceState) {
     do {
       let data = try encoder.encode(state)
       try data.write(to: url, options: [.atomic])
@@ -58,7 +63,7 @@ final class WorkspaceStateStore {
     }
   }
 
-  private static func write(_ state: WorkspaceState, to url: URL) async {
+  private static func write(_ state: AppWorkspaceState, to url: URL) async {
     do {
       let encoder = JSONEncoder()
       encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

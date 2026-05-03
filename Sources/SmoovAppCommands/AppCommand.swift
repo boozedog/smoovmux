@@ -20,6 +20,7 @@ public struct KeyboardShortcutSpec: Equatable, Hashable, Sendable {
 }
 
 public enum AppCommand: CaseIterable, Equatable, Sendable {
+  case newWindow
   case newTab
   case closeTab
   case nextTab
@@ -31,6 +32,8 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
 
   public var title: String {
     switch self {
+    case .newWindow:
+      return "New Window"
     case .newTab:
       return "New Tab"
     case .closeTab:
@@ -52,6 +55,8 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
 
   public var shortcut: KeyboardShortcutSpec? {
     switch self {
+    case .newWindow:
+      return KeyboardShortcutSpec(key: "n", modifiers: [.command])
     case .newTab:
       return KeyboardShortcutSpec(key: "t", modifiers: [.command])
     case .closeTab:

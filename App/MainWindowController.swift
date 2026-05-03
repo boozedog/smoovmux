@@ -3,18 +3,20 @@ import PaneLauncher
 import SwiftUI
 import WorkspaceState
 
-/// Single-window host for custom workspace tabs.
+/// Window host for custom workspace tabs.
 ///
 /// Do NOT use `addTabbedWindow` / native `NSWindow` tabs — AeroSpace/yabai see
 /// native tabs as separate windows. Custom tab chrome stays inside one NSWindow.
 /// (#2, CLAUDE.md)
 final class MainWindowController: NSWindowController, NSWindowDelegate {
+  let id: UUID
   let tabManager: WorkspaceTabManager
-  private let stateStore: WorkspaceStateStore
+  var onRequestSave: (() -> Void)?
+  var onWindowWillClose: ((UUID) -> Void)?
 
-  init(tabManager: WorkspaceTabManager, stateStore: WorkspaceStateStore, restoredWindowFrame: WorkspaceWindowFrame?) {
+  init(id: UUID = UUID(), tabManager: WorkspaceTabManager, restoredWindowFrame: WorkspaceWindowFrame?) {
+    self.id = id
     self.tabManager = tabManager
-    self.stateStore = stateStore
 
     let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
     let window = NSWindow(
@@ -28,7 +30,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     window.titlebarAppearsTransparent = true
     window.isMovableByWindowBackground = false
     window.backgroundColor = .black
-    window.tabbingMode = .disallowed
     if restoredWindowFrame == nil {
       window.center()
     }
@@ -39,7 +40,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     tabManager.onStateChange = { [weak self] in
       self?.updateWindowTitle()
       self?.updateTrafficLights()
-      self?.saveState()
+      self?.onRequestSave?()
     }
     updateWindowTitle()
     updateTrafficLights()
@@ -78,26 +79,19 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
   }
 
   func windowDidMove(_ notification: Notification) {
-    saveState()
+    onRequestSave?()
   }
 
   func windowDidResize(_ notification: Notification) {
-    saveState()
+    onRequestSave?()
   }
 
   func windowWillClose(_ notification: Notification) {
-    saveStateImmediately()
+    onRequestSave?()
+    onWindowWillClose?(id)
   }
 
-  func saveState() {
-    stateStore.save(currentSnapshot())
-  }
-
-  func saveStateImmediately() {
-    stateStore.saveImmediately(currentSnapshot())
-  }
-
-  private func currentSnapshot() -> WorkspaceState {
+  func currentSnapshot() -> WorkspaceState {
     tabManager.snapshot(windowFrame: window.map { WorkspaceWindowFrame($0.frame) })
   }
 

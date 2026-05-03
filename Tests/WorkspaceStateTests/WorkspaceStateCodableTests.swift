@@ -104,7 +104,7 @@ struct WorkspaceStateCodableTests {
     #expect(decoded.rightSidebar == WorkspaceRightSidebarState())
   }
 
-  @Test("normalizes invalid selected tab and empty workspaces")
+  @Test("normalizes invalid selected tab and preserves empty workspaces")
   func normalizesInvalidSelection() throws {
     let tab = WorkspaceState.Tab(
       record: WorkspaceTabRecord(id: tabID(1), title: "one"),
@@ -142,8 +142,8 @@ struct WorkspaceStateCodableTests {
     let decoded = try JSONDecoder().decode(WorkspaceState.self, from: encodedInvalidSelection)
 
     #expect(state.selectedTabId == tab.record.id)
-    #expect(empty.tabs.count == 1)
-    #expect(empty.selectedTabId == empty.tabs[0].record.id)
+    #expect(empty.tabs.isEmpty)
+    #expect(empty.selectedTabId == nil)
     #expect(decoded.selectedTabId == decoded.tabs[0].record.id)
   }
 }
