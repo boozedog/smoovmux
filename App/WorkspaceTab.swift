@@ -20,7 +20,7 @@ final class WorkspaceTabManager: ObservableObject {
   @Published var rightSidebarState = WorkspaceRightSidebarState()
   @Published private(set) var rightSidebarPane: CommandPaneController?
   @Published private(set) var rightSidebarMessage: String?
-  @Published private(set) var activePaneTitle: String?
+  @Published private var activePaneChrome = PaneChromeState()
   @Published private(set) var terminalStatusesByTabId: [UUID: TerminalScreenStatus] = [:]
 
   private let ghosttyApp: GhosttyApp
@@ -54,22 +54,15 @@ final class WorkspaceTabManager: ObservableObject {
   }
 
   var topBarTitle: String {
-    PaneChromeTitlePolicy.title(
-      command: selectedPane?.selectedPaneCommand,
-      terminalTitle: activePaneTitle,
-      loginShellPath: loginShellPath
-    )
+    activePaneChrome.title(loginShellPath: loginShellPath, homePath: NSHomeDirectory())
   }
 
   var selectedPaneCwdDisplay: String {
-    PaneChromeTitlePolicy.cwdDisplay(cwd: activeCwd, homePath: NSHomeDirectory())
+    activePaneChrome.cwdDisplay(homePath: NSHomeDirectory())
   }
 
   var selectedPaneCommandKind: String {
-    guard let command = selectedPane?.selectedPaneCommand else {
-      return PaneChromeTitlePolicy.executableName(fromPath: loginShellPath, fallback: "shell")
-    }
-    return PaneChromeTitlePolicy.commandName(command)
+    activePaneChrome.commandKind(loginShellPath: loginShellPath)
   }
 
   private var loginShellPath: String {
@@ -92,7 +85,7 @@ final class WorkspaceTabManager: ObservableObject {
   func addTab(select: Bool = true, command: String? = nil) -> WorkspaceTabRecord {
     let tab = tabList.addTab(cwd: tabList.lastKnownCwd, select: select)
     panesByTabId[tab.id] = makePaneController(tabId: tab.id, initialCwd: tab.cwd, command: command)
-    updateActivePaneTitle()
+    updateActivePaneChrome()
     onStateChange?()
     return tab
   }
@@ -106,7 +99,7 @@ final class WorkspaceTabManager: ObservableObject {
       panesByTabId[tab.record.id] = makePaneController(tabId: tab.record.id, paneTree: tab.paneTree)
     }
     updateSelectedTabCwd()
-    updateActivePaneTitle()
+    updateActivePaneChrome()
     onStateChange?()
     if rightSidebarState.isOpen {
       refreshRightSidebar()
@@ -158,7 +151,7 @@ final class WorkspaceTabManager: ObservableObject {
     if tabList.selectTab(id) {
       clearBellAttention(for: id)
       updateSelectedTabCwd()
-      updateActivePaneTitle()
+      updateActivePaneChrome()
       onStateChange?()
       handleActiveCwdChanged()
     }
@@ -170,7 +163,7 @@ final class WorkspaceTabManager: ObservableObject {
       clearBellAttention(for: selectedTabId)
     }
     updateSelectedTabCwd()
-    updateActivePaneTitle()
+    updateActivePaneChrome()
     onStateChange?()
     handleActiveCwdChanged()
   }
@@ -181,7 +174,7 @@ final class WorkspaceTabManager: ObservableObject {
       clearBellAttention(for: selectedTabId)
     }
     updateSelectedTabCwd()
-    updateActivePaneTitle()
+    updateActivePaneChrome()
     onStateChange?()
     handleActiveCwdChanged()
   }
@@ -197,6 +190,7 @@ final class WorkspaceTabManager: ObservableObject {
     terminalStatusesByTabId[id] = nil
     commandSuccessClearTasksByTabId[id]?.cancel()
     commandSuccessClearTasksByTabId[id] = nil
+    updateActivePaneChrome()
     onStateChange?()
     handleActiveCwdChanged()
   }
@@ -370,8 +364,12 @@ final class WorkspaceTabManager: ObservableObject {
     }
   }
 
-  private func updateActivePaneTitle() {
-    activePaneTitle = selectedPane?.selectedTerminalTitle
+  private func updateActivePaneChrome() {
+    activePaneChrome = PaneChromeState(
+      command: selectedPane?.selectedPaneCommand,
+      terminalTitle: selectedPane?.selectedTerminalTitle,
+      cwd: activeCwd
+    )
   }
 
   private func makePaneController(tabId: UUID, initialCwd: URL?, command: String? = nil) -> PaneController {
@@ -381,14 +379,16 @@ final class WorkspaceTabManager: ObservableObject {
       command: command,
       onCwdChange: { [weak self] cwd in
         self?.tabList.updateCwd(cwd, for: tabId)
+        self?.updateActivePaneChrome()
         self?.onStateChange?()
         self?.handleActiveCwdChanged()
       },
       onStateChange: { [weak self] in
+        self?.updateActivePaneChrome()
         self?.onStateChange?()
       },
       onTitleChange: { [weak self] in
-        self?.updateActivePaneTitle()
+        self?.updateActivePaneChrome()
       },
       onTerminalEvent: { [weak self] event in
         self?.applyTerminalEvent(event, for: tabId)
@@ -402,14 +402,16 @@ final class WorkspaceTabManager: ObservableObject {
       paneTree: paneTree,
       onCwdChange: { [weak self] cwd in
         self?.tabList.updateCwd(cwd, for: tabId)
+        self?.updateActivePaneChrome()
         self?.onStateChange?()
         self?.handleActiveCwdChanged()
       },
       onStateChange: { [weak self] in
+        self?.updateActivePaneChrome()
         self?.onStateChange?()
       },
       onTitleChange: { [weak self] in
-        self?.updateActivePaneTitle()
+        self?.updateActivePaneChrome()
       },
       onTerminalEvent: { [weak self] event in
         self?.applyTerminalEvent(event, for: tabId)
