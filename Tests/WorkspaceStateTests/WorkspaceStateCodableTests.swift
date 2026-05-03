@@ -57,6 +57,18 @@ struct WorkspaceStateCodableTests {
     #expect(decoded.windowFrame == WorkspaceWindowFrame(x: 10, y: 20, width: 1200, height: 800))
     #expect(decoded.leftSidebar == WorkspaceLeftSidebarState(isOpen: false))
     #expect(decoded.rightSidebar == WorkspaceRightSidebarState(isOpen: true, width: 380))
+    #expect(decoded.schemaVersion == WorkspaceState.currentSchemaVersion)
+  }
+
+  @Test("encoded state includes a schema version")
+  func encodedStateIncludesSchemaVersion() throws {
+    let state = WorkspaceState(tabs: [], selectedTabId: nil, windowFrame: nil)
+
+    let object = try #require(
+      JSONSerialization.jsonObject(with: try JSONEncoder().encode(state)) as? [String: Any]
+    )
+
+    #expect(object["schemaVersion"] as? Int == WorkspaceState.currentSchemaVersion)
   }
 
   @Test("decodes old state files without right sidebar")

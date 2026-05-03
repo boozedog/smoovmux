@@ -86,11 +86,19 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
   }
 
   func windowWillClose(_ notification: Notification) {
-    saveState()
+    saveStateImmediately()
   }
 
   func saveState() {
-    stateStore.save(tabManager.snapshot(windowFrame: window.map { WorkspaceWindowFrame($0.frame) }))
+    stateStore.save(currentSnapshot())
+  }
+
+  func saveStateImmediately() {
+    stateStore.saveImmediately(currentSnapshot())
+  }
+
+  private func currentSnapshot() -> WorkspaceState {
+    tabManager.snapshot(windowFrame: window.map { WorkspaceWindowFrame($0.frame) })
   }
 
   private func updateWindowTitle() {

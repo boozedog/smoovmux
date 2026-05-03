@@ -18,6 +18,8 @@ public struct WorkspaceWindowFrame: Codable, Equatable, Sendable {
 }
 
 public struct WorkspaceState: Codable, Equatable, Sendable {
+  public static let currentSchemaVersion = 1
+
   public struct Tab: Codable, Equatable, Sendable {
     public var record: WorkspaceTabRecord
     public var paneTree: WorkspacePaneTree
@@ -28,6 +30,7 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
     }
   }
 
+  public var schemaVersion: Int
   public var tabs: [Tab]
   public var selectedTabId: UUID
   public var windowFrame: WorkspaceWindowFrame?
@@ -42,6 +45,7 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
     rightSidebar: WorkspaceRightSidebarState = WorkspaceRightSidebarState()
   ) {
     let normalizedTabs = tabs.isEmpty ? [Self.defaultTab()] : tabs
+    self.schemaVersion = Self.currentSchemaVersion
     self.tabs = normalizedTabs
     self.selectedTabId =
       selectedTabId.flatMap { id in
@@ -54,6 +58,7 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
 
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
+    let schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? Self.currentSchemaVersion
     let tabs = try container.decodeIfPresent([Tab].self, forKey: .tabs) ?? []
     let selectedTabId = try container.decodeIfPresent(UUID.self, forKey: .selectedTabId)
     let windowFrame = try container.decodeIfPresent(WorkspaceWindowFrame.self, forKey: .windowFrame)
@@ -70,6 +75,7 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
       leftSidebar: leftSidebar,
       rightSidebar: rightSidebar
     )
+    self.schemaVersion = schemaVersion
   }
 
   public static func empty() -> Self {

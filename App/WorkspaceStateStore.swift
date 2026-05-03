@@ -8,11 +8,16 @@ final class WorkspaceStateStore {
   private let url: URL
   private let encoder: JSONEncoder
   private let decoder: JSONDecoder
+  private let debouncer: WorkspaceStateSaveDebouncer
 
   init(fileManager: FileManager = .default, bundleIdentifier: String? = Bundle.main.bundleIdentifier) {
     let supportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
     let appDirectory = supportDirectory.appendingPathComponent(bundleIdentifier ?? "smoovmux", isDirectory: true)
     self.url = appDirectory.appendingPathComponent("workspace-state.json")
+    let stateURL = self.url
+    self.debouncer = WorkspaceStateSaveDebouncer(delay: .milliseconds(300)) { state in
+      await Self.write(state, to: stateURL)
+    }
 
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -39,7 +44,24 @@ final class WorkspaceStateStore {
   }
 
   func save(_ state: WorkspaceState) {
+    Task {
+      await debouncer.schedule(state)
+    }
+  }
+
+  func saveImmediately(_ state: WorkspaceState) {
     do {
+      let data = try encoder.encode(state)
+      try data.write(to: url, options: [.atomic])
+    } catch {
+      SmoovLog.error("workspace state save failed: \(error)")
+    }
+  }
+
+  private static func write(_ state: WorkspaceState, to url: URL) async {
+    do {
+      let encoder = JSONEncoder()
+      encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
       let data = try encoder.encode(state)
       try data.write(to: url, options: [.atomic])
     } catch {
