@@ -13,8 +13,8 @@ import SmoovLog
 @MainActor
 final class SmoovSurfaceView: NSView {
   struct Config {
-    var command: String? = nil
-    var workingDirectory: URL? = nil
+    var command: String?
+    var workingDirectory: URL?
     var env: [String: String] = [:]
   }
 
@@ -54,6 +54,7 @@ final class SmoovSurfaceView: NSView {
     self.updateTrackingAreas()
   }
 
+  @available(*, unavailable, message: "Use init(app:config:) instead")
   required init?(coder: NSCoder) {
     fatalError("init(coder:) not supported")
   }
@@ -123,17 +124,17 @@ final class SmoovSurfaceView: NSView {
           withCStrings(envValues) { valuePtrs in
             var entries = [ghostty_env_var_s]()
             entries.reserveCapacity(envKeys.count)
-            for i in 0..<envKeys.count {
-              entries.append(ghostty_env_var_s(key: keyPtrs[i], value: valuePtrs[i]))
+            for index in 0..<envKeys.count {
+              entries.append(ghostty_env_var_s(key: keyPtrs[index], value: valuePtrs[index]))
             }
             return entries.withUnsafeMutableBufferPointer { buffer in
               cfg.env_vars = buffer.baseAddress
               cfg.env_var_count = envKeys.count
-              guard let s = ghostty_surface_new(app.cValue, &cfg) else {
+              guard let newSurface = ghostty_surface_new(app.cValue, &cfg) else {
                 SmoovLog.error("ghostty_surface_new returned nil")
                 return nil
               }
-              return s
+              return newSurface
             }
           }
         }
@@ -432,7 +433,7 @@ final class SmoovSurfaceView: NSView {
     let composed = keyTextAccumulator?.joined()
     keyTextAccumulator = nil
 
-    let text = (composed?.isEmpty == false) ? composed : NSEventGhostty.characters(event)
+    let text = TerminalTextInputPolicy.keyText(composed: composed, fallback: NSEventGhostty.characters(event))
     sendKey(surface: surface, event: event, action: action, text: text)
   }
 
@@ -470,7 +471,7 @@ final class SmoovSurfaceView: NSView {
     // Only attach text for printable characters. Libghostty encodes control
     // characters itself from the keycode + mods, so passing "\r" as text for
     // ctrl+enter (for instance) produces wrong output.
-    if let text, !text.isEmpty, let first = text.utf8.first, first >= 0x20 {
+    if let text = TerminalTextInputPolicy.keyPayload(text) {
       text.withCString { ptr in
         keyEv.text = ptr
         _ = ghostty_surface_key(surface, keyEv)
@@ -501,8 +502,7 @@ final class SmoovSurfaceView: NSView {
   @objc func paste(_ sender: Any?) {
     guard
       let surface,
-      let text = NSPasteboard.general.string(forType: .string),
-      !text.isEmpty
+      let text = TerminalTextInputPolicy.textPayload(NSPasteboard.general.string(forType: .string))
     else { return }
 
     text.withCString { ptr in
@@ -557,13 +557,7 @@ final class SmoovSurfaceView: NSView {
 // which libghostty expects to be accessed from the main thread only.
 extension SmoovSurfaceView: @MainActor NSTextInputClient {
   func insertText(_ string: Any, replacementRange: NSRange) {
-    let text: String
-    switch string {
-    case let s as String: text = s
-    case let s as NSAttributedString: text = s.string
-    default: return
-    }
-    guard !text.isEmpty else { return }
+    guard let text = TerminalTextInputPolicy.insertionText(from: string) else { return }
 
     // If we're inside a `keyDown` call, stash the composed text so the
     // outer `keyDown` delivers it in one shot via `ghostty_surface_key`.

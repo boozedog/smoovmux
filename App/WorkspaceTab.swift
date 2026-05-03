@@ -247,9 +247,16 @@ final class WorkspaceTabManager: ObservableObject {
       } catch {
         return
       }
-      guard !Task.isCancelled, let gitRoot else { return }
-      guard rightSidebarState.isOpen == false else { return }
-      guard activeCwd?.standardizedFileURL == cwd.standardizedFileURL else { return }
+      guard !Task.isCancelled else { return }
+      guard
+        RightSidebarAutoOpenPolicy.shouldOpen(
+          isSidebarOpen: rightSidebarState.isOpen,
+          requestedCwd: cwd,
+          currentActiveCwd: activeCwd,
+          resolvedGitRoot: gitRoot
+        ),
+        let gitRoot
+      else { return }
 
       rightSidebarState.isOpen = true
       onStateChange?()

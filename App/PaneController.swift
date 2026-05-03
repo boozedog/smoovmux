@@ -97,8 +97,10 @@ final class PaneController {
   }
 
   var selectedTerminalTitle: String? {
-    let title = titlesByPaneId[paneTree.selectedPaneId]?.trimmingCharacters(in: .whitespacesAndNewlines)
-    return title?.isEmpty == false ? title : nil
+    PanePresentationPolicy.selectedTerminalTitle(
+      selectedPaneId: paneTree.selectedPaneId,
+      titlesByPaneId: titlesByPaneId
+    )
   }
 
   var selectedPaneCommand: String? {
@@ -106,10 +108,7 @@ final class PaneController {
   }
 
   var windowTitle: String {
-    let leaf = paneTree.selectedPane
-    let cwd = leaf?.cwd?.path.abbreviatedHomePath ?? "~"
-    let command = leaf?.command ?? "shell"
-    return "\(cwd) — \(command)"
+    PanePresentationPolicy.windowTitle(for: paneTree.selectedPane, homePath: NSHomeDirectory())
   }
 
   func splitRight(command: String? = nil) {
@@ -500,13 +499,5 @@ private final class PaneSplitView: NSSplitView {
   override func drawDivider(in rect: NSRect) {
     NSColor.black.setFill()
     rect.fill()
-  }
-}
-
-extension String {
-  fileprivate var abbreviatedHomePath: String {
-    let home = NSHomeDirectory()
-    guard hasPrefix(home) else { return self }
-    return "~" + dropFirst(home.count)
   }
 }
