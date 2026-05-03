@@ -44,4 +44,23 @@ struct DefaultShellPolicyTests {
     #expect(DefaultShellPolicy.launchCommand(forStoredShellPath: "/bin/bash") == "/bin/bash")
   }
 
+  @Test("pane commands are wrapped in the selected login interactive shell")
+  func paneCommandsAreWrappedInSelectedShell() {
+    #expect(
+      DefaultShellPolicy.wrappedCommandLaunchCommand(command: "pi", storedShellPath: "/bin/zsh")
+        == "'/bin/zsh' -l -i -c 'pi'"
+    )
+  }
+
+  @Test("pane commands with system default are wrapped in resolved default shell")
+  func paneCommandsWithSystemDefaultUseResolvedShell() {
+    #expect(
+      DefaultShellPolicy.wrappedCommandLaunchCommand(
+        command: "claude --resume 'last chat'",
+        storedShellPath: nil,
+        environment: ["SHELL": "/opt/homebrew/bin/fish"]
+      ) == "'/opt/homebrew/bin/fish' -l -i -c 'claude --resume '\\''last chat'\\'''"
+    )
+  }
+
 }

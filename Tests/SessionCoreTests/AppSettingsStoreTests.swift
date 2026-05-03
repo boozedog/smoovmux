@@ -40,6 +40,15 @@ struct AppSettingsStoreTests {
     #expect(DefaultShellSettings(store: store).launchCommand == nil)
   }
 
+  @Test("stored shell path wraps pane commands")
+  func storedShellPathWrapsPaneCommands() throws {
+    let url = try temporarySettingsURL()
+    let store = AppSettingsStore(settingsURL: url)
+    try store.save(AppSettings(defaultShellPath: "/bin/bash"))
+
+    #expect(DefaultShellSettings(store: store).wrappedCommandLaunchCommand(for: "pi") == "'/bin/bash' -l -i -c 'pi'")
+  }
+
   @Test("invalid settings file falls back to defaults")
   func invalidSettingsFileFallsBackToDefaults() throws {
     let url = try temporarySettingsURL()

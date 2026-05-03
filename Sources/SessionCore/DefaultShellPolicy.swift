@@ -48,6 +48,20 @@ public enum DefaultShellPolicy {
     return storedShellPath
   }
 
+  public static func wrappedCommandLaunchCommand(
+    command: String,
+    storedShellPath: String?,
+    environment: [String: String] = ProcessInfo.processInfo.environment
+  ) -> String {
+    let shellPath: String
+    if let storedShellPath, !storedShellPath.isEmpty {
+      shellPath = storedShellPath
+    } else {
+      shellPath = systemDefaultShellPath(environment: environment)
+    }
+    return "\(shellQuote(shellPath)) -l -i -c \(shellQuote(command))"
+  }
+
   public static func systemDefaultShellPath(environment: [String: String] = ProcessInfo.processInfo.environment)
     -> String
   {
@@ -57,6 +71,10 @@ public enum DefaultShellPolicy {
   public static func readAvailableShells(shellsFileURL: URL = URL(fileURLWithPath: "/etc/shells")) -> [String] {
     guard let text = try? String(contentsOf: shellsFileURL, encoding: .utf8) else { return [] }
     return availableShells(shellsFileText: text, isExecutableFile: isExecutableRegularFile(_:))
+  }
+
+  private static func shellQuote(_ value: String) -> String {
+    "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
   }
 
   private static func isExecutableRegularFile(_ path: String) -> Bool {
@@ -87,5 +105,9 @@ public struct DefaultShellSettings: Sendable {
 
   public var launchCommand: String? {
     DefaultShellPolicy.launchCommand(forStoredShellPath: storedShellPath)
+  }
+
+  public func wrappedCommandLaunchCommand(for command: String) -> String {
+    DefaultShellPolicy.wrappedCommandLaunchCommand(command: command, storedShellPath: storedShellPath)
   }
 }

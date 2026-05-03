@@ -269,7 +269,11 @@ final class PaneController {
   }
 
   private func launchCommand(for paneId: UUID) -> String? {
-    commandsByPaneId[paneId] ?? DefaultShellSettings().launchCommand
+    let settings = DefaultShellSettings()
+    if let command = commandsByPaneId[paneId] {
+      return settings.wrappedCommandLaunchCommand(for: command)
+    }
+    return settings.launchCommand
   }
 
   private func splitFocusedSurface(direction: SplitDirection, command: String?) {
