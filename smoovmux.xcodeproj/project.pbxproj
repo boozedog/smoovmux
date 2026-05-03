@@ -10,6 +10,7 @@
 		04541042F412C7116BC2F981 /* SessionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1B5CAD7542000F8E9352D199 /* SessionCore */; };
 		04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */; };
 		088804B6B7809B7574993ABE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F2DE025A511DFC3351B11E /* main.swift */; };
+		146DD892BF9B83EDE5E25642 /* TerminalSurfaceHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF014DBB216D5719C47DFF9 /* TerminalSurfaceHost.swift */; };
 		21C5190A2C7AB642B60327D9 /* SmoovAppCommands in Frameworks */ = {isa = PBXBuildFile; productRef = A2192B250ECC3800246E5450 /* SmoovAppCommands */; };
 		232EFAB6B8C2350EABD1806F /* MapleMonoNL-NF-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 81E207F787B87473523113BE /* MapleMonoNL-NF-BoldItalic.ttf */; };
 		31492ADA5B4EE0EA429B3DFF /* GhosttyConfigColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0529FF91B247CF34935A59B6 /* GhosttyConfigColors.swift */; };
@@ -21,6 +22,7 @@
 		4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */; };
 		53C38D1C088C7DF34D849E95 /* GhosttyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */; };
 		56179902B899A48126BD39F1 /* MapleMonoNL-NF-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6E75440D1CB55AA35590A33C /* MapleMonoNL-NF-Regular.ttf */; };
+		576E0B534685DE71E965A0ED /* GitRightSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4F7114CDD6052E64AA242 /* GitRightSidebarView.swift */; };
 		59555B820EC2FF2F399A57B4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70F05D4065051D622312AB53 /* Assets.xcassets */; };
 		5A3B5EDCD95A29AD63AA679F /* PaneController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07F05AE7F0D5E97754CA401 /* PaneController.swift */; };
 		63573138A6376637B5EE44A0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */; };
@@ -31,13 +33,17 @@
 		A2D9C4E15761F477990961F0 /* SmoovmuxConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0813FA9B51DDDDFCF9FECE1 /* SmoovmuxConfig.swift */; };
 		AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; };
 		BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B28811F6C750E579A75303B /* TabbedRootView.swift */; };
+		BABEB1DE4BB22FCD834729D8 /* PaneLauncherOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3301A68225E0125A3DF81102 /* PaneLauncherOverlayView.swift */; };
 		BEC0204C66AA32640E437C80 /* LICENSE-MapleMonoNL-NF.txt in Resources */ = {isa = PBXBuildFile; fileRef = CFF83E176423DF2FAB05966D /* LICENSE-MapleMonoNL-NF.txt */; };
 		C228431E5B8E4174E510B983 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37EA662676EE2612EEF8877 /* SettingsWindowController.swift */; };
 		C58F51D58D129B5B268B1007 /* MapleMonoNL-NF-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F465BE8D9A782A3DF560809E /* MapleMonoNL-NF-Bold.ttf */; };
 		CA970142BB93ACA4411A6166 /* WorkspaceState in Frameworks */ = {isa = PBXBuildFile; productRef = 9340354FEEEACC7329FCCD20 /* WorkspaceState */; };
 		D6190A890FACAC05E5D145AA /* AppFonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A66DDE629523ECD21E4B73 /* AppFonts.swift */; };
 		D65A196FEE9FE6DD6AC34523 /* SmoovLog in Frameworks */ = {isa = PBXBuildFile; productRef = C67CFDE7E11DB034CD808C94 /* SmoovLog */; };
+		D7FDBF3DEA8B105763B170A6 /* AppChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F34DF90194DD87F4503116C /* AppChrome.swift */; };
 		DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */; };
+		DFB124B91657CAC116F61E47 /* WorkspaceTabSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E19D2627505AF7D56BEE413 /* WorkspaceTabSidebarView.swift */; };
+		F44DE1D97741A5A2368B3261 /* WorkspaceMainAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5713B2005AF991E539CD6BE5 /* WorkspaceMainAreaView.swift */; };
 		F79D771F666C07893A9A3BB6 /* MapleMonoNL-NF-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BED3EEE3E12C4B044CF2E3E5 /* MapleMonoNL-NF-Italic.ttf */; };
 /* End PBXBuildFile section */
 
@@ -50,14 +56,20 @@
 		23F2DE025A511DFC3351B11E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		26B555E1A92393E1C7D3FEDE /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		2AD921CBE777DBB62F7C8FA9 /* smoovmux-default-ghostty */ = {isa = PBXFileReference; path = "smoovmux-default-ghostty"; sourceTree = "<group>"; };
+		3301A68225E0125A3DF81102 /* PaneLauncherOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneLauncherOverlayView.swift; sourceTree = "<group>"; };
 		46643F458905F0387368280A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		46A66DDE629523ECD21E4B73 /* AppFonts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFonts.swift; sourceTree = "<group>"; };
+		4BB4F7114CDD6052E64AA242 /* GitRightSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRightSidebarView.swift; sourceTree = "<group>"; };
+		5713B2005AF991E539CD6BE5 /* WorkspaceMainAreaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceMainAreaView.swift; sourceTree = "<group>"; };
+		5EF014DBB216D5719C47DFF9 /* TerminalSurfaceHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSurfaceHost.swift; sourceTree = "<group>"; };
+		5F34DF90194DD87F4503116C /* AppChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppChrome.swift; sourceTree = "<group>"; };
 		6E75440D1CB55AA35590A33C /* MapleMonoNL-NF-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MapleMonoNL-NF-Regular.ttf"; sourceTree = "<group>"; };
 		70F05D4065051D622312AB53 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7B28811F6C750E579A75303B /* TabbedRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabbedRootView.swift; sourceTree = "<group>"; };
 		81E207F787B87473523113BE /* MapleMonoNL-NF-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MapleMonoNL-NF-BoldItalic.ttf"; sourceTree = "<group>"; };
 		8C3EC08550B2F97E3315A631 /* WorkspaceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTab.swift; sourceTree = "<group>"; };
 		9758DEFEA328AD5E5C57428F /* smoovmux */ = {isa = PBXFileReference; lastKnownFileType = folder; name = smoovmux; path = .; sourceTree = SOURCE_ROOT; };
+		9E19D2627505AF7D56BEE413 /* WorkspaceTabSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTabSidebarView.swift; sourceTree = "<group>"; };
 		A37EA662676EE2612EEF8877 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		BED3EEE3E12C4B044CF2E3E5 /* MapleMonoNL-NF-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MapleMonoNL-NF-Italic.ttf"; sourceTree = "<group>"; };
@@ -119,25 +131,31 @@
 		39C35CFFEAA852CAB73706CC /* App */ = {
 			isa = PBXGroup;
 			children = (
+				5F34DF90194DD87F4503116C /* AppChrome.swift */,
 				AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */,
 				46A66DDE629523ECD21E4B73 /* AppFonts.swift */,
 				70F05D4065051D622312AB53 /* Assets.xcassets */,
 				1792DF7CACAAC5F1BAC35B8D /* CommandPaneController.swift */,
 				E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */,
 				0529FF91B247CF34935A59B6 /* GhosttyConfigColors.swift */,
+				4BB4F7114CDD6052E64AA242 /* GitRightSidebarView.swift */,
 				46643F458905F0387368280A /* Info.plist */,
 				1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */,
 				23F2DE025A511DFC3351B11E /* main.swift */,
 				CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */,
 				F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */,
 				C07F05AE7F0D5E97754CA401 /* PaneController.swift */,
+				3301A68225E0125A3DF81102 /* PaneLauncherOverlayView.swift */,
 				A37EA662676EE2612EEF8877 /* SettingsWindowController.swift */,
 				C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */,
 				F0813FA9B51DDDDFCF9FECE1 /* SmoovmuxConfig.swift */,
 				D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */,
 				7B28811F6C750E579A75303B /* TabbedRootView.swift */,
+				5EF014DBB216D5719C47DFF9 /* TerminalSurfaceHost.swift */,
+				5713B2005AF991E539CD6BE5 /* WorkspaceMainAreaView.swift */,
 				2300D8C52B9B6CF4FBBAF2B3 /* WorkspaceStateStore.swift */,
 				8C3EC08550B2F97E3315A631 /* WorkspaceTab.swift */,
+				9E19D2627505AF7D56BEE413 /* WorkspaceTabSidebarView.swift */,
 				A1009FD83126F6E43EE599D4 /* Resources */,
 			);
 			path = App;
@@ -289,20 +307,26 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D7FDBF3DEA8B105763B170A6 /* AppChrome.swift in Sources */,
 				DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */,
 				D6190A890FACAC05E5D145AA /* AppFonts.swift in Sources */,
 				4011B3263897C27C57D6CE68 /* CommandPaneController.swift in Sources */,
 				53C38D1C088C7DF34D849E95 /* GhosttyApp.swift in Sources */,
 				31492ADA5B4EE0EA429B3DFF /* GhosttyConfigColors.swift in Sources */,
+				576E0B534685DE71E965A0ED /* GitRightSidebarView.swift in Sources */,
 				4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */,
 				04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */,
 				5A3B5EDCD95A29AD63AA679F /* PaneController.swift in Sources */,
+				BABEB1DE4BB22FCD834729D8 /* PaneLauncherOverlayView.swift in Sources */,
 				C228431E5B8E4174E510B983 /* SettingsWindowController.swift in Sources */,
 				67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */,
 				A2D9C4E15761F477990961F0 /* SmoovmuxConfig.swift in Sources */,
 				BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */,
+				146DD892BF9B83EDE5E25642 /* TerminalSurfaceHost.swift in Sources */,
+				F44DE1D97741A5A2368B3261 /* WorkspaceMainAreaView.swift in Sources */,
 				36BB1F6735B52CD6F46356D8 /* WorkspaceStateStore.swift in Sources */,
 				7111E8D01CCA53728B108A4B /* WorkspaceTab.swift in Sources */,
+				DFB124B91657CAC116F61E47 /* WorkspaceTabSidebarView.swift in Sources */,
 				088804B6B7809B7574993ABE /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
