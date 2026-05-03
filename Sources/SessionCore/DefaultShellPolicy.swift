@@ -67,27 +67,21 @@ public enum DefaultShellPolicy {
   }
 }
 
-public final class DefaultShellSettings {
-  public static let defaultKey = "defaultShellPath"
+public struct DefaultShellSettings: Sendable {
+  private let store: AppSettingsStore
 
-  private let defaults: UserDefaults
-  private let key: String
-
-  public init(defaults: UserDefaults = .standard, key: String = DefaultShellSettings.defaultKey) {
-    self.defaults = defaults
-    self.key = key
+  public init(store: AppSettingsStore = AppSettingsStore()) {
+    self.store = store
   }
 
   public var storedShellPath: String? {
     get {
-      defaults.string(forKey: key)
+      try? store.load().defaultShellPath
     }
-    set {
-      guard let newValue, !newValue.isEmpty else {
-        defaults.removeObject(forKey: key)
-        return
-      }
-      defaults.set(newValue, forKey: key)
+    nonmutating set {
+      var settings = (try? store.load()) ?? AppSettings()
+      settings.defaultShellPath = newValue?.isEmpty == true ? nil : newValue
+      try? store.save(settings)
     }
   }
 

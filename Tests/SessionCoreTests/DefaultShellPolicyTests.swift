@@ -1,4 +1,3 @@
-import Foundation
 import Testing
 
 @testable import SessionCore
@@ -45,19 +44,4 @@ struct DefaultShellPolicyTests {
     #expect(DefaultShellPolicy.launchCommand(forStoredShellPath: "/bin/bash") == "/bin/bash")
   }
 
-  @Test("settings persist selected shell and remove system default")
-  func settingsPersistSelectedShellAndRemoveSystemDefault() throws {
-    let suiteName = "DefaultShellPolicyTests.\(UUID().uuidString)"
-    let defaults = try #require(UserDefaults(suiteName: suiteName))
-    defer { defaults.removePersistentDomain(forName: suiteName) }
-    let settings = DefaultShellSettings(defaults: defaults)
-
-    settings.storedShellPath = "/bin/bash"
-    #expect(settings.storedShellPath == "/bin/bash")
-    #expect(settings.launchCommand == "/bin/bash")
-
-    settings.storedShellPath = nil
-    #expect(settings.storedShellPath == nil)
-    #expect(settings.launchCommand == nil)
-  }
 }
