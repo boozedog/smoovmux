@@ -9,6 +9,7 @@
 #   make lint         # swiftlint, no autofix
 #   make lint-fix     # swiftlint --fix, then format
 #   make qa           # what hooks/CI run: fmt-check + lint
+#   make scripts-test # shell-script behavior tests
 #   make secrets      # gitleaks scan
 #
 # `swift format` ships with the Swift 6 toolchain (no install).
@@ -17,7 +18,7 @@
 SWIFT_DIRS := App Sources Tests
 SWIFT_FORMAT_CONFIG := .swift-format
 
-.PHONY: fmt fmt-check lint lint-fix qa secrets help
+.PHONY: fmt fmt-check lint lint-fix qa scripts-test secrets help
 
 help:
 	@awk 'BEGIN { FS = ":.*##" } /^[a-zA-Z_-]+:.*?##/ { printf "  %-12s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -36,6 +37,9 @@ lint-fix: ## swiftlint --fix, then re-format
 	$(MAKE) fmt
 
 qa: fmt-check lint ## what pre-commit / CI runs
+
+scripts-test: ## run shell-script behavior tests
+	Tests/Scripts/install-build-tests.sh
 
 secrets: ## scan for committed secrets
 	gitleaks detect --source . --redact --verbose --no-git

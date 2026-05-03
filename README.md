@@ -25,7 +25,8 @@ brew install boozedog/zig015/zig@0.15.2
 
 direnv allow                          # activates devenv (xcodegen, swiftlint, …)
 ./scripts/setup.sh                    # builds GhosttyKit.xcframework
-./scripts/reload.sh --tag dev --launch
+./scripts/reload.sh --tag dev --launch # tagged dev build: "smoovmux DEV dev"
+./scripts/install.sh --launch          # Release install to /Applications: "smoovmux"
 ```
 
 ## Contributing
