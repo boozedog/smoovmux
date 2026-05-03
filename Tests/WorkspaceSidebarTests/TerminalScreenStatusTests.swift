@@ -49,6 +49,31 @@ struct TerminalScreenStatusTests {
     #expect(status.rendererIsHealthy)
   }
 
+  @Test("bell attention can be cleared independently")
+  func bellAttentionCanBeCleared() {
+    var status = TerminalScreenStatus()
+    status.apply(.bell)
+    status.apply(.commandFinished(exitCode: 1))
+
+    status.clearBellAttention()
+
+    #expect(status.bellCount == 0)
+    #expect(status.lastCommandExitCode == 1)
+  }
+
+  @Test("successful command finish can be cleared without hiding failures")
+  func successfulCommandFinishCanBeCleared() {
+    var success = TerminalScreenStatus()
+    success.apply(.commandFinished(exitCode: 0))
+    success.clearSuccessfulCommandFinished()
+    #expect(success.lastCommandExitCode == nil)
+
+    var failure = TerminalScreenStatus()
+    failure.apply(.commandFinished(exitCode: 2))
+    failure.clearSuccessfulCommandFinished()
+    #expect(failure.lastCommandExitCode == 2)
+  }
+
   @Test("indicator prioritizes renderer health, child exit, progress, bell, command finish")
   func indicatorPriority() {
     var status = TerminalScreenStatus()

@@ -56,6 +56,16 @@ public struct TerminalScreenStatus: Equatable, Sendable {
     return nil
   }
 
+  public mutating func clearBellAttention() {
+    bellCount = 0
+  }
+
+  public mutating func clearSuccessfulCommandFinished() {
+    if lastCommandExitCode == 0 {
+      lastCommandExitCode = nil
+    }
+  }
+
   public mutating func apply(_ event: TerminalScreenEvent) {
     switch event {
     case .bell:

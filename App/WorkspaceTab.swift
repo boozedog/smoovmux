@@ -29,6 +29,7 @@ final class WorkspaceTabManager: ObservableObject {
   private var currentRightSidebarGitRoot: URL?
   private var rightSidebarRefreshTask: Task<Void, Never>?
   private var rightSidebarAutoOpenTask: Task<Void, Never>?
+  private var commandSuccessClearTasksByTabId: [UUID: Task<Void, Never>] = [:]
   var onStateChange: (() -> Void)?
 
   var tabs: [WorkspaceTabRecord] {
@@ -155,6 +156,7 @@ final class WorkspaceTabManager: ObservableObject {
 
   func selectTab(_ id: UUID) {
     if tabList.selectTab(id) {
+      clearBellAttention(for: id)
       updateSelectedTabCwd()
       updateActivePaneTitle()
       onStateChange?()
@@ -164,6 +166,9 @@ final class WorkspaceTabManager: ObservableObject {
 
   func selectNextTab() {
     tabList.selectNextTab()
+    if let selectedTabId {
+      clearBellAttention(for: selectedTabId)
+    }
     updateSelectedTabCwd()
     updateActivePaneTitle()
     onStateChange?()
@@ -172,6 +177,9 @@ final class WorkspaceTabManager: ObservableObject {
 
   func selectPreviousTab() {
     tabList.selectPreviousTab()
+    if let selectedTabId {
+      clearBellAttention(for: selectedTabId)
+    }
     updateSelectedTabCwd()
     updateActivePaneTitle()
     onStateChange?()
@@ -187,6 +195,8 @@ final class WorkspaceTabManager: ObservableObject {
     guard tabList.closeTab(id) else { return }
     panesByTabId[id] = nil
     terminalStatusesByTabId[id] = nil
+    commandSuccessClearTasksByTabId[id]?.cancel()
+    commandSuccessClearTasksByTabId[id] = nil
     onStateChange?()
     handleActiveCwdChanged()
   }
@@ -327,6 +337,37 @@ final class WorkspaceTabManager: ObservableObject {
     var status = terminalStatus(for: tabId)
     status.apply(event)
     terminalStatusesByTabId[tabId] = status
+
+    switch event {
+    case .commandFinished(exitCode: 0):
+      scheduleSuccessfulCommandClear(for: tabId)
+    case .commandFinished:
+      commandSuccessClearTasksByTabId[tabId]?.cancel()
+      commandSuccessClearTasksByTabId[tabId] = nil
+    default:
+      break
+    }
+  }
+
+  private func clearBellAttention(for tabId: UUID) {
+    var status = terminalStatus(for: tabId)
+    status.clearBellAttention()
+    terminalStatusesByTabId[tabId] = status
+  }
+
+  private func scheduleSuccessfulCommandClear(for tabId: UUID) {
+    commandSuccessClearTasksByTabId[tabId]?.cancel()
+    commandSuccessClearTasksByTabId[tabId] = Task { [weak self] in
+      try? await Task.sleep(for: .seconds(2))
+      guard !Task.isCancelled else { return }
+      await MainActor.run { [weak self] in
+        guard let self else { return }
+        var status = terminalStatus(for: tabId)
+        status.clearSuccessfulCommandFinished()
+        terminalStatusesByTabId[tabId] = status
+        commandSuccessClearTasksByTabId[tabId] = nil
+      }
+    }
   }
 
   private func updateActivePaneTitle() {
