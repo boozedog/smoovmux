@@ -2,6 +2,8 @@ import AppKit
 import GhosttyKit
 import SessionCore
 import SmoovLog
+@preconcurrency import UserNotifications
+import WorkspaceSidebar
 
 /// Minimum viable libghostty surface embedded in an AppKit `NSView`.
 ///
@@ -31,12 +33,24 @@ final class SmoovSurfaceView: NSView {
   var onCommandFinished: ((Int16?) -> Void)?
   var onChildExited: ((UInt32) -> Void)?
   var onRendererHealthChanged: ((Bool) -> Void)?
+  var onDesktopNotification: ((TerminalNotification) -> Void)?
+  var onMouseOverLink: ((String?) -> Void)?
+  var onColorChanged: ((TerminalColorChange) -> Void)?
+  var onConfigReloaded: ((Bool) -> Void)?
+  var onConfigChanged: (() -> Void)?
+  var onSearchStarted: ((String?) -> Void)?
+  var onSearchEnded: (() -> Void)?
+  var onSearchTotal: ((Int?) -> Void)?
+  var onSearchSelected: ((Int?) -> Void)?
+  var onScrollbarChanged: ((TerminalScrollbar) -> Void)?
   var onSplitRequested: ((ghostty_action_split_direction_e) -> Void)?
   var onCloseRequested: (() -> Void)?
   var onCwdChanged: ((URL) -> Void)?
 
+  private let app: GhosttyApp
   nonisolated(unsafe) private var surface: ghostty_surface_t?
   private var focused = false
+  private var hoveredURL: URL?
 
   /// Scratch buffer populated by `insertText` during a `keyDown` call. Non-
   /// nil only while we're inside `interpretKeyEvents` — that's how we avoid
@@ -48,6 +62,7 @@ final class SmoovSurfaceView: NSView {
     // Non-zero initial frame: the Metal layer bounds must be non-zero when
     // the surface initializes or the renderer has nothing to draw into.
     // Actual size comes in via `setFrameSize` when we get our real layout.
+    self.app = app
     super.init(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
     self.wantsLayer = true
     self.surface = makeSurface(app: app, config: config)
@@ -194,8 +209,117 @@ final class SmoovSurfaceView: NSView {
     onRendererHealthChanged?(healthy)
   }
 
+  func handleGhosttyDesktopNotificationAction(title: String, body: String) {
+    let notification = TerminalNotification(title: title, body: body)
+    onDesktopNotification?(notification)
+    postUserNotification(notification)
+  }
+
+  func handleGhosttyMouseShapeAction(_ shape: ghostty_action_mouse_shape_e) {
+    cursor(for: shape).set()
+  }
+
+  func handleGhosttyMouseVisibilityAction(_ visibility: ghostty_action_mouse_visibility_e) {
+    switch visibility {
+    case GHOSTTY_MOUSE_VISIBLE:
+      NSCursor.setHiddenUntilMouseMoves(false)
+    case GHOSTTY_MOUSE_HIDDEN:
+      NSCursor.setHiddenUntilMouseMoves(true)
+    default:
+      break
+    }
+  }
+
+  func handleGhosttyMouseOverLinkAction(_ url: URL?) {
+    hoveredURL = url
+    onMouseOverLink?(url?.absoluteString)
+    if url == nil {
+      NSCursor.arrow.set()
+    } else {
+      NSCursor.pointingHand.set()
+    }
+  }
+
+  func handleGhosttyColorChangeAction(_ colorChange: TerminalColorChange) {
+    onColorChanged?(colorChange)
+  }
+
+  func handleGhosttyReloadConfigAction(soft: Bool) {
+    app.reloadConfig(surface: surface, soft: soft)
+    onConfigReloaded?(soft)
+  }
+
+  func handleGhosttyConfigChangeAction() {
+    onConfigChanged?()
+  }
+
+  func handleGhosttyStartSearchAction(needle: String?) {
+    onSearchStarted?(needle)
+  }
+
+  func handleGhosttyEndSearchAction() {
+    onSearchEnded?()
+  }
+
+  func handleGhosttySearchTotalAction(_ total: Int?) {
+    onSearchTotal?(total)
+  }
+
+  func handleGhosttySearchSelectedAction(_ selected: Int?) {
+    onSearchSelected?(selected)
+  }
+
+  func handleGhosttyScrollbarAction(_ scrollbar: TerminalScrollbar) {
+    onScrollbarChanged?(scrollbar)
+  }
+
   func handleGhosttyOpenURLAction(_ url: URL) {
     NSWorkspace.shared.open(url)
+  }
+
+  private func cursor(for shape: ghostty_action_mouse_shape_e) -> NSCursor {
+    switch shape {
+    case GHOSTTY_MOUSE_SHAPE_TEXT, GHOSTTY_MOUSE_SHAPE_VERTICAL_TEXT:
+      return .iBeam
+    case GHOSTTY_MOUSE_SHAPE_POINTER:
+      return .pointingHand
+    case GHOSTTY_MOUSE_SHAPE_GRAB:
+      return .openHand
+    case GHOSTTY_MOUSE_SHAPE_GRABBING:
+      return .closedHand
+    case GHOSTTY_MOUSE_SHAPE_CROSSHAIR:
+      return .crosshair
+    case GHOSTTY_MOUSE_SHAPE_NOT_ALLOWED, GHOSTTY_MOUSE_SHAPE_NO_DROP:
+      return .operationNotAllowed
+    case GHOSTTY_MOUSE_SHAPE_E_RESIZE:
+      return .resizeRight
+    case GHOSTTY_MOUSE_SHAPE_W_RESIZE:
+      return .resizeLeft
+    case GHOSTTY_MOUSE_SHAPE_N_RESIZE:
+      return .resizeUp
+    case GHOSTTY_MOUSE_SHAPE_S_RESIZE:
+      return .resizeDown
+    case GHOSTTY_MOUSE_SHAPE_EW_RESIZE, GHOSTTY_MOUSE_SHAPE_COL_RESIZE:
+      return .resizeLeftRight
+    case GHOSTTY_MOUSE_SHAPE_NS_RESIZE, GHOSTTY_MOUSE_SHAPE_ROW_RESIZE:
+      return .resizeUpDown
+    default:
+      return .arrow
+    }
+  }
+
+  private func postUserNotification(_ notification: TerminalNotification) {
+    let center = UNUserNotificationCenter.current()
+    center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    center.getNotificationSettings { settings in
+      guard settings.authorizationStatus == .authorized else { return }
+      let content = UNMutableNotificationContent()
+      content.title = notification.title
+      content.body = notification.body
+      content.sound = .default
+      let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+      center.add(request)
+    }
   }
 
   // MARK: - NSView overrides

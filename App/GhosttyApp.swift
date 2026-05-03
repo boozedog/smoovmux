@@ -2,6 +2,7 @@ import AppKit
 import GhosttyKit
 import SessionCore
 import SmoovLog
+import WorkspaceSidebar
 
 /// Thin wrapper around `ghostty_app_t` + `ghostty_config_t`. One instance
 /// per process, owned by `AppDelegate`. The six runtime callbacks libghostty
@@ -26,7 +27,7 @@ final class GhosttyApp {
   }
 
   nonisolated(unsafe) let cValue: ghostty_app_t
-  nonisolated(unsafe) private let config: ghostty_config_t
+  nonisolated(unsafe) private var config: ghostty_config_t
 
   init() throws {
     let rc = ghostty_init(UInt(CommandLine.argc), CommandLine.unsafeArgv)
@@ -68,6 +69,40 @@ final class GhosttyApp {
 
   func tick() {
     ghostty_app_tick(cValue)
+  }
+
+  func reloadConfig(surface: ghostty_surface_t?, soft: Bool) {
+    if soft {
+      guard let surface else { return }
+      ghostty_surface_update_config(surface, config)
+      return
+    }
+
+    guard let newConfig = Self.makeSmoovmuxConfig() else { return }
+    if let surface {
+      ghostty_surface_update_config(surface, newConfig)
+      ghostty_config_free(newConfig)
+    } else {
+      let oldConfig = config
+      config = newConfig
+      ghostty_app_update_config(cValue, newConfig)
+      ghostty_config_free(oldConfig)
+    }
+  }
+
+  func reloadConfig(soft: Bool) {
+    if soft {
+      ghostty_app_update_config(cValue, config)
+      return
+    }
+    reloadConfig(surface: nil, soft: false)
+  }
+
+  private static func makeSmoovmuxConfig() -> ghostty_config_t? {
+    guard let config = ghostty_config_new() else { return nil }
+    loadSmoovmuxDefaults(into: config)
+    ghostty_config_finalize(config)
+    return config
   }
 
   private static func loadSmoovmuxDefaults(into config: ghostty_config_t) {
@@ -186,6 +221,103 @@ final class GhosttyApp {
         surfaceView.handleGhosttyRendererHealthAction(healthy: healthy)
       }
       return true
+    case GHOSTTY_ACTION_DESKTOP_NOTIFICATION:
+      guard let surfaceView = surfaceView(from: target),
+        let titlePointer = action.action.desktop_notification.title,
+        let bodyPointer = action.action.desktop_notification.body
+      else { return false }
+      let title = String(cString: titlePointer)
+      let body = String(cString: bodyPointer)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyDesktopNotificationAction(title: title, body: body)
+      }
+      return true
+    case GHOSTTY_ACTION_MOUSE_SHAPE:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let shape = action.action.mouse_shape
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyMouseShapeAction(shape)
+      }
+      return true
+    case GHOSTTY_ACTION_MOUSE_VISIBILITY:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let visibility = action.action.mouse_visibility
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyMouseVisibilityAction(visibility)
+      }
+      return true
+    case GHOSTTY_ACTION_MOUSE_OVER_LINK:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let linkAction = action.action.mouse_over_link
+      let urlText = TerminalExternalActionPolicy.string(
+        from: UnsafeRawPointer(linkAction.url)?.assumingMemoryBound(to: UInt8.self),
+        length: Int(linkAction.len)
+      )
+      let url = TerminalExternalActionPolicy.openURL(from: urlText)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyMouseOverLinkAction(url)
+      }
+      return true
+    case GHOSTTY_ACTION_COLOR_CHANGE:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let colorChange = terminalColorChange(from: action.action.color_change)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyColorChangeAction(colorChange)
+      }
+      return true
+    case GHOSTTY_ACTION_RELOAD_CONFIG:
+      if let surfaceView = surfaceView(from: target) {
+        let soft = action.action.reload_config.soft
+        DispatchQueue.main.async {
+          surfaceView.handleGhosttyReloadConfigAction(soft: soft)
+        }
+      } else {
+        DispatchQueue.main.async {
+          (NSApp.delegate as? AppDelegate)?.ghosttyApp?.reloadConfig(soft: action.action.reload_config.soft)
+        }
+      }
+      return true
+    case GHOSTTY_ACTION_CONFIG_CHANGE:
+      guard let surfaceView = surfaceView(from: target) else { return true }
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyConfigChangeAction()
+      }
+      return true
+    case GHOSTTY_ACTION_START_SEARCH:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let needle = action.action.start_search.needle.map { String(cString: $0) }
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyStartSearchAction(needle: needle)
+      }
+      return true
+    case GHOSTTY_ACTION_END_SEARCH:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyEndSearchAction()
+      }
+      return true
+    case GHOSTTY_ACTION_SEARCH_TOTAL:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let total = nonnegativeInt(action.action.search_total.total)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttySearchTotalAction(total)
+      }
+      return true
+    case GHOSTTY_ACTION_SEARCH_SELECTED:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let selected = nonnegativeInt(action.action.search_selected.selected)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttySearchSelectedAction(selected)
+      }
+      return true
+    case GHOSTTY_ACTION_SCROLLBAR:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let value = action.action.scrollbar
+      let scrollbar = TerminalScrollbar(total: value.total, offset: value.offset, length: value.len)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyScrollbarAction(scrollbar)
+      }
+      return true
     default:
       SmoovLog.info("ghostty action tag=\(action.tag.rawValue) (unhandled)")
       return true
@@ -201,6 +333,25 @@ final class GhosttyApp {
     default:
       return nil
     }
+  }
+
+  private static func terminalColorChange(from change: ghostty_action_color_change_s) -> TerminalColorChange {
+    let kind: TerminalColorKind
+    switch change.kind {
+    case GHOSTTY_ACTION_COLOR_KIND_FOREGROUND:
+      kind = .foreground
+    case GHOSTTY_ACTION_COLOR_KIND_BACKGROUND:
+      kind = .background
+    case GHOSTTY_ACTION_COLOR_KIND_CURSOR:
+      kind = .cursor
+    default:
+      kind = .palette(Int(change.kind.rawValue))
+    }
+    return TerminalColorChange(kind: kind, red: change.r, green: change.g, blue: change.b)
+  }
+
+  private static func nonnegativeInt(_ value: Int) -> Int? {
+    value >= 0 ? value : nil
   }
 
   private static func surfaceView(from target: ghostty_target_s) -> SmoovSurfaceView? {

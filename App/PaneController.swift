@@ -230,6 +230,36 @@ final class PaneController {
     surfaceView.onRendererHealthChanged = { [weak self] healthy in
       self?.onTerminalEvent(.rendererHealthChanged(healthy: healthy))
     }
+    surfaceView.onDesktopNotification = { [weak self] notification in
+      self?.onTerminalEvent(.desktopNotification(notification))
+    }
+    surfaceView.onMouseOverLink = { [weak self] url in
+      self?.onTerminalEvent(.mouseOverLink(url))
+    }
+    surfaceView.onColorChanged = { [weak self] colorChange in
+      self?.onTerminalEvent(.colorChanged(colorChange))
+    }
+    surfaceView.onConfigReloaded = { [weak self] soft in
+      self?.onTerminalEvent(.configReloaded(soft: soft))
+    }
+    surfaceView.onConfigChanged = { [weak self] in
+      self?.onTerminalEvent(.configChanged)
+    }
+    surfaceView.onSearchStarted = { [weak self] needle in
+      self?.onTerminalEvent(.searchStarted(needle: needle))
+    }
+    surfaceView.onSearchEnded = { [weak self] in
+      self?.onTerminalEvent(.searchEnded)
+    }
+    surfaceView.onSearchTotal = { [weak self] total in
+      self?.onTerminalEvent(.searchTotal(total))
+    }
+    surfaceView.onSearchSelected = { [weak self] selected in
+      self?.onTerminalEvent(.searchSelected(selected))
+    }
+    surfaceView.onScrollbarChanged = { [weak self] scrollbar in
+      self?.onTerminalEvent(.scrollbarChanged(scrollbar))
+    }
     return surfaceView
   }
 
