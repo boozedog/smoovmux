@@ -53,27 +53,26 @@ final class WorkspaceTabManager: ObservableObject {
   }
 
   var topBarTitle: String {
-    if selectedPane?.selectedPaneCommand == nil {
-      return loginShellExecutableName
-    }
-    return activePaneTitle ?? selectedPaneCommandKind
+    PaneChromeTitlePolicy.title(
+      command: selectedPane?.selectedPaneCommand,
+      terminalTitle: activePaneTitle,
+      loginShellPath: loginShellPath
+    )
   }
 
   var selectedPaneCwdDisplay: String {
-    activeCwd?.path.abbreviatedHomePathForTopBar ?? "~"
+    PaneChromeTitlePolicy.cwdDisplay(cwd: activeCwd, homePath: NSHomeDirectory())
   }
 
   var selectedPaneCommandKind: String {
-    guard let command = selectedPane?.selectedPaneCommand else { return loginShellExecutableName }
-    let firstToken = command.split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? command
-    let basename = URL(fileURLWithPath: firstToken).lastPathComponent
-    return basename.isEmpty ? command : basename
+    guard let command = selectedPane?.selectedPaneCommand else {
+      return PaneChromeTitlePolicy.executableName(fromPath: loginShellPath, fallback: "shell")
+    }
+    return PaneChromeTitlePolicy.commandName(command)
   }
 
-  private var loginShellExecutableName: String {
-    let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "shell"
-    let basename = URL(fileURLWithPath: shell).lastPathComponent
-    return basename.isEmpty ? "shell" : basename
+  private var loginShellPath: String {
+    ProcessInfo.processInfo.environment["SHELL"] ?? "shell"
   }
 
   var selectedPaneIsZoomed: Bool {
@@ -368,13 +367,5 @@ final class WorkspaceTabManager: ObservableObject {
         self?.applyTerminalEvent(event, for: tabId)
       }
     )
-  }
-}
-
-extension String {
-  fileprivate var abbreviatedHomePathForTopBar: String {
-    let home = NSHomeDirectory()
-    guard hasPrefix(home) else { return self }
-    return "~" + dropFirst(home.count)
   }
 }
