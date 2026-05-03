@@ -1,0 +1,28 @@
+import Foundation
+import Testing
+import WorkspacePanes
+
+@Suite("Pane focus activation policy")
+struct PaneFocusActivationPolicyTests {
+  @Test("only the selected restored pane starts terminal-active")
+  func onlySelectedRestoredPaneStartsTerminalActive() {
+    let first = focusPaneID(1)
+    let second = focusPaneID(2)
+    let third = focusPaneID(3)
+
+    #expect(
+      PaneFocusActivationPolicy.initialTerminalFocusStates(
+        paneIds: [first, second, third],
+        selectedPaneId: second
+      ) == [
+        first: false,
+        second: true,
+        third: false,
+      ]
+    )
+  }
+}
+
+private func focusPaneID(_ value: UInt8) -> UUID {
+  UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, value))
+}

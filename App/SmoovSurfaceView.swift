@@ -179,6 +179,12 @@ final class SmoovSurfaceView: NSView {
     onSplitRequested?(direction)
   }
 
+  func setTerminalFocused(_ isFocused: Bool) {
+    focused = isFocused
+    guard let surface else { return }
+    ghostty_surface_set_focus(surface, isFocused)
+  }
+
   func handleGhosttyCloseAction() {
     onCloseRequested?()
   }

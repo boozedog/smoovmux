@@ -81,6 +81,7 @@ final class PaneController {
 
     let view = makeView(for: paneTree.root)
     installRootSubview(view)
+    applyInitialTerminalFocusStates()
     focusSelectedSurface()
     SmoovLog.info("pane restored with default shell")
   }
@@ -509,6 +510,24 @@ final class PaneController {
       }
     }
     return nil
+  }
+
+  private func applyInitialTerminalFocusStates() {
+    let focusStates = PaneFocusActivationPolicy.initialTerminalFocusStates(
+      paneIds: surfaceViews.compactMap { paneIdsBySurfaceView[ObjectIdentifier($0)] },
+      selectedPaneId: paneTree.selectedPaneId
+    )
+
+    activeSurfaceView = nil
+    for surfaceView in surfaceViews {
+      guard let paneId = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] else { continue }
+      let isFocused = focusStates[paneId] == true
+      surfaceView.setTerminalFocused(isFocused)
+      if isFocused {
+        activeSurfaceView = surfaceView
+      }
+    }
+    updateFocusRing()
   }
 
   private func updateFocusRing() {
