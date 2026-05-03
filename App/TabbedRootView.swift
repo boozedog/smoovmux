@@ -1,6 +1,7 @@
 import AppKit
 import PaneLauncher
 import SwiftUI
+import WorkspaceSidebar
 import WorkspaceTabs
 
 struct TabbedRootView: View {
@@ -263,6 +264,7 @@ private struct WorkspaceTabSidebar: View {
               showShortcut: commandKeyDown,
               isSelected: tabManager.selectedTabId == tab.id,
               canClose: tabManager.tabs.count > 1,
+              indicator: tabManager.terminalStatus(for: tab.id).indicator,
               select: { tabManager.selectTab(tab.id) },
               close: { tabManager.closeTab(tab.id) }
             )
@@ -319,6 +321,7 @@ private struct WorkspaceTabRow: View {
   let showShortcut: Bool
   let isSelected: Bool
   let canClose: Bool
+  let indicator: TerminalScreenIndicator?
   let select: () -> Void
   let close: () -> Void
   @State private var hovering = false
@@ -350,6 +353,8 @@ private struct WorkspaceTabRow: View {
           .foregroundStyle(.secondary)
           .help("Close Tab")
           .accessibilityLabel("Close \(tab.title)")
+        } else if let indicator {
+          TerminalScreenIndicatorView(indicator: indicator)
         }
       }
       .padding(.horizontal, 8)
@@ -373,6 +378,38 @@ private struct WorkspaceTabRow: View {
       if canClose {
         Button("Close Tab", action: close)
       }
+    }
+  }
+}
+
+private struct TerminalScreenIndicatorView: View {
+  let indicator: TerminalScreenIndicator
+
+  var body: some View {
+    switch indicator {
+    case .bell(let count):
+      HStack(spacing: 3) {
+        Image(systemName: "bell.fill")
+        if count > 1 {
+          Text("\(count)")
+            .font(AppFonts.monospaced(size: 10, weight: .semibold))
+        }
+      }
+      .font(AppFonts.ui(size: 12, weight: .semibold))
+      .foregroundStyle(Color(nsColor: .systemYellow))
+    case .progress(let percent):
+      Text("\(percent)%")
+        .font(AppFonts.monospaced(size: 10, weight: .semibold))
+        .foregroundStyle(Color(nsColor: .systemYellow))
+    case .commandFinished(let exitCode):
+      Image(systemName: exitCode == 0 ? "checkmark.circle.fill" : "xmark.circle.fill")
+        .foregroundStyle(exitCode == 0 ? .secondary : Color(nsColor: .systemRed))
+    case .childExited:
+      Image(systemName: "stop.circle.fill")
+        .foregroundStyle(Color(nsColor: .systemOrange))
+    case .rendererUnhealthy:
+      Image(systemName: "exclamationmark.triangle.fill")
+        .foregroundStyle(Color(nsColor: .systemRed))
     }
   }
 }

@@ -2,6 +2,7 @@ import AppKit
 import GhosttyKit
 import SmoovLog
 import WorkspacePanes
+import WorkspaceSidebar
 
 /// Owns one workspace pane tree.
 ///
@@ -19,6 +20,7 @@ final class PaneController {
   private let onCwdChange: (URL?) -> Void
   private let onStateChange: () -> Void
   private let onTitleChange: () -> Void
+  private let onTerminalEvent: (TerminalScreenEvent) -> Void
   private var paneTree: WorkspacePaneTree
   private var commandsByPaneId: [UUID: String] = [:]
   private var titlesByPaneId: [UUID: String] = [:]
@@ -34,12 +36,14 @@ final class PaneController {
     command: String? = nil,
     onCwdChange: @escaping (URL?) -> Void = { _ in },
     onStateChange: @escaping () -> Void = {},
-    onTitleChange: @escaping () -> Void = {}
+    onTitleChange: @escaping () -> Void = {},
+    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in }
   ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
     self.onTitleChange = onTitleChange
+    self.onTerminalEvent = onTerminalEvent
     self.paneTree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(cwd: initialCwd, command: command)))
     if let command {
       commandsByPaneId[paneTree.selectedPaneId] = command
@@ -58,12 +62,14 @@ final class PaneController {
     paneTree: WorkspacePaneTree,
     onCwdChange: @escaping (URL?) -> Void = { _ in },
     onStateChange: @escaping () -> Void = {},
-    onTitleChange: @escaping () -> Void = {}
+    onTitleChange: @escaping () -> Void = {},
+    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in }
   ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
     self.onTitleChange = onTitleChange
+    self.onTerminalEvent = onTerminalEvent
     self.paneTree = paneTree
     self.commandsByPaneId = Dictionary(
       uniqueKeysWithValues: paneTree.leaves.compactMap { leaf in
@@ -209,6 +215,21 @@ final class PaneController {
         onCwdChange(cwd)
       }
       onStateChange()
+    }
+    surfaceView.onBell = { [weak self] in
+      self?.onTerminalEvent(.bell)
+    }
+    surfaceView.onProgressChanged = { [weak self] progress in
+      self?.onTerminalEvent(.progressChanged(progress))
+    }
+    surfaceView.onCommandFinished = { [weak self] exitCode in
+      self?.onTerminalEvent(.commandFinished(exitCode: exitCode))
+    }
+    surfaceView.onChildExited = { [weak self] exitCode in
+      self?.onTerminalEvent(.childExited(exitCode: exitCode))
+    }
+    surfaceView.onRendererHealthChanged = { [weak self] healthy in
+      self?.onTerminalEvent(.rendererHealthChanged(healthy: healthy))
     }
     return surfaceView
   }

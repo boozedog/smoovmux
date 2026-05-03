@@ -25,6 +25,11 @@ final class SmoovSurfaceView: NSView {
   var onFocus: (() -> Void)?
   var onFocusChanged: ((Bool) -> Void)?
   var onTitleChanged: ((String) -> Void)?
+  var onBell: (() -> Void)?
+  var onProgressChanged: ((Int?) -> Void)?
+  var onCommandFinished: ((Int16?) -> Void)?
+  var onChildExited: ((UInt32) -> Void)?
+  var onRendererHealthChanged: ((Bool) -> Void)?
   var onSplitRequested: ((ghostty_action_split_direction_e) -> Void)?
   var onCloseRequested: (() -> Void)?
   var onCwdChanged: ((URL) -> Void)?
@@ -165,6 +170,26 @@ final class SmoovSurfaceView: NSView {
 
   func handleGhosttySetTitleAction(_ title: String) {
     onTitleChanged?(title)
+  }
+
+  func handleGhosttyBellAction() {
+    onBell?()
+  }
+
+  func handleGhosttyProgressAction(_ progress: Int?) {
+    onProgressChanged?(progress)
+  }
+
+  func handleGhosttyCommandFinishedAction(exitCode: Int16?) {
+    onCommandFinished?(exitCode)
+  }
+
+  func handleGhosttyChildExitedAction(exitCode: UInt32) {
+    onChildExited?(exitCode)
+  }
+
+  func handleGhosttyRendererHealthAction(healthy: Bool) {
+    onRendererHealthChanged?(healthy)
   }
 
   // MARK: - NSView overrides

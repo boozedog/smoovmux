@@ -21,6 +21,7 @@ final class WorkspaceTabManager: ObservableObject {
   @Published private(set) var rightSidebarPane: CommandPaneController?
   @Published private(set) var rightSidebarMessage: String?
   @Published private(set) var activePaneTitle: String?
+  @Published private(set) var terminalStatusesByTabId: [UUID: TerminalScreenStatus] = [:]
 
   private let ghosttyApp: GhosttyApp
   private var panesByTabId: [UUID: PaneController] = [:]
@@ -186,6 +187,7 @@ final class WorkspaceTabManager: ObservableObject {
   func closeTab(_ id: UUID) {
     guard tabList.closeTab(id) else { return }
     panesByTabId[id] = nil
+    terminalStatusesByTabId[id] = nil
     onStateChange?()
     handleActiveCwdChanged()
   }
@@ -311,6 +313,16 @@ final class WorkspaceTabManager: ObservableObject {
     tabList.updateCwd(panesByTabId[selectedTabId]?.selectedCwd, for: selectedTabId)
   }
 
+  func terminalStatus(for tabId: UUID) -> TerminalScreenStatus {
+    terminalStatusesByTabId[tabId] ?? TerminalScreenStatus()
+  }
+
+  private func applyTerminalEvent(_ event: TerminalScreenEvent, for tabId: UUID) {
+    var status = terminalStatus(for: tabId)
+    status.apply(event)
+    terminalStatusesByTabId[tabId] = status
+  }
+
   private func updateActivePaneTitle() {
     activePaneTitle = selectedPane?.selectedTerminalTitle
   }
@@ -330,6 +342,9 @@ final class WorkspaceTabManager: ObservableObject {
       },
       onTitleChange: { [weak self] in
         self?.updateActivePaneTitle()
+      },
+      onTerminalEvent: { [weak self] event in
+        self?.applyTerminalEvent(event, for: tabId)
       }
     )
   }
@@ -348,6 +363,9 @@ final class WorkspaceTabManager: ObservableObject {
       },
       onTitleChange: { [weak self] in
         self?.updateActivePaneTitle()
+      },
+      onTerminalEvent: { [weak self] event in
+        self?.applyTerminalEvent(event, for: tabId)
       }
     )
   }

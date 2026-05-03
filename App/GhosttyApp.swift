@@ -138,9 +138,55 @@ final class GhosttyApp {
         surfaceView.handleGhosttySetTitleAction(value)
       }
       return true
+    case GHOSTTY_ACTION_RING_BELL:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyBellAction()
+      }
+      return true
+    case GHOSTTY_ACTION_PROGRESS_REPORT:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let progress = progressPercent(from: action.action.progress_report)
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyProgressAction(progress)
+      }
+      return true
+    case GHOSTTY_ACTION_COMMAND_FINISHED:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let rawExitCode = action.action.command_finished.exit_code
+      let exitCode: Int16? = rawExitCode >= 0 ? rawExitCode : nil
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyCommandFinishedAction(exitCode: exitCode)
+      }
+      return true
+    case GHOSTTY_ACTION_SHOW_CHILD_EXITED:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let exitCode = action.action.child_exited.exit_code
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyChildExitedAction(exitCode: exitCode)
+      }
+      return true
+    case GHOSTTY_ACTION_RENDERER_HEALTH:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let healthy = action.action.renderer_health == GHOSTTY_RENDERER_HEALTH_HEALTHY
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyRendererHealthAction(healthy: healthy)
+      }
+      return true
     default:
       SmoovLog.info("ghostty action tag=\(action.tag.rawValue) (unhandled)")
       return true
+    }
+  }
+
+  private static func progressPercent(from progress: ghostty_action_progress_report_s) -> Int? {
+    switch progress.state {
+    case GHOSTTY_PROGRESS_STATE_REMOVE:
+      return nil
+    case GHOSTTY_PROGRESS_STATE_SET:
+      return progress.progress >= 0 ? Int(progress.progress) : nil
+    default:
+      return nil
     }
   }
 
