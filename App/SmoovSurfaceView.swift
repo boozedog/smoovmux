@@ -1,5 +1,6 @@
 import AppKit
 import GhosttyKit
+import SessionCore
 import SmoovLog
 
 /// Minimum viable libghostty surface embedded in an AppKit `NSView`.
@@ -323,14 +324,12 @@ final class SmoovSurfaceView: NSView {
 
   override func scrollWheel(with event: NSEvent) {
     guard let surface else { return }
-    var deltaX = event.scrollingDeltaX
-    var deltaY = event.scrollingDeltaY
-    let precision = event.hasPreciseScrollingDeltas
-    if precision {
-      deltaX *= 2
-      deltaY *= 2
-    }
-    ghostty_surface_mouse_scroll(surface, deltaX, deltaY, scrollMods(for: event, precision: precision))
+    let delta = TerminalInputPolicy.scrollDelta(
+      deltaX: event.scrollingDeltaX,
+      deltaY: event.scrollingDeltaY,
+      hasPreciseDeltas: event.hasPreciseScrollingDeltas
+    )
+    ghostty_surface_mouse_scroll(surface, delta.x, delta.y, scrollMods(for: event))
   }
 
   override func pressureChange(with event: NSEvent) {
@@ -360,56 +359,59 @@ final class SmoovSurfaceView: NSView {
   }
 
   private func mouseButton(for buttonNumber: Int) -> ghostty_input_mouse_button_e {
-    switch buttonNumber {
-    case 0:
+    switch TerminalInputPolicy.mouseButton(for: buttonNumber) {
+    case .left:
       return GHOSTTY_MOUSE_LEFT
-    case 1:
+    case .right:
       return GHOSTTY_MOUSE_RIGHT
-    case 2:
+    case .middle:
       return GHOSTTY_MOUSE_MIDDLE
-    case 3:
-      return GHOSTTY_MOUSE_EIGHT
-    case 4:
-      return GHOSTTY_MOUSE_NINE
-    case 5:
-      return GHOSTTY_MOUSE_SIX
-    case 6:
-      return GHOSTTY_MOUSE_SEVEN
-    case 7:
+    case .four:
       return GHOSTTY_MOUSE_FOUR
-    case 8:
+    case .five:
       return GHOSTTY_MOUSE_FIVE
-    case 9:
+    case .six:
+      return GHOSTTY_MOUSE_SIX
+    case .seven:
+      return GHOSTTY_MOUSE_SEVEN
+    case .eight:
+      return GHOSTTY_MOUSE_EIGHT
+    case .nine:
+      return GHOSTTY_MOUSE_NINE
+    case .ten:
       return GHOSTTY_MOUSE_TEN
-    case 10:
+    case .eleven:
       return GHOSTTY_MOUSE_ELEVEN
-    default:
+    case .unknown:
       return GHOSTTY_MOUSE_UNKNOWN
     }
   }
 
-  private func scrollMods(for event: NSEvent, precision: Bool) -> ghostty_input_scroll_mods_t {
-    var value: Int32 = precision ? 1 : 0
-    value |= Int32(mouseMomentum(for: event.momentumPhase).rawValue) << 1
-    return ghostty_input_scroll_mods_t(value)
+  private func scrollMods(for event: NSEvent) -> ghostty_input_scroll_mods_t {
+    ghostty_input_scroll_mods_t(
+      TerminalInputPolicy.scrollModifierBits(
+        hasPreciseDeltas: event.hasPreciseScrollingDeltas,
+        momentum: mouseMomentum(for: event.momentumPhase)
+      )
+    )
   }
 
-  private func mouseMomentum(for phase: NSEvent.Phase) -> ghostty_input_mouse_momentum_e {
+  private func mouseMomentum(for phase: NSEvent.Phase) -> TerminalMouseMomentum {
     switch phase {
     case .began:
-      return GHOSTTY_MOUSE_MOMENTUM_BEGAN
+      return .began
     case .stationary:
-      return GHOSTTY_MOUSE_MOMENTUM_STATIONARY
+      return .stationary
     case .changed:
-      return GHOSTTY_MOUSE_MOMENTUM_CHANGED
+      return .changed
     case .ended:
-      return GHOSTTY_MOUSE_MOMENTUM_ENDED
+      return .ended
     case .cancelled:
-      return GHOSTTY_MOUSE_MOMENTUM_CANCELLED
+      return .cancelled
     case .mayBegin:
-      return GHOSTTY_MOUSE_MOMENTUM_MAY_BEGIN
+      return .mayBegin
     default:
-      return GHOSTTY_MOUSE_MOMENTUM_NONE
+      return .noMomentum
     }
   }
 
