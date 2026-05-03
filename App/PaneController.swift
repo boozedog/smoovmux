@@ -1,5 +1,6 @@
 import AppKit
 import GhosttyKit
+import SessionCore
 import SmoovLog
 import WorkspacePanes
 import WorkspaceSidebar
@@ -161,7 +162,7 @@ final class PaneController {
   private func makeSurfaceView(id: UUID) -> SmoovSurfaceView {
     let surfaceView = SmoovSurfaceView(
       app: ghosttyApp,
-      config: SmoovSurfaceView.Config(command: commandsByPaneId[id], workingDirectory: cwd(for: id))
+      config: SmoovSurfaceView.Config(command: launchCommand(for: id), workingDirectory: cwd(for: id))
     )
     paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] = id
     surfaceView.onFocus = { [weak self, weak surfaceView] in
@@ -265,6 +266,10 @@ final class PaneController {
 
   private func cwd(for paneId: UUID) -> URL? {
     paneTree.leaves.first { $0.id == paneId }?.cwd
+  }
+
+  private func launchCommand(for paneId: UUID) -> String? {
+    commandsByPaneId[paneId] ?? DefaultShellSettings().launchCommand
   }
 
   private func splitFocusedSurface(direction: SplitDirection, command: String?) {

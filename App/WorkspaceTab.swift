@@ -73,7 +73,7 @@ final class WorkspaceTabManager: ObservableObject {
   }
 
   private var loginShellPath: String {
-    ProcessInfo.processInfo.environment["SHELL"] ?? "shell"
+    DefaultShellSettings().launchCommand ?? DefaultShellPolicy.systemDefaultShellPath()
   }
 
   var selectedPaneIsZoomed: Bool {

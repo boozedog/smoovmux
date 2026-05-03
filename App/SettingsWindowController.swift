@@ -31,6 +31,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 private struct SettingsView: View {
   @State private var errorMessage: String?
   @State private var summary = Self.makeSummary()
+  @State private var shellOptions = Self.makeShellOptions()
+  @State private var selectedShellID = Self.makeSelectedShellID()
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
@@ -47,6 +49,10 @@ private struct SettingsView: View {
         ForEach(summary.terminalRows, id: \.label) { row in
           SettingsRow(label: row.label, value: row.value)
         }
+      }
+
+      SettingsSection(title: "Shell") {
+        SettingsPickerRow(label: "Default shell", selection: $selectedShellID, options: shellOptions)
       }
 
       HStack(spacing: 10) {
@@ -74,6 +80,10 @@ private struct SettingsView: View {
     .preferredColorScheme(.dark)
     .onAppear {
       refreshSummary()
+      refreshShellOptions()
+    }
+    .onChange(of: selectedShellID) { _, newValue in
+      saveSelectedShell(id: newValue)
     }
   }
 
@@ -103,6 +113,16 @@ private struct SettingsView: View {
     summary = Self.makeSummary()
   }
 
+  private func refreshShellOptions() {
+    shellOptions = Self.makeShellOptions()
+    selectedShellID = Self.makeSelectedShellID()
+  }
+
+  private func saveSelectedShell(id: String) {
+    let option = shellOptions.first { $0.id == id }
+    DefaultShellSettings().storedShellPath = option?.shellPath
+  }
+
   private static func makeSummary() -> SettingsConfigSummary {
     let configText = (try? String(contentsOf: SmoovmuxConfig.configURL, encoding: .utf8)) ?? ""
     return SettingsConfigSummary(
@@ -110,6 +130,17 @@ private struct SettingsView: View {
       configText: configText,
       fallbackFontFamily: SmoovmuxConfig.terminalFontFamily
     )
+  }
+
+  private static func makeShellOptions() -> [DefaultShellOption] {
+    DefaultShellPolicy.options(
+      availableShellPaths: DefaultShellPolicy.readAvailableShells(),
+      systemDefaultShellPath: DefaultShellPolicy.systemDefaultShellPath()
+    )
+  }
+
+  private static func makeSelectedShellID() -> String {
+    DefaultShellSettings().storedShellPath ?? DefaultShellPolicy.systemDefaultID
   }
 
   private func ensureConfigFileExists() throws {
@@ -158,6 +189,30 @@ private struct SettingsRow: View {
           .foregroundStyle(.primary.opacity(0.92))
           .textSelection(.enabled)
           .lineLimit(2)
+      }
+    }
+    .font(.system(size: 13, weight: .medium))
+  }
+}
+
+private struct SettingsPickerRow: View {
+  let label: String
+  @Binding var selection: String
+  let options: [DefaultShellOption]
+
+  var body: some View {
+    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
+      GridRow {
+        Text(label)
+          .foregroundStyle(.secondary)
+          .frame(width: 84, alignment: .leading)
+        Picker(label, selection: $selection) {
+          ForEach(options) { option in
+            Text(option.title).tag(option.id)
+          }
+        }
+        .labelsHidden()
+        .frame(maxWidth: 320, alignment: .leading)
       }
     }
     .font(.system(size: 13, weight: .medium))
