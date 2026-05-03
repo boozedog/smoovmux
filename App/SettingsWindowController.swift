@@ -1,4 +1,5 @@
 import AppKit
+import SessionCore
 import SwiftUI
 
 @MainActor
@@ -6,12 +7,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
   init() {
     let view = SettingsView()
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 520, height: 360),
+      contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
       styleMask: [.titled, .closable, .miniaturizable],
       backing: .buffered,
       defer: false
     )
     window.title = "Settings"
+    window.titlebarAppearsTransparent = true
+    window.backgroundColor = .black
     window.contentView = NSHostingView(rootView: view)
     window.isReleasedWhenClosed = false
     window.center()
@@ -27,22 +30,30 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
 private struct SettingsView: View {
   @State private var errorMessage: String?
+  @State private var summary = Self.makeSummary()
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 18) {
-      Text("Settings")
-        .font(.system(size: 22, weight: .semibold))
+    VStack(alignment: .leading, spacing: 20) {
+      VStack(alignment: .leading, spacing: 6) {
+        Text("Settings")
+          .font(.system(size: 24, weight: .semibold))
+          .foregroundStyle(.primary)
+        Text("Terminal settings are Ghostty-compatible. Changes apply to newly-created panes for now.")
+          .font(.system(size: 12, weight: .medium))
+          .foregroundStyle(.secondary)
+      }
 
       SettingsSection(title: "Terminal") {
-        SettingsRow(label: "Font", value: SmoovmuxConfig.terminalFontFamily)
-        SettingsRow(label: "Config", value: SmoovmuxConfig.configURL.path)
+        ForEach(summary.terminalRows, id: \.label) { row in
+          SettingsRow(label: row.label, value: row.value)
+        }
       }
 
       HStack(spacing: 10) {
-        Button("Open Config File") {
+        SettingsActionButton(title: "Open Config File", systemImage: "doc.text") {
           openConfigFile()
         }
-        Button("Reveal in Finder") {
+        SettingsActionButton(title: "Reveal in Finder", systemImage: "folder") {
           revealConfigFile()
         }
       }
@@ -50,17 +61,20 @@ private struct SettingsView: View {
       if let errorMessage {
         Text(errorMessage)
           .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(.red)
+          .foregroundStyle(Color(nsColor: .systemRed))
       }
 
       Spacer()
-
-      Text("Changes to terminal config apply to newly-created panes for now.")
-        .font(.system(size: 12))
-        .foregroundStyle(.secondary)
     }
-    .padding(24)
+    .padding(.top, 34)
+    .padding(.horizontal, 24)
+    .padding(.bottom, 24)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .background(Color.black)
+    .preferredColorScheme(.dark)
+    .onAppear {
+      refreshSummary()
+    }
   }
 
   private func openConfigFile() {
@@ -68,6 +82,7 @@ private struct SettingsView: View {
       try ensureConfigFileExists()
       NSWorkspace.shared.open(SmoovmuxConfig.configURL)
       errorMessage = nil
+      refreshSummary()
     } catch {
       errorMessage = "Unable to open config: \(error.localizedDescription)"
     }
@@ -78,9 +93,23 @@ private struct SettingsView: View {
       try ensureConfigFileExists()
       NSWorkspace.shared.activateFileViewerSelecting([SmoovmuxConfig.configURL])
       errorMessage = nil
+      refreshSummary()
     } catch {
       errorMessage = "Unable to reveal config: \(error.localizedDescription)"
     }
+  }
+
+  private func refreshSummary() {
+    summary = Self.makeSummary()
+  }
+
+  private static func makeSummary() -> SettingsConfigSummary {
+    let configText = (try? String(contentsOf: SmoovmuxConfig.configURL, encoding: .utf8)) ?? ""
+    return SettingsConfigSummary(
+      configPath: SmoovmuxConfig.configURL.path,
+      configText: configText,
+      fallbackFontFamily: SmoovmuxConfig.terminalFontFamily
+    )
   }
 
   private func ensureConfigFileExists() throws {
@@ -89,7 +118,7 @@ private struct SettingsView: View {
       withIntermediateDirectories: true
     )
     if !FileManager.default.fileExists(atPath: SmoovmuxConfig.configURL.path) {
-      try "".write(to: SmoovmuxConfig.configURL, atomically: true, encoding: .utf8)
+      try SmoovmuxConfig.defaultConfigText.write(to: SmoovmuxConfig.configURL, atomically: true, encoding: .utf8)
     }
   }
 }
@@ -104,12 +133,12 @@ private struct SettingsSection<Content: View>: View {
         .font(.system(size: 11, weight: .semibold, design: .monospaced))
         .tracking(0.7)
         .foregroundStyle(.secondary)
-      VStack(alignment: .leading, spacing: 8) {
+      VStack(alignment: .leading, spacing: 10) {
         content
       }
       .padding(14)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 8))
+      .background(Color.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
   }
 }
@@ -119,17 +148,37 @@ private struct SettingsRow: View {
   let value: String
 
   var body: some View {
-    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
+    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
       GridRow {
         Text(label)
           .foregroundStyle(.secondary)
-          .frame(width: 58, alignment: .leading)
+          .frame(width: 84, alignment: .leading)
         Text(value)
           .font(.system(size: 12, weight: .medium, design: .monospaced))
+          .foregroundStyle(.primary.opacity(0.92))
           .textSelection(.enabled)
           .lineLimit(2)
       }
     }
     .font(.system(size: 13, weight: .medium))
+  }
+}
+
+private struct SettingsActionButton: View {
+  let title: String
+  let systemImage: String
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      Label(title, systemImage: systemImage)
+        .font(.system(size: 13, weight: .semibold))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .foregroundStyle(.primary)
+    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
   }
 }
