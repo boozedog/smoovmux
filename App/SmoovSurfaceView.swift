@@ -194,6 +194,10 @@ final class SmoovSurfaceView: NSView {
     onRendererHealthChanged?(healthy)
   }
 
+  func handleGhosttyOpenURLAction(_ url: URL) {
+    NSWorkspace.shared.open(url)
+  }
+
   // MARK: - NSView overrides
 
   override var acceptsFirstResponder: Bool { true }

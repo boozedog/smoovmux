@@ -1,5 +1,6 @@
 import AppKit
 import GhosttyKit
+import SessionCore
 import SmoovLog
 
 /// Thin wrapper around `ghostty_app_t` + `ghostty_config_t`. One instance
@@ -157,6 +158,18 @@ final class GhosttyApp {
       let exitCode: Int16? = rawExitCode >= 0 ? rawExitCode : nil
       DispatchQueue.main.async {
         surfaceView.handleGhosttyCommandFinishedAction(exitCode: exitCode)
+      }
+      return true
+    case GHOSTTY_ACTION_OPEN_URL:
+      guard let surfaceView = surfaceView(from: target) else { return false }
+      let openURLAction = action.action.open_url
+      let urlText = TerminalExternalActionPolicy.string(
+        from: UnsafeRawPointer(openURLAction.url)?.assumingMemoryBound(to: UInt8.self),
+        length: Int(openURLAction.len)
+      )
+      guard let url = TerminalExternalActionPolicy.openURL(from: urlText) else { return false }
+      DispatchQueue.main.async {
+        surfaceView.handleGhosttyOpenURLAction(url)
       }
       return true
     case GHOSTTY_ACTION_SHOW_CHILD_EXITED:
