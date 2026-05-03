@@ -1,6 +1,6 @@
 import Foundation
 
-public struct WorkspaceTabRecord: Identifiable, Equatable, Sendable {
+public struct WorkspaceTabRecord: Codable, Identifiable, Equatable, Sendable {
   public let id: UUID
   public var title: String
   public var cwd: URL?

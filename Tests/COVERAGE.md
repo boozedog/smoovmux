@@ -4,7 +4,8 @@ Current tests cover the production policy that can be exercised without launchin
 
 - `SessionCore`: binary resolution and PTY lifecycle basics.
 - `WorkspaceTabs`: tab selection, addition, close behavior, fallback selection.
-- `WorkspacePanes`: pane split/close tree policy used by `PaneController`.
+- `WorkspacePanes`: pane split/close tree policy used by `PaneController`, including decoded selection normalization.
+- `WorkspaceState`: workspace persistence snapshots for tab order/selection, split trees, pane cwd, and window frame.
 - `SmoovAppCommands`: command titles and shortcut collision/assignment policy.
 - `SmoovLog`: sensitive key/value redaction policy.
 

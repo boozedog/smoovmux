@@ -11,6 +11,7 @@
 		04A8EBB7C796280380798B59 /* NSEvent+Ghostty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */; };
 		088804B6B7809B7574993ABE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23F2DE025A511DFC3351B11E /* main.swift */; };
 		21C5190A2C7AB642B60327D9 /* SmoovAppCommands in Frameworks */ = {isa = PBXBuildFile; productRef = A2192B250ECC3800246E5450 /* SmoovAppCommands */; };
+		36BB1F6735B52CD6F46356D8 /* WorkspaceStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2300D8C52B9B6CF4FBBAF2B3 /* WorkspaceStateStore.swift */; };
 		4798649405F880A07E6FCF35 /* WorkspaceTabs in Frameworks */ = {isa = PBXBuildFile; productRef = C148F9B0BDE089FA4EA495BC /* WorkspaceTabs */; };
 		4BB46980230B71A09302305D /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26B555E1A92393E1C7D3FEDE /* Carbon.framework */; };
 		4D89F516D62BB4531F0D911F /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEFAE5F61A7840DF7F231E72 /* MainWindowController.swift */; };
@@ -23,6 +24,7 @@
 		762A9CE85581CA9A47E1E2A7 /* WorkspacePanes in Frameworks */ = {isa = PBXBuildFile; productRef = 5D354A3035840860E55054C3 /* WorkspacePanes */; };
 		AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; };
 		BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B28811F6C750E579A75303B /* TabbedRootView.swift */; };
+		CA970142BB93ACA4411A6166 /* WorkspaceState in Frameworks */ = {isa = PBXBuildFile; productRef = 9340354FEEEACC7329FCCD20 /* WorkspaceState */; };
 		D65A196FEE9FE6DD6AC34523 /* SmoovLog in Frameworks */ = {isa = PBXBuildFile; productRef = C67CFDE7E11DB034CD808C94 /* SmoovLog */; };
 		DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
@@ -30,6 +32,7 @@
 /* Begin PBXFileReference section */
 		0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = GhosttyKit.xcframework; sourceTree = "<group>"; };
 		1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		2300D8C52B9B6CF4FBBAF2B3 /* WorkspaceStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStateStore.swift; sourceTree = "<group>"; };
 		23F2DE025A511DFC3351B11E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		26B555E1A92393E1C7D3FEDE /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
 		46643F458905F0387368280A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -57,6 +60,7 @@
 				21C5190A2C7AB642B60327D9 /* SmoovAppCommands in Frameworks */,
 				4798649405F880A07E6FCF35 /* WorkspaceTabs in Frameworks */,
 				762A9CE85581CA9A47E1E2A7 /* WorkspacePanes in Frameworks */,
+				CA970142BB93ACA4411A6166 /* WorkspaceState in Frameworks */,
 				AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */,
 				4BB46980230B71A09302305D /* Carbon.framework in Frameworks */,
 			);
@@ -90,6 +94,7 @@
 				C1F58686A477BFEB5A1650F6 /* smoovmux.entitlements */,
 				D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */,
 				7B28811F6C750E579A75303B /* TabbedRootView.swift */,
+				2300D8C52B9B6CF4FBBAF2B3 /* WorkspaceStateStore.swift */,
 				8C3EC08550B2F97E3315A631 /* WorkspaceTab.swift */,
 			);
 			path = App;
@@ -143,6 +148,7 @@
 				A2192B250ECC3800246E5450 /* SmoovAppCommands */,
 				C148F9B0BDE089FA4EA495BC /* WorkspaceTabs */,
 				5D354A3035840860E55054C3 /* WorkspacePanes */,
+				9340354FEEEACC7329FCCD20 /* WorkspaceState */,
 			);
 			productName = smoovmux;
 			productReference = DC63E64743C627EDCB408ABF /* smoovmux.app */;
@@ -231,6 +237,7 @@
 				5A3B5EDCD95A29AD63AA679F /* PaneController.swift in Sources */,
 				67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */,
 				BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */,
+				36BB1F6735B52CD6F46356D8 /* WorkspaceStateStore.swift in Sources */,
 				7111E8D01CCA53728B108A4B /* WorkspaceTab.swift in Sources */,
 				088804B6B7809B7574993ABE /* main.swift in Sources */,
 			);
@@ -454,6 +461,10 @@
 		5D354A3035840860E55054C3 /* WorkspacePanes */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = WorkspacePanes;
+		};
+		9340354FEEEACC7329FCCD20 /* WorkspaceState */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorkspaceState;
 		};
 		A2192B250ECC3800246E5450 /* SmoovAppCommands */ = {
 			isa = XCSwiftPackageProductDependency;

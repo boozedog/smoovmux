@@ -1,12 +1,14 @@
 import AppKit
 import SmoovAppCommands
 import SmoovLog
+import WorkspaceState
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private(set) var ghosttyApp: GhosttyApp?
   private var tabManager: WorkspaceTabManager?
   private var windowController: MainWindowController?
+  private var stateStore: WorkspaceStateStore?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     SmoovLog.info("smoovmux launched")
@@ -22,11 +24,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     self.ghosttyApp = app
 
+    let stateStore = WorkspaceStateStore()
+    self.stateStore = stateStore
+    let restoredState = stateStore.load()
+
     let tabManager = WorkspaceTabManager(ghosttyApp: app)
-    tabManager.addTab()
+    if let restoredState {
+      tabManager.restore(restoredState)
+    } else {
+      tabManager.addTab()
+    }
     self.tabManager = tabManager
 
-    let controller = MainWindowController(tabManager: tabManager)
+    let controller = MainWindowController(
+      tabManager: tabManager,
+      stateStore: stateStore,
+      restoredWindowFrame: restoredState?.windowFrame
+    )
     controller.showWindow(nil)
     self.windowController = controller
     NSApp.activate(ignoringOtherApps: true)

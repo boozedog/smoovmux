@@ -1,11 +1,11 @@
 import Foundation
 
-public enum WorkspacePaneSplitDirection: String, Equatable, Sendable {
+public enum WorkspacePaneSplitDirection: String, Codable, Equatable, Sendable {
   case right
   case down
 }
 
-public struct WorkspacePaneLeaf: Equatable, Identifiable, Sendable {
+public struct WorkspacePaneLeaf: Codable, Equatable, Identifiable, Sendable {
   public let id: UUID
   public var cwd: URL?
 
@@ -15,7 +15,7 @@ public struct WorkspacePaneLeaf: Equatable, Identifiable, Sendable {
   }
 }
 
-public struct WorkspacePaneSplit: Equatable, Identifiable, Sendable {
+public struct WorkspacePaneSplit: Codable, Equatable, Identifiable, Sendable {
   public let id: UUID
   public var direction: WorkspacePaneSplitDirection
   public var first: WorkspacePaneNode
@@ -34,7 +34,7 @@ public struct WorkspacePaneSplit: Equatable, Identifiable, Sendable {
   }
 }
 
-public indirect enum WorkspacePaneNode: Equatable, Sendable {
+public indirect enum WorkspacePaneNode: Codable, Equatable, Sendable {
   case leaf(WorkspacePaneLeaf)
   case split(WorkspacePaneSplit)
 
@@ -48,7 +48,7 @@ public indirect enum WorkspacePaneNode: Equatable, Sendable {
   }
 }
 
-public struct WorkspacePaneTree: Equatable, Sendable {
+public struct WorkspacePaneTree: Codable, Equatable, Sendable {
   public private(set) var root: WorkspacePaneNode
   public private(set) var selectedPaneId: UUID
 
@@ -56,6 +56,13 @@ public struct WorkspacePaneTree: Equatable, Sendable {
     let root = root ?? .leaf(WorkspacePaneLeaf())
     self.root = root
     self.selectedPaneId = selectedPaneId.flatMap { root.containsLeaf(id: $0) ? $0 : nil } ?? root.firstLeafId
+  }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let root = try container.decodeIfPresent(WorkspacePaneNode.self, forKey: .root)
+    let selectedPaneId = try container.decodeIfPresent(UUID.self, forKey: .selectedPaneId)
+    self.init(root: root, selectedPaneId: selectedPaneId)
   }
 
   public var leaves: [WorkspacePaneLeaf] {

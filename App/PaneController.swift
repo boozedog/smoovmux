@@ -17,14 +17,21 @@ final class PaneController {
 
   private let ghosttyApp: GhosttyApp
   private let onCwdChange: (URL) -> Void
+  private let onStateChange: () -> Void
   private var paneTree: WorkspacePaneTree
   private var surfaceViews: [SmoovSurfaceView] = []
   private var paneIdsBySurfaceView: [ObjectIdentifier: UUID] = [:]
   private weak var focusedSurfaceView: SmoovSurfaceView?
 
-  init(ghosttyApp: GhosttyApp, initialCwd: URL? = nil, onCwdChange: @escaping (URL) -> Void = { _ in }) {
+  init(
+    ghosttyApp: GhosttyApp,
+    initialCwd: URL? = nil,
+    onCwdChange: @escaping (URL) -> Void = { _ in },
+    onStateChange: @escaping () -> Void = {}
+  ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
+    self.onStateChange = onStateChange
     self.paneTree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(cwd: initialCwd)))
     rootView.wantsLayer = true
 
@@ -33,6 +40,28 @@ final class PaneController {
     focusedSurfaceView = surfaceView
     installRootSubview(surfaceView)
     SmoovLog.info("pane launched with default shell")
+  }
+
+  init(
+    ghosttyApp: GhosttyApp,
+    paneTree: WorkspacePaneTree,
+    onCwdChange: @escaping (URL) -> Void = { _ in },
+    onStateChange: @escaping () -> Void = {}
+  ) {
+    self.ghosttyApp = ghosttyApp
+    self.onCwdChange = onCwdChange
+    self.onStateChange = onStateChange
+    self.paneTree = paneTree
+    rootView.wantsLayer = true
+
+    let view = makeView(for: paneTree.root)
+    installRootSubview(view)
+    focusSelectedSurface()
+    SmoovLog.info("pane restored with default shell")
+  }
+
+  var snapshot: WorkspacePaneTree {
+    paneTree
   }
 
   func splitRight() {
@@ -51,6 +80,7 @@ final class PaneController {
     else { return }
     surfaceView.requestClosePane()
     collapse(surfaceView)
+    onStateChange()
   }
 
   private enum SplitDirection {
@@ -76,8 +106,8 @@ final class PaneController {
     surfaceView.onFocus = { [weak self, weak surfaceView] in
       guard let self, let surfaceView else { return }
       focusedSurfaceView = surfaceView
-      if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] {
-        paneTree.selectPane(id)
+      if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)], paneTree.selectPane(id) {
+        onStateChange()
       }
     }
     surfaceView.onSplitRequested = { [weak self] direction in
@@ -99,6 +129,7 @@ final class PaneController {
       else { return }
       paneTree.updateCwd(cwd, for: id)
       onCwdChange(cwd)
+      onStateChange()
     }
     return surfaceView
   }
@@ -114,6 +145,7 @@ final class PaneController {
     else { return }
     let newSurfaceView = makeSurfaceView(id: newPaneId)
     surfaceViews.append(newSurfaceView)
+    onStateChange()
 
     let splitView = NSSplitView()
     splitView.isVertical = direction == .right
@@ -131,6 +163,26 @@ final class PaneController {
     DispatchQueue.main.async { [weak newSurfaceView] in
       guard let newSurfaceView, let window = newSurfaceView.window else { return }
       window.makeFirstResponder(newSurfaceView)
+    }
+  }
+
+  private func makeView(for node: WorkspacePaneNode) -> NSView {
+    switch node {
+    case .leaf(let leaf):
+      let surfaceView = makeSurfaceView(id: leaf.id)
+      surfaceViews.append(surfaceView)
+      if leaf.id == paneTree.selectedPaneId {
+        focusedSurfaceView = surfaceView
+      }
+      return surfaceView
+    case .split(let split):
+      let splitView = NSSplitView()
+      splitView.isVertical = split.direction == .right
+      splitView.dividerStyle = .thin
+      splitView.addArrangedSubview(makeView(for: split.first))
+      splitView.addArrangedSubview(makeView(for: split.second))
+      scheduleBalanceSplits()
+      return splitView
     }
   }
 

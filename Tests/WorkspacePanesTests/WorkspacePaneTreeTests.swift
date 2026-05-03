@@ -26,7 +26,7 @@ struct WorkspacePaneTreeTests {
   }
 
   @Test("invalid initial selection falls back to first leaf")
-  func invalidInitialSelectionFallsBackToFirstLeaf() {
+  func invalidInitialSelectionFallsBackToFirstLeaf() throws {
     let first = paneID(1)
     let second = paneID(2)
     let root = split(
@@ -37,8 +37,23 @@ struct WorkspacePaneTreeTests {
     )
 
     let tree = WorkspacePaneTree(root: root, selectedPaneId: paneID(99))
+    let encodedInvalidSelectionJSON = """
+      {
+        "root": {
+          "leaf": {
+            "_0": {
+              "id": "00000000-0100-0000-0000-000000000000"
+            }
+          }
+        },
+        "selectedPaneId": "00000000-6300-0000-0000-000000000000"
+      }
+      """
+    let encodedInvalidSelection = Data(encodedInvalidSelectionJSON.utf8)
+    let decoded = try JSONDecoder().decode(WorkspacePaneTree.self, from: encodedInvalidSelection)
 
     #expect(tree.selectedPaneId == first)
+    #expect(decoded.selectedPaneId == decoded.leaves[0].id)
   }
 
   @Test("selecting an unknown pane is ignored")
