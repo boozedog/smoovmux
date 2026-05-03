@@ -15,7 +15,8 @@ import WorkspaceSidebar
 /// its own process arguments.
 ///
 /// What's deliberately *not* done:
-/// - No OSC 52 clipboard plumbing — stubs return `false`/no-op.
+/// - Terminal-initiated clipboard access (OSC 52 / selection clipboard) is
+///   blocked by default. User paste is handled by `SmoovSurfaceView` instead.
 /// - `action_cb` logs unknown actions and returns `true`. We'll expand in
 ///   later milestones as specific actions matter (e.g. window close).
 @MainActor
@@ -368,6 +369,8 @@ final class GhosttyApp {
     @convention(c) (
       UnsafeMutableRawPointer?, ghostty_clipboard_e, UnsafeMutableRawPointer?
     ) -> Bool = { _, _, _ in
+      // Privacy policy: terminal-initiated clipboard reads (including OSC 52)
+      // are blocked by default. User paste goes through SmoovSurfaceView.paste.
       false
     }
 
@@ -378,6 +381,7 @@ final class GhosttyApp {
       UnsafeMutableRawPointer?,
       ghostty_clipboard_request_e
     ) -> Void = { _, _, _, _ in
+      // No confirmation UI exists yet, so clipboard reads remain blocked.
     }
 
   private static let writeClipboardCallback:
@@ -388,6 +392,8 @@ final class GhosttyApp {
       Int,
       Bool
     ) -> Void = { _, _, _, _, _ in
+      // Privacy policy: terminal-initiated clipboard writes are blocked by
+      // default. Do not inspect or log clipboard payloads here.
     }
 
   private static let closeSurfaceCallback: @convention(c) (UnsafeMutableRawPointer?, Bool) -> Void = { _, _ in

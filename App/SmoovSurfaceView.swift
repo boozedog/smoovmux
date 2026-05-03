@@ -48,9 +48,11 @@ final class SmoovSurfaceView: NSView {
   var onCwdChanged: ((URL) -> Void)?
 
   private let app: GhosttyApp
+  private let imageStore = TerminalImageStore()
   nonisolated(unsafe) private var surface: ghostty_surface_t?
   private var focused = false
   private var hoveredURL: URL?
+  private var dropHighlightVisible = false
 
   /// Scratch buffer populated by `insertText` during a `keyDown` call. Non-
   /// nil only while we're inside `interpretKeyEvents` — that's how we avoid
@@ -66,6 +68,7 @@ final class SmoovSurfaceView: NSView {
     super.init(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
     self.wantsLayer = true
     self.surface = makeSurface(app: app, config: config)
+    registerForDraggedTypes(Self.terminalDragTypes)
     self.updateTrackingAreas()
   }
 
@@ -614,13 +617,45 @@ final class SmoovSurfaceView: NSView {
     // just swallow the selector here to avoid NSBeep.
   }
 
+  // MARK: - Drag and drop
+
+  override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+    guard canAcceptTerminalTransfer(from: sender.draggingPasteboard) else { return [] }
+    setDropHighlightVisible(true)
+    return .copy
+  }
+
+  override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+    canAcceptTerminalTransfer(from: sender.draggingPasteboard) ? .copy : []
+  }
+
+  override func draggingExited(_ sender: NSDraggingInfo?) {
+    setDropHighlightVisible(false)
+  }
+
+  override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    defer { setDropHighlightVisible(false) }
+    guard let payload = terminalPayload(from: sender.draggingPasteboard, imageBeforeText: true) else { return false }
+    window?.makeFirstResponder(self)
+    sendTextToTerminal(payload)
+    return true
+  }
+
+  private func setDropHighlightVisible(_ visible: Bool) {
+    guard dropHighlightVisible != visible else { return }
+    dropHighlightVisible = visible
+    layer?.borderWidth = visible ? 2 : 0
+    layer?.borderColor = visible ? NSColor.controlAccentColor.cgColor : nil
+  }
+
   // MARK: - Clipboard
 
   @objc func copy(_ sender: Any?) {
-    guard let selectedText else { return }
-    let pasteboard = NSPasteboard.general
-    pasteboard.clearContents()
-    pasteboard.setString(selectedText, forType: .string)
+    copySelection(cleaned: true)
+  }
+
+  @objc func copyRaw(_ sender: Any?) {
+    copySelection(cleaned: false)
   }
 
   @objc func cut(_ sender: Any?) {
@@ -628,14 +663,8 @@ final class SmoovSurfaceView: NSView {
   }
 
   @objc func paste(_ sender: Any?) {
-    guard
-      let surface,
-      let text = TerminalTextInputPolicy.textPayload(NSPasteboard.general.string(forType: .string))
-    else { return }
-
-    text.withCString { ptr in
-      ghostty_surface_text(surface, ptr, UInt(text.utf8.count))
-    }
+    guard let payload = terminalPayload(from: NSPasteboard.general, imageBeforeText: false) else { return }
+    sendTextToTerminal(payload)
   }
 
   override func selectAll(_ sender: Any?) {
@@ -645,15 +674,77 @@ final class SmoovSurfaceView: NSView {
 
   func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
     switch item.action {
-    case #selector(copy(_:)), #selector(cut(_:)):
+    case #selector(copy(_:)), #selector(copyRaw(_:)), #selector(cut(_:)):
       return selectedText != nil
     case #selector(paste(_:)):
-      return NSPasteboard.general.canReadItem(withDataConformingToTypes: [NSPasteboard.PasteboardType.string.rawValue])
+      return canAcceptTerminalTransfer(from: NSPasteboard.general)
     case #selector(selectAll(_:)):
       return false
     default:
       return true
     }
+  }
+
+  private func copySelection(cleaned: Bool) {
+    guard let selectedText else { return }
+    let text = cleaned ? TerminalCopyPolicy().cleaned(selectedText) : selectedText
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(text, forType: .string)
+  }
+
+  private func sendTextToTerminal(_ text: String) {
+    guard let surface, let payload = TerminalTextInputPolicy.textPayload(text) else { return }
+    payload.withCString { ptr in
+      ghostty_surface_text(surface, ptr, UInt(payload.utf8.count))
+    }
+  }
+
+  private static let imagePasteboardTypes: [NSPasteboard.PasteboardType] = [
+    NSPasteboard.PasteboardType("public.png"),
+    NSPasteboard.PasteboardType("public.jpeg"),
+    NSPasteboard.PasteboardType("public.jpg"),
+    NSPasteboard.PasteboardType("public.tiff"),
+    NSPasteboard.PasteboardType("public.gif"),
+    NSPasteboard.PasteboardType("org.webmproject.webp"),
+  ]
+
+  private static let terminalDragTypes: [NSPasteboard.PasteboardType] =
+    [.fileURL, .URL, .string] + imagePasteboardTypes
+
+  private func canAcceptTerminalTransfer(from pasteboard: NSPasteboard) -> Bool {
+    pasteboard.canReadItem(withDataConformingToTypes: Self.terminalDragTypes.map(\.rawValue))
+  }
+
+  private func terminalPayload(from pasteboard: NSPasteboard, imageBeforeText: Bool) -> String? {
+    if let paths = pasteboardFileURLs(pasteboard), let payload = TerminalTransferPolicy.pathPayload(for: paths) {
+      return payload
+    }
+    if imageBeforeText, let payload = imagePayload(from: pasteboard) {
+      return payload
+    }
+    if let text = TerminalTextInputPolicy.textPayload(pasteboard.string(forType: .string)) {
+      return text
+    }
+    if let payload = imagePayload(from: pasteboard) {
+      return payload
+    }
+    return TerminalTextInputPolicy.textPayload(pasteboard.string(forType: .URL))
+  }
+
+  private func pasteboardFileURLs(_ pasteboard: NSPasteboard) -> [URL]? {
+    guard let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] else { return nil }
+    let fileURLs = urls.filter(\.isFileURL)
+    return fileURLs.isEmpty ? nil : fileURLs
+  }
+
+  private func imagePayload(from pasteboard: NSPasteboard) -> String? {
+    for type in Self.imagePasteboardTypes {
+      guard let data = pasteboard.data(forType: type) else { continue }
+      guard let url = try? imageStore.writeImage(data, contentType: type.rawValue) else { continue }
+      return TerminalTransferPolicy.pathPayload(for: [url])
+    }
+    return nil
   }
 
   private var selectedText: String? {

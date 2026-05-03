@@ -29,6 +29,13 @@ struct TerminalTextInputPolicyTests {
     #expect(TerminalTextInputPolicy.insertionText(from: 42) == nil)
   }
 
+  @Test("paste payload preserves multiline strings")
+  func pastePayloadPreservesMultilineStrings() {
+    let payload = String(repeating: "line one\nline two\n", count: 1024)
+
+    #expect(TerminalTextInputPolicy.textPayload(payload) == payload)
+  }
+
   @Test("paste payload ignores empty strings")
   func pastePayloadIgnoresEmptyStrings() {
     #expect(TerminalTextInputPolicy.textPayload("paste") == "paste")
