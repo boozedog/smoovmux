@@ -74,6 +74,10 @@ final class PaneController {
     paneTree
   }
 
+  var selectedCwd: URL? {
+    paneTree.selectedPane?.cwd
+  }
+
   var windowTitle: String {
     let leaf = paneTree.selectedPane
     let cwd = leaf?.cwd?.path.abbreviatedHomePath ?? "~"

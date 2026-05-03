@@ -13,6 +13,7 @@ let package = Package(
 		.library(name: "WorkspaceTabs", targets: ["WorkspaceTabs"]),
 		.library(name: "WorkspacePanes", targets: ["WorkspacePanes"]),
 		.library(name: "WorkspaceState", targets: ["WorkspaceState"]),
+		.library(name: "WorkspaceSidebar", targets: ["WorkspaceSidebar"]),
 		.library(name: "PaneLauncher", targets: ["PaneLauncher"]),
 	],
 	targets: [
@@ -20,9 +21,10 @@ let package = Package(
 		.target(name: "SmoovAppCommands", path: "Sources/SmoovAppCommands"),
 		.target(name: "WorkspaceTabs", path: "Sources/WorkspaceTabs"),
 		.target(name: "WorkspacePanes", path: "Sources/WorkspacePanes"),
+		.target(name: "WorkspaceSidebar", path: "Sources/WorkspaceSidebar"),
 		.target(
 			name: "WorkspaceState",
-			dependencies: ["WorkspaceTabs", "WorkspacePanes"],
+			dependencies: ["WorkspaceTabs", "WorkspacePanes", "WorkspaceSidebar"],
 			path: "Sources/WorkspaceState"
 		),
 		.target(name: "PaneLauncher", path: "Sources/PaneLauncher"),
@@ -58,8 +60,13 @@ let package = Package(
 		),
 		.testTarget(
 			name: "WorkspaceStateTests",
-			dependencies: ["WorkspaceState"],
+			dependencies: ["WorkspaceState", "WorkspaceSidebar"],
 			path: "Tests/WorkspaceStateTests"
+		),
+		.testTarget(
+			name: "WorkspaceSidebarTests",
+			dependencies: ["WorkspaceSidebar"],
+			path: "Tests/WorkspaceSidebarTests"
 		),
 		.testTarget(
 			name: "PaneLauncherTests",

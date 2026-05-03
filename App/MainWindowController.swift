@@ -61,6 +61,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     tabManager.selectedPane?.closePane()
   }
 
+  @objc func toggleRightSidebar(_ sender: Any?) {
+    tabManager.toggleRightSidebar()
+  }
+
   @objc func selectNextTab(_ sender: Any?) {
     tabManager.selectNextTab()
   }

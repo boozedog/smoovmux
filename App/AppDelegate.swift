@@ -82,6 +82,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     addMenuItem(AppCommand.nextTab, to: fileMenu, action: #selector(Self.selectNextTab(_:)))
     addMenuItem(AppCommand.previousTab, to: fileMenu, action: #selector(Self.selectPreviousTab(_:)))
 
+    let viewMenuItem = NSMenuItem()
+    mainMenu.addItem(viewMenuItem)
+    let viewMenu = NSMenu(title: "View")
+    viewMenuItem.submenu = viewMenu
+    addMenuItem(AppCommand.toggleRightSidebar, to: viewMenu, action: #selector(Self.toggleRightSidebar(_:)))
+
     let editMenuItem = NSMenuItem()
     mainMenu.addItem(editMenuItem)
     let editMenu = NSMenu(title: "Edit")
@@ -113,6 +119,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func closePane(_ sender: Any?) {
     windowController?.closePane(sender)
+  }
+
+  @objc private func toggleRightSidebar(_ sender: Any?) {
+    windowController?.toggleRightSidebar(sender)
   }
 
   @objc private func selectNextTab(_ sender: Any?) {

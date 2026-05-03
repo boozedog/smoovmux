@@ -14,6 +14,12 @@ struct TabbedRootView: View {
 
         WorkspaceMainArea(tabManager: tabManager)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+        if tabManager.rightSidebarState.isOpen {
+          Divider()
+          GitRightSidebar(tabManager: tabManager)
+            .frame(width: tabManager.rightSidebarState.width)
+        }
       }
 
       if let presentation = tabManager.launcherPresentation {
@@ -49,6 +55,9 @@ private struct WorkspaceMainArea: View {
         ChromeIconButton(systemName: "rectangle.split.1x2", help: "Split Down") {
           tabManager.showLauncher(action: .splitDown)
         }
+        ChromeIconButton(systemName: "sidebar.right", help: "Toggle Git Sidebar") {
+          tabManager.toggleRightSidebar()
+        }
       }
       .padding(.top, 10)
       .padding(.trailing, 12)
@@ -59,6 +68,31 @@ private struct WorkspaceMainArea: View {
         .fill(AppChromeColors.chromeBorder)
         .frame(width: 1)
     }
+  }
+}
+
+private struct GitRightSidebar: View {
+  @ObservedObject var tabManager: WorkspaceTabManager
+
+  var body: some View {
+    ZStack {
+      if let pane = tabManager.rightSidebarPane {
+        CommandSurfaceHost(pane: pane)
+      } else {
+        VStack(spacing: 10) {
+          Image(systemName: "square.stack.3d.up.slash")
+            .font(AppFonts.ui(size: 24, weight: .medium))
+            .foregroundStyle(.secondary)
+          Text(tabManager.rightSidebarMessage ?? "Finding git repo…")
+            .font(AppFonts.monospaced(size: 13, weight: .medium))
+            .multilineTextAlignment(.center)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 18)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      }
+    }
+    .background(AppChromeColors.mainBackground)
   }
 }
 
@@ -487,7 +521,20 @@ private struct TerminalSurfaceHost: NSViewRepresentable {
   }
 
   func updateNSView(_ nsView: TerminalSurfaceContainerView, context: Context) {
-    nsView.show(pane: pane)
+    nsView.show(rootView: pane?.rootView)
+  }
+}
+
+private struct CommandSurfaceHost: NSViewRepresentable {
+  let pane: CommandPaneController
+
+  func makeNSView(context: Context) -> TerminalSurfaceContainerView {
+    TerminalSurfaceContainerView()
+  }
+
+  func updateNSView(_ nsView: TerminalSurfaceContainerView, context: Context) {
+    nsView.show(rootView: pane.rootView)
+    pane.focus()
   }
 }
 
@@ -505,8 +552,8 @@ final class TerminalSurfaceContainerView: NSView {
     fatalError("init(coder:) not supported")
   }
 
-  func show(pane: PaneController?) {
-    guard let nextRootView = pane?.rootView else {
+  func show(rootView: NSView?) {
+    guard let nextRootView = rootView else {
       clearHostedSurfaceView()
       return
     }

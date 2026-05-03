@@ -27,6 +27,7 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
   case splitRight
   case splitDown
   case closePane
+  case toggleRightSidebar
 
   public var title: String {
     switch self {
@@ -44,6 +45,8 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
       return "Split Down"
     case .closePane:
       return "Close Pane"
+    case .toggleRightSidebar:
+      return "Toggle Git Sidebar"
     }
   }
 
@@ -63,6 +66,8 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
       return KeyboardShortcutSpec(key: "D", modifiers: [.command, .shift])
     case .closePane:
       return KeyboardShortcutSpec(key: "w", modifiers: [.command])
+    case .toggleRightSidebar:
+      return KeyboardShortcutSpec(key: "g", modifiers: [.command, .shift])
     }
   }
 }

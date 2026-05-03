@@ -48,6 +48,8 @@ targets:
       - package: smoovmux-core
         product: WorkspaceState
       - package: smoovmux-core
+        product: WorkspaceSidebar
+      - package: smoovmux-core
         product: PaneLauncher
       # GhosttyKit.xcframework's macOS slice is a static archive
       # (`ghostty-internal.a`). Static archives aren't embedded — the code

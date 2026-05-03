@@ -1,5 +1,6 @@
 import Foundation
 import WorkspacePanes
+import WorkspaceSidebar
 import WorkspaceTabs
 
 public struct WorkspaceWindowFrame: Codable, Equatable, Sendable {
@@ -30,8 +31,14 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
   public var tabs: [Tab]
   public var selectedTabId: UUID
   public var windowFrame: WorkspaceWindowFrame?
+  public var rightSidebar: WorkspaceRightSidebarState
 
-  public init(tabs: [Tab], selectedTabId: UUID?, windowFrame: WorkspaceWindowFrame?) {
+  public init(
+    tabs: [Tab],
+    selectedTabId: UUID?,
+    windowFrame: WorkspaceWindowFrame?,
+    rightSidebar: WorkspaceRightSidebarState = WorkspaceRightSidebarState()
+  ) {
     let normalizedTabs = tabs.isEmpty ? [Self.defaultTab()] : tabs
     self.tabs = normalizedTabs
     self.selectedTabId =
@@ -39,6 +46,7 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
         normalizedTabs.contains { $0.record.id == id } ? id : nil
       } ?? normalizedTabs[0].record.id
     self.windowFrame = windowFrame
+    self.rightSidebar = rightSidebar
   }
 
   public init(from decoder: Decoder) throws {
@@ -46,7 +54,10 @@ public struct WorkspaceState: Codable, Equatable, Sendable {
     let tabs = try container.decodeIfPresent([Tab].self, forKey: .tabs) ?? []
     let selectedTabId = try container.decodeIfPresent(UUID.self, forKey: .selectedTabId)
     let windowFrame = try container.decodeIfPresent(WorkspaceWindowFrame.self, forKey: .windowFrame)
-    self.init(tabs: tabs, selectedTabId: selectedTabId, windowFrame: windowFrame)
+    let rightSidebar =
+      try container.decodeIfPresent(WorkspaceRightSidebarState.self, forKey: .rightSidebar)
+      ?? WorkspaceRightSidebarState()
+    self.init(tabs: tabs, selectedTabId: selectedTabId, windowFrame: windowFrame, rightSidebar: rightSidebar)
   }
 
   public static func empty() -> Self {

@@ -44,6 +44,11 @@ struct AppCommandTests {
     #expect(AppCommand.closePane.shortcut == KeyboardShortcutSpec(key: "w", modifiers: [.command]))
   }
 
+  @Test("toggle git sidebar is Command-Shift-G")
+  func toggleGitSidebarShortcut() {
+    #expect(AppCommand.toggleRightSidebar.shortcut == KeyboardShortcutSpec(key: "g", modifiers: [.command, .shift]))
+  }
+
   @Test("close tab no longer owns Command-W")
   func closeTabDoesNotUseCommandW() {
     #expect(AppCommand.closeTab.shortcut != KeyboardShortcutSpec(key: "w", modifiers: [.command]))

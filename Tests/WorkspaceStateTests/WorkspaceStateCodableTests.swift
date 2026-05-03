@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import WorkspacePanes
+import WorkspaceSidebar
 import WorkspaceState
 import WorkspaceTabs
 
@@ -40,7 +41,8 @@ struct WorkspaceStateCodableTests {
         ),
       ],
       selectedTabId: secondTab,
-      windowFrame: WorkspaceWindowFrame(x: 10, y: 20, width: 1200, height: 800)
+      windowFrame: WorkspaceWindowFrame(x: 10, y: 20, width: 1200, height: 800),
+      rightSidebar: WorkspaceRightSidebarState(isOpen: true, width: 380)
     )
 
     let data = try JSONEncoder().encode(state)
@@ -52,6 +54,39 @@ struct WorkspaceStateCodableTests {
     #expect(decoded.tabs[0].paneTree == paneTree)
     #expect(decoded.tabs[0].paneTree.leaves[1].command == "pi")
     #expect(decoded.windowFrame == WorkspaceWindowFrame(x: 10, y: 20, width: 1200, height: 800))
+    #expect(decoded.rightSidebar == WorkspaceRightSidebarState(isOpen: true, width: 380))
+  }
+
+  @Test("decodes old state files without right sidebar")
+  func decodesStateWithoutRightSidebar() throws {
+    let json = """
+      {
+        "selectedTabId": "00000001-0000-0000-0000-000000000000",
+        "tabs": [
+          {
+            "record": {
+              "id": "00000001-0000-0000-0000-000000000000",
+              "title": "one",
+              "usesAutomaticTitle": false
+            },
+            "paneTree": {
+              "root": {
+                "leaf": {
+                  "_0": {
+                    "id": "00000000-0100-0000-0000-000000000000"
+                  }
+                }
+              },
+              "selectedPaneId": "00000000-0100-0000-0000-000000000000"
+            }
+          }
+        ]
+      }
+      """
+
+    let decoded = try JSONDecoder().decode(WorkspaceState.self, from: Data(json.utf8))
+
+    #expect(decoded.rightSidebar == WorkspaceRightSidebarState())
   }
 
   @Test("normalizes invalid selected tab and empty workspaces")
