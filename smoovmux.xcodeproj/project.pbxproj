@@ -420,7 +420,7 @@
 					"@executable_path/../Frameworks",
 				);
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_BUNDLE_IDENTIFIER = pw.dbu.smoovmux;
+				PRODUCT_BUNDLE_IDENTIFIER = dog.booze.smoovmux;
 				PRODUCT_NAME = smoovmux;
 				SDKROOT = macosx;
 			};
@@ -505,7 +505,7 @@
 					"@executable_path/../Frameworks",
 				);
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_BUNDLE_IDENTIFIER = pw.dbu.smoovmux;
+				PRODUCT_BUNDLE_IDENTIFIER = dog.booze.smoovmux;
 				PRODUCT_NAME = smoovmux;
 				SDKROOT = macosx;
 			};

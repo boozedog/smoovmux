@@ -3,7 +3,7 @@
 #
 # Every debug build gets a --tag <slug>. That tag keys:
 #   - DerivedData path  (/tmp/smoovmux-derived-<tag>)
-#   - bundle id         (pw.dbu.smoovmux.dev.<tag>)
+#   - bundle id         (dog.booze.smoovmux.dev.<tag>)
 #   - display name      ("smoovmux DEV <tag>")
 #   - log path           (/tmp/smoovmux-debug-<tag>.log)
 #
@@ -53,7 +53,7 @@ fi
 log() { printf '[reload:%s] %s\n' "$TAG" "$*"; }
 
 DERIVED="/tmp/smoovmux-derived-$TAG"
-BUNDLE_ID="pw.dbu.smoovmux.dev.$TAG"
+BUNDLE_ID="dog.booze.smoovmux.dev.$TAG"
 DISPLAY_NAME="smoovmux DEV $TAG"
 LOG_PATH="/tmp/smoovmux-debug-$TAG.log"
 

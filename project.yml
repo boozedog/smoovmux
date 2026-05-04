@@ -1,6 +1,6 @@
 name: smoovmux
 options:
-  bundleIdPrefix: pw.dbu
+  bundleIdPrefix: dog.booze
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
@@ -61,7 +61,7 @@ targets:
       - sdk: Carbon.framework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: pw.dbu.smoovmux
+        PRODUCT_BUNDLE_IDENTIFIER: dog.booze.smoovmux
         PRODUCT_NAME: smoovmux
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/smoovmux.entitlements

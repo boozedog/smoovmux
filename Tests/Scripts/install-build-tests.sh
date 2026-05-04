@@ -73,8 +73,8 @@ if [ "$DISPLAY_NAME" != "smoovmux" ]; then
   echo "expected CFBundleDisplayName=smoovmux, got '$DISPLAY_NAME'" >&2
   exit 1
 fi
-if [ "$BUNDLE_ID" != "pw.dbu.smoovmux" ]; then
-  echo "expected CFBundleIdentifier=pw.dbu.smoovmux, got '$BUNDLE_ID'" >&2
+if [ "$BUNDLE_ID" != "dog.booze.smoovmux" ]; then
+  echo "expected CFBundleIdentifier=dog.booze.smoovmux, got '$BUNDLE_ID'" >&2
   exit 1
 fi
 

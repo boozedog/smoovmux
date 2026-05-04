@@ -3,7 +3,7 @@
 #
 # Builds a production-identity app bundle and installs it to /Applications by
 # default. Unlike scripts/reload.sh, this never applies a dev tag: macOS should
-# see this bundle as plain "smoovmux" with bundle id "pw.dbu.smoovmux".
+# see this bundle as plain "smoovmux" with bundle id "dog.booze.smoovmux".
 #
 # Usage:
 #   ./scripts/install.sh [--install-dir /Applications] [--launch]
@@ -39,7 +39,7 @@ done
 log() { printf '[install] %s\n' "$*"; }
 
 DERIVED="${SMOOVMUX_INSTALL_DERIVED:-/tmp/smoovmux-install-derived}"
-BUNDLE_ID="pw.dbu.smoovmux"
+BUNDLE_ID="dog.booze.smoovmux"
 DISPLAY_NAME="smoovmux"
 APP_NAME="smoovmux.app"
 BUILT_APP="$DERIVED/Build/Products/Release/$APP_NAME"
