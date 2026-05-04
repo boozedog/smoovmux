@@ -40,6 +40,8 @@ qa: fmt-check lint ## what pre-commit / CI runs
 
 scripts-test: ## run shell-script behavior tests
 	Tests/Scripts/install-build-tests.sh
+	Tests/Scripts/set-version-tests.sh
+	Tests/Scripts/release-tests.sh
 
 secrets: ## scan for committed secrets
 	gitleaks detect --source . --redact --verbose --no-git
