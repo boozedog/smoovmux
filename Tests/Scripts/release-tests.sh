@@ -167,6 +167,10 @@ if ! grep -q -- 'smoovmux-0.0.1-macos-universal.zip' "$TMP_DIR/calls.log" || ! g
   echo "expected GitHub release to attach zip and dmg" >&2
   exit 1
 fi
+if ! grep -q -- 'context:primary-signature' "$TMP_DIR/calls.log"; then
+  echo "expected dmg Gatekeeper assessment to use primary-signature context" >&2
+  exit 1
+fi
 if ! grep -q -- '--draft' "$TMP_DIR/calls.log"; then
   echo "expected GitHub release to default to draft" >&2
   exit 1

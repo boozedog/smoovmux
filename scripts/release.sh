@@ -171,7 +171,7 @@ DMG_SHA256="$(shasum -a 256 "$DMG_ARTIFACT" | awk '{print $1}')"
 
 log "assessing Gatekeeper status"
 spctl --assess --type execute --verbose=4 "$ARCHIVED_APP"
-spctl --assess --type open --verbose=4 "$DMG_ARTIFACT"
+spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_ARTIFACT"
 
 if [ "$CREATE_GITHUB" -eq 1 ]; then
   if gh release view "$TAG" >/dev/null 2>&1; then
