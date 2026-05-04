@@ -5,9 +5,23 @@ import SwiftUI
 struct PaneLauncherOverlay: View {
   @ObservedObject var tabManager: WorkspaceTabManager
   let presentation: PaneLauncherPresentation
-  @State private var navigation = PaneLauncherNavigationState(rowCount: PaneLaunchChoice.builtins.count + 1)
-  @State private var customText = ""
+  @State private var navigation: PaneLauncherNavigationState
+  @State private var customText: String
   @FocusState private var commandFieldFocused: Bool
+
+  init(tabManager: WorkspaceTabManager, presentation: PaneLauncherPresentation) {
+    self.tabManager = tabManager
+    self.presentation = presentation
+    let selectedIndex = Self.initialSelectedIndex(for: presentation.defaultChoice)
+    _navigation = State(
+      initialValue: PaneLauncherNavigationState(
+        rowCount: PaneLaunchChoice.builtins.count + 1, selectedIndex: selectedIndex))
+    if case .custom(let command) = presentation.defaultChoice {
+      _customText = State(initialValue: command)
+    } else {
+      _customText = State(initialValue: "")
+    }
+  }
 
   private var rowCount: Int { navigation.rowCount }
 
@@ -157,6 +171,15 @@ struct PaneLauncherOverlay: View {
 
   private func launch(_ choice: PaneLaunchChoice) {
     tabManager.launch(PaneLaunchRequest(action: presentation.action, choice: choice))
+  }
+
+  private static func initialSelectedIndex(for choice: PaneLaunchChoice) -> Int {
+    switch choice {
+    case .custom:
+      return PaneLaunchChoice.builtins.count
+    default:
+      return PaneLaunchChoice.builtins.firstIndex(of: choice) ?? 0
+    }
   }
 
   private func focusCurrentMode() {

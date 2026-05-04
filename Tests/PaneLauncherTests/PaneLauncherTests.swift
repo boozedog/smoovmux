@@ -5,16 +5,16 @@ import Testing
 struct PaneLauncherTests {
   @Test("builtins match the requested launcher order")
   func builtinsMatchRequestedLauncherOrder() {
-    #expect(PaneLaunchChoice.builtins == [.pi, .claude, .hermes, .shell])
-    #expect(PaneLaunchChoice.builtins.map(\.title) == ["pi", "claude", "hermes", "shell"])
+    #expect(PaneLaunchChoice.builtins == [.shell, .pi, .codex, .claude])
+    #expect(PaneLaunchChoice.builtins.map(\.title) == ["shell", "pi", "codex", "claude"])
   }
 
   @Test("builtins map to commands except shell")
   func builtinsMapToCommands() {
-    #expect(PaneLaunchChoice.pi.command == "pi")
-    #expect(PaneLaunchChoice.claude.command == "claude")
-    #expect(PaneLaunchChoice.hermes.command == "hermes")
     #expect(PaneLaunchChoice.shell.command == nil)
+    #expect(PaneLaunchChoice.pi.command == "pi")
+    #expect(PaneLaunchChoice.codex.command == "codex")
+    #expect(PaneLaunchChoice.claude.command == "claude")
   }
 
   @Test("custom request trims commands")

@@ -7,7 +7,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
   init() {
     let view = SettingsView()
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 560, height: 420),
+      contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
       styleMask: [.titled, .closable, .miniaturizable],
       backing: .buffered,
       defer: false
@@ -33,6 +33,8 @@ private struct SettingsView: View {
   @State private var summary = Self.makeSummary()
   @State private var shellOptions = Self.makeShellOptions()
   @State private var selectedShellID = Self.makeSelectedShellID()
+  @State private var selectedLauncherID = Self.makeSelectedLauncherID()
+  @State private var customLauncherCommand = Self.makeCustomLauncherCommand()
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
@@ -53,6 +55,13 @@ private struct SettingsView: View {
 
       SettingsSection(title: "Shell") {
         SettingsPickerRow(label: "Default shell", selection: $selectedShellID, options: shellOptions)
+      }
+
+      SettingsSection(title: "Launcher") {
+        LauncherPickerRow(label: "Default", selection: $selectedLauncherID)
+        if selectedLauncherID == "custom" {
+          LauncherCommandRow(label: "Command", command: $customLauncherCommand)
+        }
       }
 
       HStack(spacing: 10) {
@@ -85,6 +94,14 @@ private struct SettingsView: View {
     .onChange(of: selectedShellID) { _, newValue in
       saveSelectedShell(id: newValue)
     }
+    .onChange(of: selectedLauncherID) { _, newValue in
+      saveSelectedLauncher(id: newValue)
+    }
+    .onChange(of: customLauncherCommand) { _, _ in
+      if selectedLauncherID == "custom" {
+        saveSelectedLauncher(id: selectedLauncherID)
+      }
+    }
   }
 
   private func openConfigFile() {
@@ -116,11 +133,28 @@ private struct SettingsView: View {
   private func refreshShellOptions() {
     shellOptions = Self.makeShellOptions()
     selectedShellID = Self.makeSelectedShellID()
+    selectedLauncherID = Self.makeSelectedLauncherID()
+    customLauncherCommand = Self.makeCustomLauncherCommand()
   }
 
   private func saveSelectedShell(id: String) {
     let option = shellOptions.first { $0.id == id }
     DefaultShellSettings().storedShellPath = option?.shellPath
+  }
+
+  private func saveSelectedLauncher(id: String) {
+    switch id {
+    case "pi":
+      DefaultLauncherSettings().choice = .pi
+    case "codex":
+      DefaultLauncherSettings().choice = .codex
+    case "claude":
+      DefaultLauncherSettings().choice = .claude
+    case "custom":
+      DefaultLauncherSettings().choice = .custom(command: customLauncherCommand)
+    default:
+      DefaultLauncherSettings().choice = .shell
+    }
   }
 
   private static func makeSummary() -> SettingsConfigSummary {
@@ -141,6 +175,14 @@ private struct SettingsView: View {
 
   private static func makeSelectedShellID() -> String {
     DefaultShellSettings().storedShellPath ?? DefaultShellPolicy.systemDefaultID
+  }
+
+  private static func makeSelectedLauncherID() -> String {
+    DefaultLauncherSettings().choice.id
+  }
+
+  private static func makeCustomLauncherCommand() -> String {
+    DefaultLauncherSettings().choice.customCommand ?? ""
   }
 
   private func ensureConfigFileExists() throws {
@@ -213,6 +255,49 @@ private struct SettingsPickerRow: View {
         }
         .labelsHidden()
         .frame(maxWidth: 320, alignment: .leading)
+      }
+    }
+    .font(.system(size: 13, weight: .medium))
+  }
+}
+
+private struct LauncherPickerRow: View {
+  let label: String
+  @Binding var selection: String
+
+  var body: some View {
+    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
+      GridRow {
+        Text(label)
+          .foregroundStyle(.secondary)
+          .frame(width: 84, alignment: .leading)
+        Picker(label, selection: $selection) {
+          ForEach(DefaultLauncherChoice.options, id: \.id) { option in
+            Text(option.title).tag(option.id)
+          }
+        }
+        .labelsHidden()
+        .frame(maxWidth: 320, alignment: .leading)
+      }
+    }
+    .font(.system(size: 13, weight: .medium))
+  }
+}
+
+private struct LauncherCommandRow: View {
+  let label: String
+  @Binding var command: String
+
+  var body: some View {
+    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
+      GridRow {
+        Text(label)
+          .foregroundStyle(.secondary)
+          .frame(width: 84, alignment: .leading)
+        TextField("command to run", text: $command)
+          .textFieldStyle(.roundedBorder)
+          .font(.system(size: 12, weight: .medium, design: .monospaced))
+          .frame(maxWidth: 320, alignment: .leading)
       }
     }
     .font(.system(size: 13, weight: .medium))

@@ -2,9 +2,17 @@ import Foundation
 
 public struct AppSettings: Codable, Equatable, Sendable {
   public var defaultShellPath: String?
+  public var defaultLauncherKind: String?
+  public var defaultLauncherCustomCommand: String?
 
-  public init(defaultShellPath: String? = nil) {
+  public init(
+    defaultShellPath: String? = nil,
+    defaultLauncherKind: String? = nil,
+    defaultLauncherCustomCommand: String? = nil
+  ) {
     self.defaultShellPath = defaultShellPath
+    self.defaultLauncherKind = defaultLauncherKind
+    self.defaultLauncherCustomCommand = defaultLauncherCustomCommand
   }
 }
 

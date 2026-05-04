@@ -10,6 +10,7 @@ import WorkspaceTabs
 struct PaneLauncherPresentation: Identifiable, Equatable {
   let id = UUID()
   var action: PaneLaunchAction
+  var defaultChoice: PaneLaunchChoice = .shell
 }
 
 @MainActor
@@ -123,7 +124,7 @@ final class WorkspaceTabManager: ObservableObject {
 
   func showLauncher(action: PaneLaunchAction = .newTab) {
     let resolvedAction = selectedPane == nil && action != .newTab ? .newTab : action
-    launcherPresentation = PaneLauncherPresentation(action: resolvedAction)
+    launcherPresentation = PaneLauncherPresentation(action: resolvedAction, defaultChoice: defaultLauncherChoice())
   }
 
   func dismissLauncher() {
@@ -370,6 +371,21 @@ final class WorkspaceTabManager: ObservableObject {
       terminalTitle: selectedPane?.selectedTerminalTitle,
       cwd: activeCwd
     )
+  }
+
+  private func defaultLauncherChoice() -> PaneLaunchChoice {
+    switch DefaultLauncherSettings().choice {
+    case .shell:
+      return .shell
+    case .pi:
+      return .pi
+    case .codex:
+      return .codex
+    case .claude:
+      return .claude
+    case .custom(let command):
+      return .custom(command)
+    }
   }
 
   private func makePaneController(tabId: UUID, initialCwd: URL?, command: String? = nil) -> PaneController {

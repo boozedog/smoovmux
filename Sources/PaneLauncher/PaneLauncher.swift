@@ -7,22 +7,22 @@ public enum PaneLaunchAction: Equatable, Sendable {
 }
 
 public enum PaneLaunchChoice: Equatable, Sendable {
-  case pi
-  case claude
-  case hermes
   case shell
+  case pi
+  case codex
+  case claude
   case custom(String)
 
   public var title: String {
     switch self {
-    case .pi:
-      return "pi"
-    case .claude:
-      return "claude"
-    case .hermes:
-      return "hermes"
     case .shell:
       return "shell"
+    case .pi:
+      return "pi"
+    case .codex:
+      return "codex"
+    case .claude:
+      return "claude"
     case .custom:
       return "enter a command…"
     }
@@ -30,20 +30,20 @@ public enum PaneLaunchChoice: Equatable, Sendable {
 
   public var command: String? {
     switch self {
-    case .pi:
-      return "pi"
-    case .claude:
-      return "claude"
-    case .hermes:
-      return "hermes"
     case .shell:
       return nil
+    case .pi:
+      return "pi"
+    case .codex:
+      return "codex"
+    case .claude:
+      return "claude"
     case .custom(let command):
       return command
     }
   }
 
-  public static let builtins: [Self] = [.pi, .claude, .hermes, .shell]
+  public static let builtins: [Self] = [.shell, .pi, .codex, .claude]
 }
 
 public enum PaneLauncherNavigationMode: Equatable, Sendable {
