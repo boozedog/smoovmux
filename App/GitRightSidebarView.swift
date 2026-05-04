@@ -1,4 +1,5 @@
 import SwiftUI
+import WorkspaceSidebar
 
 struct GitRightSidebar: View {
   @ObservedObject var tabManager: WorkspaceTabManager
@@ -13,16 +14,17 @@ struct GitRightSidebar: View {
           .font(AppFonts.monospaced(size: 11, weight: .semibold))
           .tracking(0.7)
         Spacer()
-        ChromeIconButton(systemName: "arrow.clockwise", help: "Refresh Git Sidebar") {
-          tabManager.refreshRightSidebar()
-        }
-        if let pane = tabManager.rightSidebarPane {
-          ChromeIconButton(systemName: "cursorarrow.click.2", help: "Focus Git Sidebar") {
-            pane.focus()
+        ForEach(GitSidebarToolbarPolicy.actions(hasPane: tabManager.rightSidebarPane != nil), id: \.self) { action in
+          switch action {
+          case .refresh:
+            ChromeIconButton(systemName: "arrow.clockwise", help: "Refresh Git Sidebar") {
+              tabManager.refreshRightSidebar()
+            }
+          case .hide:
+            ChromeIconButton(systemName: "xmark", help: "Hide Git Sidebar") {
+              tabManager.toggleRightSidebar()
+            }
           }
-        }
-        ChromeIconButton(systemName: "xmark", help: "Hide Git Sidebar") {
-          tabManager.toggleRightSidebar()
         }
       }
       .foregroundStyle(.secondary)

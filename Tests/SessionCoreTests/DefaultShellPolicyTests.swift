@@ -63,4 +63,14 @@ struct DefaultShellPolicyTests {
     )
   }
 
+  @Test("resolved executable paths are shell-quoted inside wrapped shell commands")
+  func resolvedExecutablePathsAreShellQuotedInsideWrappedShellCommands() {
+    #expect(
+      DefaultShellPolicy.wrappedExecutableLaunchCommand(
+        executablePath: "/Applications/Dev Tools/lazygit",
+        storedShellPath: "/bin/zsh"
+      ) == "'/bin/zsh' -l -i -c ''\\''/Applications/Dev Tools/lazygit'\\'''"
+    )
+  }
+
 }

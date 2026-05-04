@@ -62,6 +62,22 @@ public enum DefaultShellPolicy {
     return "\(shellQuote(shellPath)) -l -i -c \(shellQuote(command))"
   }
 
+  public static func wrappedExecutableLaunchCommand(
+    executablePath: String,
+    arguments: [String] = [],
+    storedShellPath: String?,
+    environment: [String: String] = ProcessInfo.processInfo.environment
+  ) -> String {
+    let shellCommand = ([executablePath] + arguments)
+      .map(shellQuote)
+      .joined(separator: " ")
+    return wrappedCommandLaunchCommand(
+      command: shellCommand,
+      storedShellPath: storedShellPath,
+      environment: environment
+    )
+  }
+
   public static func systemDefaultShellPath(environment: [String: String] = ProcessInfo.processInfo.environment)
     -> String
   {
@@ -109,5 +125,13 @@ public struct DefaultShellSettings: Sendable {
 
   public func wrappedCommandLaunchCommand(for command: String) -> String {
     DefaultShellPolicy.wrappedCommandLaunchCommand(command: command, storedShellPath: storedShellPath)
+  }
+
+  public func wrappedExecutableLaunchCommand(executablePath: String, arguments: [String] = []) -> String {
+    DefaultShellPolicy.wrappedExecutableLaunchCommand(
+      executablePath: executablePath,
+      arguments: arguments,
+      storedShellPath: storedShellPath
+    )
   }
 }

@@ -103,7 +103,7 @@ final class WorkspaceTabManager: ObservableObject {
     updateActivePaneChrome()
     onStateChange?()
     if rightSidebarState.isOpen {
-      refreshRightSidebar()
+      refreshRightSidebar(forceRestart: false)
     }
   }
 
@@ -211,7 +211,7 @@ final class WorkspaceTabManager: ObservableObject {
     rightSidebarAutoOpenTask = nil
     rightSidebarState.isOpen.toggle()
     if rightSidebarState.isOpen {
-      refreshRightSidebar()
+      refreshRightSidebar(forceRestart: false)
     } else {
       rightSidebarRefreshTask?.cancel()
       rightSidebarRefreshTask = nil
@@ -222,20 +222,20 @@ final class WorkspaceTabManager: ObservableObject {
     onStateChange?()
   }
 
-  func refreshRightSidebar() {
+  func refreshRightSidebar(forceRestart: Bool = true) {
     guard rightSidebarState.isOpen else { return }
     rightSidebarRefreshTask?.cancel()
     rightSidebarMessage = "Finding git repo…"
     let cwd = activeCwd
     rightSidebarRefreshTask = Task { [weak self] in
       guard let self else { return }
-      await resolveAndOpenRightSidebar(cwd: cwd)
+      await resolveAndOpenRightSidebar(cwd: cwd, forceRestart: forceRestart)
     }
   }
 
   private func handleActiveCwdChanged() {
     if rightSidebarState.isOpen {
-      refreshRightSidebar()
+      refreshRightSidebar(forceRestart: false)
     } else {
       autoOpenRightSidebarIfGitRepo()
     }
@@ -265,11 +265,11 @@ final class WorkspaceTabManager: ObservableObject {
 
       rightSidebarState.isOpen = true
       onStateChange?()
-      await openRightSidebar(gitRoot: gitRoot)
+      await openRightSidebar(gitRoot: gitRoot, forceRestart: false)
     }
   }
 
-  private func resolveAndOpenRightSidebar(cwd: URL?) async {
+  private func resolveAndOpenRightSidebar(cwd: URL?, forceRestart: Bool) async {
     guard let cwd else {
       rightSidebarPane = nil
       currentRightSidebarGitRoot = nil
@@ -295,10 +295,10 @@ final class WorkspaceTabManager: ObservableObject {
       return
     }
 
-    await openRightSidebar(gitRoot: gitRoot)
+    await openRightSidebar(gitRoot: gitRoot, forceRestart: forceRestart)
   }
 
-  private func openRightSidebar(gitRoot: URL) async {
+  private func openRightSidebar(gitRoot: URL, forceRestart: Bool) async {
     let lazygitURL: URL
     do {
       lazygitURL = try BinaryResolver.resolve("lazygit")
@@ -309,14 +309,25 @@ final class WorkspaceTabManager: ObservableObject {
       return
     }
 
-    if currentRightSidebarGitRoot?.standardizedFileURL == gitRoot.standardizedFileURL, rightSidebarPane != nil {
+    guard
+      RightSidebarRefreshPolicy.shouldOpenPane(
+        currentGitRoot: currentRightSidebarGitRoot,
+        requestedGitRoot: gitRoot,
+        hasExistingPane: rightSidebarPane != nil,
+        forceRestart: forceRestart
+      )
+    else {
       rightSidebarMessage = nil
       return
     }
 
     currentRightSidebarGitRoot = gitRoot
     rightSidebarMessage = nil
-    rightSidebarPane = CommandPaneController(ghosttyApp: ghosttyApp, command: lazygitURL.path, cwd: gitRoot)
+    rightSidebarPane = CommandPaneController(
+      ghosttyApp: ghosttyApp,
+      command: DefaultShellSettings().wrappedExecutableLaunchCommand(executablePath: lazygitURL.path),
+      cwd: gitRoot
+    )
   }
 
   private func updateSelectedTabCwd() {
