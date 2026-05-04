@@ -35,13 +35,13 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
     case .newWindow:
       return "New Window"
     case .newTab:
-      return "New Tab"
+      return "New Screen"
     case .closeTab:
-      return "Close Tab"
+      return "Close Screen"
     case .nextTab:
-      return "Next Tab"
+      return "Next Screen"
     case .previousTab:
-      return "Previous Tab"
+      return "Previous Screen"
     case .splitRight:
       return "Split Right"
     case .splitDown:

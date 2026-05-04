@@ -28,6 +28,14 @@ struct AppCommandTests {
     #expect(AppCommand.newTab.shortcut == KeyboardShortcutSpec(key: "t", modifiers: [.command]))
   }
 
+  @Test("tab-backed commands use screen terminology")
+  func tabBackedCommandsUseScreenTerminology() {
+    #expect(AppCommand.newTab.title == "New Screen")
+    #expect(AppCommand.closeTab.title == "Close Screen")
+    #expect(AppCommand.nextTab.title == "Next Screen")
+    #expect(AppCommand.previousTab.title == "Previous Screen")
+  }
+
   @Test("next and previous tab shortcuts use square brackets")
   func tabNavigationShortcuts() {
     #expect(AppCommand.nextTab.shortcut == KeyboardShortcutSpec(key: "]", modifiers: [.command]))

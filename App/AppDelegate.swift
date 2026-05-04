@@ -5,11 +5,13 @@ import SmoovLog
 import WorkspaceState
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenuItemValidation {
   private(set) var ghosttyApp: GhosttyApp?
   private var windowControllersById: [UUID: MainWindowController] = [:]
   private var settingsWindowController: SettingsWindowController?
   private var stateStore: WorkspaceStateStore?
+  private var windowMenu: NSMenu?
+  private var screensMenu: NSMenu?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     AppFonts.registerBundledFonts()
@@ -96,15 +98,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let fileMenu = NSMenu(title: "File")
     fileMenuItem.submenu = fileMenu
     addMenuItem(AppCommand.newWindow, to: fileMenu, action: #selector(Self.newWindow(_:)))
-    addMenuItem(AppCommand.newTab, to: fileMenu, action: #selector(Self.newTab(_:)))
-    addMenuItem(AppCommand.closeTab, to: fileMenu, action: #selector(Self.closeTab(_:)))
     fileMenu.addItem(NSMenuItem.separator())
     addMenuItem(AppCommand.splitRight, to: fileMenu, action: #selector(Self.splitRight(_:)))
     addMenuItem(AppCommand.splitDown, to: fileMenu, action: #selector(Self.splitDown(_:)))
     addMenuItem(AppCommand.closePane, to: fileMenu, action: #selector(Self.closePane(_:)))
-    fileMenu.addItem(NSMenuItem.separator())
-    addMenuItem(AppCommand.nextTab, to: fileMenu, action: #selector(Self.selectNextTab(_:)))
-    addMenuItem(AppCommand.previousTab, to: fileMenu, action: #selector(Self.selectPreviousTab(_:)))
 
     let viewMenuItem = NSMenuItem()
     mainMenu.addItem(viewMenuItem)
@@ -128,7 +125,182 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     editMenu.addItem(NSMenuItem.separator())
     editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
 
+    let screensMenuItem = NSMenuItem()
+    mainMenu.addItem(screensMenuItem)
+    let screensMenu = NSMenu(title: "Screens")
+    screensMenu.delegate = self
+    screensMenuItem.submenu = screensMenu
+    self.screensMenu = screensMenu
+    rebuildScreensMenu()
+
+    let windowMenuItem = NSMenuItem()
+    mainMenu.addItem(windowMenuItem)
+    let windowMenu = NSMenu(title: "Window")
+    windowMenu.delegate = self
+    windowMenuItem.submenu = windowMenu
+    self.windowMenu = windowMenu
+    rebuildWindowMenu()
+
     NSApp.mainMenu = mainMenu
+  }
+
+  func menuNeedsUpdate(_ menu: NSMenu) {
+    if menu === windowMenu {
+      rebuildWindowMenu()
+    } else if menu === screensMenu {
+      rebuildScreensMenu()
+    }
+  }
+
+  func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+    true
+  }
+
+  private func rebuildWindowMenu() {
+    guard let windowMenu else { return }
+
+    windowMenu.removeAllItems()
+    for item in WindowMenuPolicy.items(for: orderedWindowMenuWindows()) {
+      addWindowMenuItem(item, to: windowMenu)
+    }
+  }
+
+  private func rebuildScreensMenu() {
+    guard let screensMenu else { return }
+
+    screensMenu.removeAllItems()
+    for item in ScreensMenuPolicy.items(for: currentScreensMenuScreens()) {
+      addScreensMenuItem(item, to: screensMenu)
+    }
+  }
+
+  private func currentScreensMenuScreens() -> [ScreensMenuScreen] {
+    guard let controller = keyMainWindowController else { return [] }
+    let selectedTabId = controller.tabManager.selectedTabId
+    return controller.tabManager.tabs.enumerated().map { offset, tab in
+      ScreensMenuScreen(
+        id: tab.id,
+        title: tab.title,
+        isSelected: tab.id == selectedTabId,
+        index: offset + 1
+      )
+    }
+  }
+
+  private func orderedWindowMenuWindows() -> [WindowMenuWindow] {
+    var seenIds = Set<UUID>()
+    let orderedIds = NSApp.orderedWindows.compactMap { window -> UUID? in
+      guard let controller = window.windowController as? MainWindowController,
+        windowControllersById[controller.id] === controller,
+        !seenIds.contains(controller.id)
+      else { return nil }
+
+      seenIds.insert(controller.id)
+      return controller.id
+    }
+
+    let remainingIds = windowControllersById.keys
+      .filter { !seenIds.contains($0) }
+      .sorted { $0.uuidString < $1.uuidString }
+
+    return (orderedIds + remainingIds).compactMap { id in
+      guard let controller = windowControllersById[id], let window = controller.window else { return nil }
+      return WindowMenuWindow(id: id, title: window.title, isKey: window.isKeyWindow)
+    }
+  }
+
+  private func addWindowMenuItem(_ item: WindowMenuItem, to menu: NSMenu) {
+    switch item {
+    case .command(let command):
+      let menuItem = menu.addItem(
+        withTitle: command.title,
+        action: action(for: command),
+        keyEquivalent: command.shortcut?.key ?? ""
+      )
+      menuItem.target = target(for: command)
+      if let shortcut = command.shortcut {
+        menuItem.keyEquivalentModifierMask = shortcut.modifiers.eventModifierFlags
+      }
+    case .separator:
+      menu.addItem(NSMenuItem.separator())
+    case .window(let window):
+      let menuItem = menu.addItem(
+        withTitle: window.title,
+        action: #selector(Self.focusWindowFromMenu(_:)),
+        keyEquivalent: ""
+      )
+      menuItem.target = self
+      menuItem.representedObject = window.id.uuidString
+      menuItem.state = window.isChecked ? .on : .off
+    }
+  }
+
+  private func addScreensMenuItem(_ item: ScreensMenuItem, to menu: NSMenu) {
+    switch item {
+    case .command(let command):
+      let menuItem = menu.addItem(
+        withTitle: command.title,
+        action: action(for: command),
+        keyEquivalent: command.shortcut?.key ?? ""
+      )
+      menuItem.target = self
+      if let shortcut = command.shortcut {
+        menuItem.keyEquivalentModifierMask = shortcut.modifiers.eventModifierFlags
+      }
+    case .separator:
+      menu.addItem(NSMenuItem.separator())
+    case .screen(let screen):
+      let menuItem = menu.addItem(
+        withTitle: screen.title,
+        action: #selector(Self.selectScreenFromMenu(_:)),
+        keyEquivalent: screen.shortcut?.key ?? ""
+      )
+      menuItem.target = self
+      menuItem.representedObject = screen.id.uuidString
+      menuItem.state = screen.isChecked ? .on : .off
+      if let shortcut = screen.shortcut {
+        menuItem.keyEquivalentModifierMask = shortcut.modifiers.eventModifierFlags
+      }
+    }
+  }
+
+  private func action(for command: WindowMenuCommand) -> Selector {
+    switch command {
+    case .minimize:
+      return #selector(NSWindow.performMiniaturize(_:))
+    case .zoom:
+      return #selector(NSWindow.performZoom(_:))
+    case .zoomPane:
+      return #selector(Self.zoomSelectedPane(_:))
+    case .bringAllToFront:
+      return #selector(NSApplication.arrangeInFront(_:))
+    }
+  }
+
+  private func target(for command: WindowMenuCommand) -> AnyObject? {
+    switch command {
+    case .minimize, .zoom:
+      return nil
+    case .zoomPane:
+      return self
+    case .bringAllToFront:
+      return NSApp
+    }
+  }
+
+  private func action(for command: AppCommand) -> Selector {
+    switch command {
+    case .newTab:
+      return #selector(Self.newTab(_:))
+    case .closeTab:
+      return #selector(Self.closeTab(_:))
+    case .nextTab:
+      return #selector(Self.selectNextTab(_:))
+    case .previousTab:
+      return #selector(Self.selectPreviousTab(_:))
+    case .newWindow, .splitRight, .splitDown, .closePane, .toggleRightSidebar:
+      return #selector(Self.noopMenuAction(_:))
+    }
   }
 
   @objc func showSettingsWindow(_ sender: Any?) {
@@ -174,6 +346,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   @objc private func selectPreviousTab(_ sender: Any?) {
     keyMainWindowController?.selectPreviousTab(sender)
+  }
+
+  @objc private func selectScreenFromMenu(_ sender: Any?) {
+    guard let menuItem = sender as? NSMenuItem,
+      let rawId = menuItem.representedObject as? String,
+      let id = UUID(uuidString: rawId)
+    else { return }
+
+    keyMainWindowController?.selectScreen(id: id)
+  }
+
+  @objc private func noopMenuAction(_ sender: Any?) {}
+
+  @objc private func zoomSelectedPane(_ sender: Any?) {
+    keyMainWindowController?.toggleSelectedPaneZoom(sender)
+  }
+
+  @objc private func focusWindowFromMenu(_ sender: Any?) {
+    guard let menuItem = sender as? NSMenuItem,
+      let rawId = menuItem.representedObject as? String,
+      let id = UUID(uuidString: rawId),
+      let controller = windowControllersById[id]
+    else { return }
+
+    controller.window?.makeKeyAndOrderFront(sender)
+    NSApp.activate(ignoringOtherApps: true)
   }
 
   private var keyMainWindowController: MainWindowController? {

@@ -66,6 +66,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     tabManager.selectedPane?.closePane()
   }
 
+  @objc func toggleSelectedPaneZoom(_ sender: Any?) {
+    tabManager.toggleSelectedPaneZoom()
+  }
+
   @objc func toggleRightSidebar(_ sender: Any?) {
     tabManager.toggleRightSidebar()
   }
@@ -76,6 +80,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
 
   @objc func selectPreviousTab(_ sender: Any?) {
     tabManager.selectPreviousTab()
+  }
+
+  func selectScreen(id: UUID) {
+    tabManager.selectTab(id)
   }
 
   func windowDidMove(_ notification: Notification) {
