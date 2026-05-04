@@ -358,26 +358,42 @@ final class SmoovSurfaceView: NSView {
 
   override func setFrameSize(_ newSize: NSSize) {
     super.setFrameSize(newSize)
-    guard let surface else { return }
-    let backing = convertToBacking(newSize)
-    ghostty_surface_set_size(surface, UInt32(backing.width), UInt32(backing.height))
-    let size = ghostty_surface_size(surface)
-    cellSize = (size.columns, size.rows)
-    onResize?(size.columns, size.rows)
+    updateSurfaceContentScaleAndSize(pointSize: newSize)
   }
 
   override func viewDidMoveToWindow() {
     super.viewDidMoveToWindow()
-    guard let surface, let window else { return }
-    let scale = window.backingScaleFactor
-    ghostty_surface_set_content_scale(surface, scale, scale)
+    updateSurfaceContentScaleAndSize()
   }
 
   override func viewDidChangeBackingProperties() {
     super.viewDidChangeBackingProperties()
-    guard let surface, let window else { return }
-    let scale = window.backingScaleFactor
-    ghostty_surface_set_content_scale(surface, scale, scale)
+    updateSurfaceContentScaleAndSize()
+  }
+
+  private func updateSurfaceContentScaleAndSize() {
+    updateSurfaceContentScaleAndSize(pointSize: bounds.size)
+  }
+
+  private func updateSurfaceContentScaleAndSize(pointSize: NSSize) {
+    guard let surface else { return }
+    let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2.0
+    let metrics = TerminalSurfaceSizing.backingMetrics(
+      widthPoints: pointSize.width,
+      heightPoints: pointSize.height,
+      backingScaleFactor: scale
+    )
+    layer?.contentsScale = scale
+    ghostty_surface_set_content_scale(surface, metrics.contentScaleX, metrics.contentScaleY)
+    resizeSurfaceToCurrentBackingStore(pixelSize: metrics.pixelSize)
+  }
+
+  private func resizeSurfaceToCurrentBackingStore(pixelSize: TerminalSurfacePixelSize) {
+    guard let surface else { return }
+    ghostty_surface_set_size(surface, pixelSize.width, pixelSize.height)
+    let size = ghostty_surface_size(surface)
+    cellSize = (size.columns, size.rows)
+    onResize?(size.columns, size.rows)
   }
 
   override func updateTrackingAreas() {
