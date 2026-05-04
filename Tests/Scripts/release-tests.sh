@@ -98,6 +98,12 @@ cat > "$FAKE_BIN/gh" <<'SH'
 set -euo pipefail
 printf 'gh %q ' "$@" >> "${SMOOVMUX_TEST_CALLS:?}"
 printf '\n' >> "$SMOOVMUX_TEST_CALLS"
+if [ "${SMOOVMUX_TEST_GH_RELEASE_EXISTS:-0}" = "1" ] && [ "${1:-}" = "release" ] && [ "${2:-}" = "view" ]; then
+  exit 0
+fi
+if [ "${SMOOVMUX_TEST_GH_RELEASE_EXISTS:-0}" != "1" ] && [ "${1:-}" = "release" ] && [ "${2:-}" = "view" ]; then
+  exit 1
+fi
 SH
 chmod +x "$FAKE_BIN/gh"
 
@@ -105,7 +111,7 @@ export PATH="$FAKE_BIN:$PATH"
 export SMOOVMUX_TEST_XCODEBUILD_ARGS="$TMP_DIR/xcodebuild.args"
 export SMOOVMUX_TEST_CALLS="$TMP_DIR/calls.log"
 
-"$REPO_ROOT/scripts/release.sh" \
+SMOOVMUX_TEST_GH_RELEASE_EXISTS=0 "$REPO_ROOT/scripts/release.sh" \
   --version 0.0.1 \
   --build-dir "$BUILD_DIR" \
   --notary-profile smoovmux-notary \
@@ -163,6 +169,23 @@ if ! grep -q -- 'smoovmux-0.0.1-macos-universal.zip' "$TMP_DIR/calls.log" || ! g
 fi
 if ! grep -q -- '--draft' "$TMP_DIR/calls.log"; then
   echo "expected GitHub release to default to draft" >&2
+  exit 1
+fi
+
+: > "$TMP_DIR/calls.log"
+SMOOVMUX_TEST_GH_RELEASE_EXISTS=1 "$REPO_ROOT/scripts/release.sh" \
+  --version 0.0.1 \
+  --build-dir "$BUILD_DIR" \
+  --notary-profile smoovmux-notary \
+  --signing-identity "Developer ID Application: BuserNet Consulting LLC (T6RPYRHYEV)" \
+  --team-id T6RPYRHYEV
+
+if ! grep -q -- 'release' "$TMP_DIR/calls.log" || ! grep -q -- 'upload' "$TMP_DIR/calls.log" || ! grep -q -- '--clobber' "$TMP_DIR/calls.log"; then
+  echo "expected existing GitHub release assets to be updated with --clobber" >&2
+  exit 1
+fi
+if grep -q -- 'release create' "$TMP_DIR/calls.log"; then
+  echo "expected existing GitHub release not to be recreated" >&2
   exit 1
 fi
 

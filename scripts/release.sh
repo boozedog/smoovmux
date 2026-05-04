@@ -174,12 +174,18 @@ spctl --assess --type execute --verbose=4 "$ARCHIVED_APP"
 spctl --assess --type open --verbose=4 "$DMG_ARTIFACT"
 
 if [ "$CREATE_GITHUB" -eq 1 ]; then
-  log "creating draft GitHub release $TAG"
-  GH_ARGS=(release create "$TAG" "$ARTIFACT" "$DMG_ARTIFACT" --title "$TAG" --notes "smoovmux $VERSION")
-  if [ "$DRAFT" -eq 1 ]; then
-    GH_ARGS+=(--draft)
+  if gh release view "$TAG" >/dev/null 2>&1; then
+    log "updating existing GitHub release $TAG"
+    gh release edit "$TAG" --title "$TAG" --notes "smoovmux $VERSION"
+    gh release upload "$TAG" "$ARTIFACT" "$DMG_ARTIFACT" --clobber
+  else
+    log "creating draft GitHub release $TAG"
+    GH_ARGS=(release create "$TAG" "$ARTIFACT" "$DMG_ARTIFACT" --title "$TAG" --notes "smoovmux $VERSION")
+    if [ "$DRAFT" -eq 1 ]; then
+      GH_ARGS+=(--draft)
+    fi
+    gh "${GH_ARGS[@]}"
   fi
-  gh "${GH_ARGS[@]}"
 fi
 
 printf '\nRelease zip: %s\n' "$ARTIFACT"
