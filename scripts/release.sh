@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # scripts/release.sh — signed, notarized GitHub release build.
 #
-# Creates a notarized zip containing smoovmux.app, then creates a draft GitHub
-# release with that zip attached.
+# Creates notarized zip and dmg artifacts containing smoovmux.app, then creates
+# a draft GitHub release with both artifacts attached.
 #
 # Usage:
 #   ./scripts/release.sh [--version 0.0.1] [--notary-profile smoovmux-notary]
@@ -74,6 +74,7 @@ ARCHIVE_PATH="$BUILD_DIR/smoovmux.xcarchive"
 ARCHIVED_APP="$ARCHIVE_PATH/Products/Applications/$APP_NAME"
 NOTARY_ZIP="$BUILD_DIR/smoovmux-$VERSION-notary-submit.zip"
 ARTIFACT="$BUILD_DIR/smoovmux-$VERSION-macos-universal.zip"
+DMG_ARTIFACT="$BUILD_DIR/smoovmux-$VERSION-macos-universal.dmg"
 
 log() { printf '[release:%s] %s\n' "$VERSION" "$*"; }
 need() {
@@ -87,6 +88,7 @@ need xcodebuild
 need codesign
 need xcrun
 need ditto
+need hdiutil
 need shasum
 if [ "$CREATE_GITHUB" -eq 1 ]; then
   need gh
@@ -149,18 +151,39 @@ rm -f "$ARTIFACT"
 ditto -c -k --keepParent "$ARCHIVED_APP" "$ARTIFACT"
 SHA256="$(shasum -a 256 "$ARTIFACT" | awk '{print $1}')"
 
+log "creating signed dmg"
+rm -f "$DMG_ARTIFACT"
+hdiutil create \
+  -volname "smoovmux" \
+  -srcfolder "$ARCHIVED_APP" \
+  -ov \
+  -format UDZO \
+  "$DMG_ARTIFACT"
+codesign --sign "$SIGNING_IDENTITY" --timestamp "$DMG_ARTIFACT"
+
+log "submitting dmg to Apple notary service"
+xcrun notarytool submit "$DMG_ARTIFACT" --keychain-profile "$NOTARY_PROFILE" --wait
+
+log "stapling dmg notarization ticket"
+xcrun stapler staple "$DMG_ARTIFACT"
+xcrun stapler validate "$DMG_ARTIFACT"
+DMG_SHA256="$(shasum -a 256 "$DMG_ARTIFACT" | awk '{print $1}')"
+
 log "assessing Gatekeeper status"
 spctl --assess --type execute --verbose=4 "$ARCHIVED_APP"
+spctl --assess --type open --verbose=4 "$DMG_ARTIFACT"
 
 if [ "$CREATE_GITHUB" -eq 1 ]; then
   log "creating draft GitHub release $TAG"
-  GH_ARGS=(release create "$TAG" "$ARTIFACT" --title "$TAG" --notes "smoovmux $VERSION")
+  GH_ARGS=(release create "$TAG" "$ARTIFACT" "$DMG_ARTIFACT" --title "$TAG" --notes "smoovmux $VERSION")
   if [ "$DRAFT" -eq 1 ]; then
     GH_ARGS+=(--draft)
   fi
   gh "${GH_ARGS[@]}"
 fi
 
-printf '\nRelease artifact: %s\n' "$ARTIFACT"
+printf '\nRelease zip: %s\n' "$ARTIFACT"
+printf 'Zip SHA256: %s\n' "$SHA256"
+printf 'Release dmg: %s\n' "$DMG_ARTIFACT"
+printf 'DMG SHA256: %s\n' "$DMG_SHA256"
 printf 'Git tag: %s\n' "$TAG"
-printf 'SHA256: %s\n' "$SHA256"

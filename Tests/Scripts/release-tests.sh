@@ -82,6 +82,17 @@ printf '\n' >> "$SMOOVMUX_TEST_CALLS"
 SH
 chmod +x "$FAKE_BIN/xcrun"
 
+cat > "$FAKE_BIN/hdiutil" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'hdiutil %q ' "$@" >> "${SMOOVMUX_TEST_CALLS:?}"
+printf '\n' >> "$SMOOVMUX_TEST_CALLS"
+OUT="${@: -1}"
+mkdir -p "$(dirname "$OUT")"
+printf 'fake dmg\n' > "$OUT"
+SH
+chmod +x "$FAKE_BIN/hdiutil"
+
 cat > "$FAKE_BIN/gh" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -102,8 +113,13 @@ export SMOOVMUX_TEST_CALLS="$TMP_DIR/calls.log"
   --team-id T6RPYRHYEV
 
 ARTIFACT="$BUILD_DIR/smoovmux-0.0.1-macos-universal.zip"
+DMG="$BUILD_DIR/smoovmux-0.0.1-macos-universal.dmg"
 if [ ! -f "$ARTIFACT" ]; then
   echo "expected artifact at $ARTIFACT" >&2
+  exit 1
+fi
+if [ ! -f "$DMG" ]; then
+  echo "expected dmg at $DMG" >&2
   exit 1
 fi
 
@@ -124,8 +140,13 @@ if ! grep -q -- 'OTHER_CODE_SIGN_FLAGS=--timestamp' "$SMOOVMUX_TEST_XCODEBUILD_A
   exit 1
 fi
 
-if ! grep -q -- 'notarytool' "$TMP_DIR/calls.log" || ! grep -q -- 'submit' "$TMP_DIR/calls.log"; then
-  echo "expected notarization submit" >&2
+NOTARY_SUBMITS="$(grep -c -- 'notarytool.*submit' "$TMP_DIR/calls.log" || true)"
+if [ "$NOTARY_SUBMITS" -lt 2 ]; then
+  echo "expected notarization submits for app zip and dmg" >&2
+  exit 1
+fi
+if ! grep -q -- 'hdiutil' "$TMP_DIR/calls.log" || ! grep -q -- 'smoovmux-0.0.1-macos-universal.dmg' "$TMP_DIR/calls.log"; then
+  echo "expected dmg creation" >&2
   exit 1
 fi
 if ! grep -q -- 'stapler' "$TMP_DIR/calls.log" || ! grep -q -- 'staple' "$TMP_DIR/calls.log"; then
@@ -134,6 +155,10 @@ if ! grep -q -- 'stapler' "$TMP_DIR/calls.log" || ! grep -q -- 'staple' "$TMP_DI
 fi
 if ! grep -q -- 'release' "$TMP_DIR/calls.log" || ! grep -q -- 'create' "$TMP_DIR/calls.log" || ! grep -q -- 'v0.0.1' "$TMP_DIR/calls.log"; then
   echo "expected GitHub release creation" >&2
+  exit 1
+fi
+if ! grep -q -- 'smoovmux-0.0.1-macos-universal.zip' "$TMP_DIR/calls.log" || ! grep -q -- 'smoovmux-0.0.1-macos-universal.dmg' "$TMP_DIR/calls.log"; then
+  echo "expected GitHub release to attach zip and dmg" >&2
   exit 1
 fi
 if ! grep -q -- '--draft' "$TMP_DIR/calls.log"; then
