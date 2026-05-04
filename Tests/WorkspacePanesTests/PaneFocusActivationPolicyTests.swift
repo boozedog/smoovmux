@@ -4,6 +4,39 @@ import WorkspacePanes
 
 @Suite("Pane focus activation policy")
 struct PaneFocusActivationPolicyTests {
+  @Test("inactive window click focuses pane while preserving AppKit activation")
+  func inactiveWindowClickFocusesPaneWhilePreservingActivation() {
+    #expect(
+      PaneFocusActivationPolicy.mouseDownFocusAction(
+        isAppActive: false,
+        isWindowKey: false,
+        isAlreadyFirstResponder: false
+      ) == .focusAndPassThrough
+    )
+  }
+
+  @Test("active window pane switch click focuses pane without forwarding terminal click")
+  func activeWindowPaneSwitchClickFocusesPaneWithoutForwardingTerminalClick() {
+    #expect(
+      PaneFocusActivationPolicy.mouseDownFocusAction(
+        isAppActive: true,
+        isWindowKey: true,
+        isAlreadyFirstResponder: false
+      ) == .focusAndConsume
+    )
+  }
+
+  @Test("already focused pane mouse down passes through")
+  func alreadyFocusedPaneMouseDownPassesThrough() {
+    #expect(
+      PaneFocusActivationPolicy.mouseDownFocusAction(
+        isAppActive: true,
+        isWindowKey: true,
+        isAlreadyFirstResponder: true
+      ) == .passThrough
+    )
+  }
+
   @Test("only the selected restored pane starts terminal-active")
   func onlySelectedRestoredPaneStartsTerminalActive() {
     let first = focusPaneID(1)

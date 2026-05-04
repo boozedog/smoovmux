@@ -3,6 +3,7 @@ import GhosttyKit
 import SessionCore
 import SmoovLog
 @preconcurrency import UserNotifications
+import WorkspacePanes
 import WorkspaceSidebar
 
 /// Minimum viable libghostty surface embedded in an AppKit `NSView`.
@@ -51,6 +52,7 @@ final class SmoovSurfaceView: NSView {
   private let imageStore = TerminalImageStore()
   nonisolated(unsafe) private var surface: ghostty_surface_t?
   private var focused = false
+  nonisolated(unsafe) private var eventMonitor: Any?
   private var hoveredURL: URL?
   private var dropHighlightVisible = false
 
@@ -70,6 +72,9 @@ final class SmoovSurfaceView: NSView {
     self.surface = makeSurface(app: app, config: config)
     registerForDraggedTypes(Self.terminalDragTypes)
     self.updateTrackingAreas()
+    self.eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+      self?.localMouseDown(event)
+    }
   }
 
   @available(*, unavailable, message: "Use init(app:config:) instead")
@@ -78,6 +83,9 @@ final class SmoovSurfaceView: NSView {
   }
 
   deinit {
+    if let eventMonitor {
+      NSEvent.removeMonitor(eventMonitor)
+    }
     if let surface {
       ghostty_surface_free(surface)
     }
@@ -408,6 +416,28 @@ final class SmoovSurfaceView: NSView {
   }
 
   // MARK: - Mouse
+
+  private func localMouseDown(_ event: NSEvent) -> NSEvent? {
+    guard let window, event.window == window else { return event }
+    guard let contentView = window.contentView else { return event }
+    let location = contentView.convert(event.locationInWindow, from: nil)
+    guard contentView.hitTest(location) == self else { return event }
+
+    switch PaneFocusActivationPolicy.mouseDownFocusAction(
+      isAppActive: NSApp.isActive,
+      isWindowKey: window.isKeyWindow,
+      isAlreadyFirstResponder: window.firstResponder === self
+    ) {
+    case .passThrough:
+      return event
+    case .focusAndPassThrough:
+      window.makeFirstResponder(self)
+      return event
+    case .focusAndConsume:
+      window.makeFirstResponder(self)
+      return nil
+    }
+  }
 
   override func mouseDown(with event: NSEvent) {
     window?.makeFirstResponder(self)
