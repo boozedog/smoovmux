@@ -10,8 +10,13 @@ public enum PaneFocusActivationPolicy {
   public static func mouseDownFocusAction(
     isAppActive: Bool,
     isWindowKey: Bool,
-    isAlreadyFirstResponder: Bool
+    isAlreadyFirstResponder: Bool,
+    isClickInsideSurface: Bool = true
   ) -> MouseDownFocusAction {
+    if !isClickInsideSurface {
+      return .passThrough
+    }
+
     if isAlreadyFirstResponder {
       return .passThrough
     }

@@ -421,12 +421,14 @@ final class SmoovSurfaceView: NSView {
     guard let window, event.window == window else { return event }
     guard let contentView = window.contentView else { return event }
     let location = contentView.convert(event.locationInWindow, from: nil)
+    let isClickInsideSurface = convert(bounds, to: nil).contains(event.locationInWindow)
     guard contentView.hitTest(location) == self else { return event }
 
     switch PaneFocusActivationPolicy.mouseDownFocusAction(
       isAppActive: NSApp.isActive,
       isWindowKey: window.isKeyWindow,
-      isAlreadyFirstResponder: window.firstResponder === self
+      isAlreadyFirstResponder: window.firstResponder === self,
+      isClickInsideSurface: isClickInsideSurface
     ) {
     case .passThrough:
       return event

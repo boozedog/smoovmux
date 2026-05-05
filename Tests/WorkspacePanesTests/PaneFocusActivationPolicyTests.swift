@@ -37,6 +37,18 @@ struct PaneFocusActivationPolicyTests {
     )
   }
 
+  @Test("chrome mouse down does not focus pane under title bar")
+  func chromeMouseDownDoesNotFocusPaneUnderTitleBar() {
+    #expect(
+      PaneFocusActivationPolicy.mouseDownFocusAction(
+        isAppActive: true,
+        isWindowKey: true,
+        isAlreadyFirstResponder: false,
+        isClickInsideSurface: false
+      ) == .passThrough
+    )
+  }
+
   @Test("only the selected restored pane starts terminal-active")
   func onlySelectedRestoredPaneStartsTerminalActive() {
     let first = focusPaneID(1)
