@@ -19,15 +19,13 @@ final class WorkspaceTabManager: ObservableObject {
   @Published var launcherPresentation: PaneLauncherPresentation?
   @Published var leftSidebarState = WorkspaceLeftSidebarState()
   @Published var rightSidebarState = WorkspaceRightSidebarState()
-  @Published private(set) var rightSidebarPane: CommandPaneController?
-  @Published private(set) var rightSidebarMessage: String?
+  @Published private var rightSidebarTabs = RightSidebarTabState<CommandPaneController>()
   @Published private var activePaneChrome = PaneChromeState()
   @Published private(set) var terminalStatusesByTabId: [UUID: TerminalScreenStatus] = [:]
 
   private let ghosttyApp: GhosttyApp
   private var panesByTabId: [UUID: PaneController] = [:]
   private let gitRootResolver = GitRootResolver()
-  private var currentRightSidebarGitRoot: URL?
   private var rightSidebarRefreshTask: Task<Void, Never>?
   private var rightSidebarAutoOpenTask: Task<Void, Never>?
   private var commandSuccessClearTasksByTabId: [UUID: Task<Void, Never>] = [:]
@@ -44,6 +42,14 @@ final class WorkspaceTabManager: ObservableObject {
   var selectedPane: PaneController? {
     guard let selectedTabId else { return nil }
     return panesByTabId[selectedTabId]
+  }
+
+  var rightSidebarPane: CommandPaneController? {
+    rightSidebarTabs.pane(for: selectedTabId)
+  }
+
+  var rightSidebarMessage: String? {
+    rightSidebarTabs.message(for: selectedTabId)
   }
 
   var selectedTabTitle: String {
@@ -93,6 +99,7 @@ final class WorkspaceTabManager: ObservableObject {
 
   func restore(_ state: WorkspaceState) {
     panesByTabId.removeAll()
+    rightSidebarTabs.discardAll()
     tabList = WorkspaceTabList(tabs: state.tabs.map(\.record), selectedTabId: state.selectedTabId)
     leftSidebarState = state.leftSidebar
     rightSidebarState = state.rightSidebar
@@ -188,6 +195,7 @@ final class WorkspaceTabManager: ObservableObject {
   func closeTab(_ id: UUID) {
     guard tabList.closeTab(id) else { return }
     panesByTabId[id] = nil
+    rightSidebarTabs.discardPane(for: id)
     terminalStatusesByTabId[id] = nil
     commandSuccessClearTasksByTabId[id]?.cancel()
     commandSuccessClearTasksByTabId[id] = nil
@@ -215,21 +223,19 @@ final class WorkspaceTabManager: ObservableObject {
     } else {
       rightSidebarRefreshTask?.cancel()
       rightSidebarRefreshTask = nil
-      currentRightSidebarGitRoot = nil
-      rightSidebarPane = nil
-      rightSidebarMessage = nil
     }
     onStateChange?()
   }
 
   func refreshRightSidebar(forceRestart: Bool = true) {
     guard rightSidebarState.isOpen else { return }
+    guard let tabId = selectedTabId else { return }
     rightSidebarRefreshTask?.cancel()
-    rightSidebarMessage = "Finding git repo…"
+    rightSidebarTabs.setMessage("Finding git repo…", for: tabId)
     let cwd = activeCwd
     rightSidebarRefreshTask = Task { [weak self] in
       guard let self else { return }
-      await resolveAndOpenRightSidebar(cwd: cwd, forceRestart: forceRestart)
+      await resolveAndOpenRightSidebar(cwd: cwd, tabId: tabId, forceRestart: forceRestart)
     }
   }
 
@@ -242,7 +248,7 @@ final class WorkspaceTabManager: ObservableObject {
   }
 
   private func autoOpenRightSidebarIfGitRepo() {
-    guard let cwd = activeCwd else { return }
+    guard let tabId = selectedTabId, let cwd = activeCwd else { return }
     rightSidebarAutoOpenTask?.cancel()
     rightSidebarAutoOpenTask = Task { [weak self] in
       guard let self else { return }
@@ -265,15 +271,13 @@ final class WorkspaceTabManager: ObservableObject {
 
       rightSidebarState.isOpen = true
       onStateChange?()
-      await openRightSidebar(gitRoot: gitRoot, forceRestart: false)
+      await openRightSidebar(gitRoot: gitRoot, tabId: tabId, forceRestart: false)
     }
   }
 
-  private func resolveAndOpenRightSidebar(cwd: URL?, forceRestart: Bool) async {
+  private func resolveAndOpenRightSidebar(cwd: URL?, tabId: UUID, forceRestart: Bool) async {
     guard let cwd else {
-      rightSidebarPane = nil
-      currentRightSidebarGitRoot = nil
-      rightSidebarMessage = "No active directory"
+      rightSidebarTabs.clearPane(message: "No active directory", for: tabId)
       return
     }
 
@@ -281,52 +285,52 @@ final class WorkspaceTabManager: ObservableObject {
     do {
       gitRoot = try await gitRootResolver.resolve(cwd: cwd)
     } catch {
-      rightSidebarPane = nil
-      currentRightSidebarGitRoot = nil
-      rightSidebarMessage = "Unable to find git"
+      rightSidebarTabs.clearPane(message: "Unable to find git", for: tabId)
       return
     }
 
     guard !Task.isCancelled else { return }
     guard let gitRoot else {
-      rightSidebarPane = nil
-      currentRightSidebarGitRoot = nil
-      rightSidebarMessage = "Not a git repository"
+      rightSidebarTabs.clearPane(message: "Not a git repository", for: tabId)
       return
     }
 
-    await openRightSidebar(gitRoot: gitRoot, forceRestart: forceRestart)
+    await openRightSidebar(gitRoot: gitRoot, tabId: tabId, forceRestart: forceRestart)
   }
 
-  private func openRightSidebar(gitRoot: URL, forceRestart: Bool) async {
+  private func openRightSidebar(gitRoot: URL, tabId: UUID, forceRestart: Bool) async {
     let lazygitURL: URL
     do {
       lazygitURL = try BinaryResolver.resolve("lazygit")
     } catch {
-      rightSidebarPane = nil
-      currentRightSidebarGitRoot = gitRoot
-      rightSidebarMessage = "lazygit not found\nInstall with: brew install lazygit"
+      rightSidebarTabs.clearPane(
+        keepingGitRoot: gitRoot,
+        message: "lazygit not found\nInstall with: brew install lazygit",
+        for: tabId
+      )
       return
     }
 
     guard
       RightSidebarRefreshPolicy.shouldOpenPane(
-        currentGitRoot: currentRightSidebarGitRoot,
+        currentGitRoot: rightSidebarTabs.gitRoot(for: tabId),
         requestedGitRoot: gitRoot,
-        hasExistingPane: rightSidebarPane != nil,
+        hasExistingPane: rightSidebarTabs.pane(for: tabId) != nil,
         forceRestart: forceRestart
       )
     else {
-      rightSidebarMessage = nil
+      rightSidebarTabs.clearMessage(for: tabId)
       return
     }
 
-    currentRightSidebarGitRoot = gitRoot
-    rightSidebarMessage = nil
-    rightSidebarPane = CommandPaneController(
-      ghosttyApp: ghosttyApp,
-      command: DefaultShellSettings().wrappedExecutableLaunchCommand(executablePath: lazygitURL.path),
-      cwd: gitRoot
+    rightSidebarTabs.setPane(
+      CommandPaneController(
+        ghosttyApp: ghosttyApp,
+        command: DefaultShellSettings().wrappedExecutableLaunchCommand(executablePath: lazygitURL.path),
+        cwd: gitRoot
+      ),
+      gitRoot: gitRoot,
+      for: tabId
     )
   }
 
