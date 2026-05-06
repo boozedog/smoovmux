@@ -71,6 +71,7 @@ public enum TerminalScreenEvent: Equatable, Sendable {
   case searchTotal(Int?)
   case searchSelected(Int?)
   case scrollbarChanged(TerminalScrollbar)
+  case visibleActivity(nowMilliseconds: Int64)
 }
 
 public enum TerminalScreenIndicator: Equatable, Sendable {
@@ -79,6 +80,85 @@ public enum TerminalScreenIndicator: Equatable, Sendable {
   case commandFinished(exitCode: Int16?)
   case childExited(exitCode: UInt32)
   case rendererUnhealthy
+
+  public var accessibilityLabel: String {
+    switch self {
+    case .bell(let count):
+      return count == 1 ? "Terminal bell, 1 alert" : "Terminal bell, \(count) alerts"
+    case .progress(let percent):
+      return "Terminal progress \(percent) percent"
+    case .commandFinished(let exitCode):
+      if let exitCode, exitCode != 0 {
+        return "Command failed with exit code \(exitCode)"
+      }
+      return "Command finished successfully"
+    case .childExited(let exitCode):
+      return "Child process exited with code \(exitCode)"
+    case .rendererUnhealthy:
+      return "Terminal renderer unhealthy"
+    }
+  }
+}
+
+public enum TerminalScreenAttentionPolicy {
+  public static func shouldApply(_ event: TerminalScreenEvent, isSelectedScreen: Bool, appIsActive: Bool) -> Bool {
+    if isSelectedScreen && appIsActive {
+      return false
+    }
+    switch event {
+    case .bell, .progressChanged, .commandFinished, .childExited, .rendererHealthChanged:
+      return true
+    case .desktopNotification, .mouseOverLink, .colorChanged, .configReloaded, .configChanged, .searchStarted,
+      .searchEnded, .searchTotal, .searchSelected, .scrollbarChanged, .visibleActivity:
+      return false
+    }
+  }
+}
+
+public struct TerminalLiveActivityPolicy: Equatable, Sendable {
+  public var quietPeriodMilliseconds: Int64
+
+  public init(quietPeriodMilliseconds: Int64 = 400) {
+    self.quietPeriodMilliseconds = quietPeriodMilliseconds
+  }
+
+  public func isActive(lastActivityMilliseconds: Int64?, nowMilliseconds: Int64) -> Bool {
+    guard let lastActivityMilliseconds, nowMilliseconds >= lastActivityMilliseconds else { return false }
+    return nowMilliseconds - lastActivityMilliseconds < quietPeriodMilliseconds
+  }
+
+  public static func shouldShowActivity(isActive: Bool, isSelectedScreen: Bool, appIsActive: Bool) -> Bool {
+    guard isActive else { return false }
+    return !(isSelectedScreen && appIsActive)
+  }
+}
+
+public enum TerminalScreenNotificationPolicy {
+  public static func notification(for event: TerminalScreenEvent, screenTitle: String) -> TerminalNotification? {
+    switch event {
+    case .bell:
+      return TerminalNotification(title: screenTitle, body: "Terminal bell")
+    case .progressChanged(let percent):
+      guard let percent else { return nil }
+      return TerminalNotification(title: screenTitle, body: "Terminal progress \(max(0, min(100, percent))) percent")
+    case .commandFinished(let exitCode):
+      let body: String
+      if let exitCode, exitCode != 0 {
+        body = "Command failed with exit code \(exitCode)"
+      } else {
+        body = "Command finished successfully"
+      }
+      return TerminalNotification(title: screenTitle, body: body)
+    case .childExited(let exitCode):
+      return TerminalNotification(title: screenTitle, body: "Child process exited with code \(exitCode)")
+    case .rendererHealthChanged(let healthy):
+      guard !healthy else { return nil }
+      return TerminalNotification(title: screenTitle, body: "Terminal renderer unhealthy")
+    case .desktopNotification, .mouseOverLink, .colorChanged, .configReloaded, .configChanged, .searchStarted,
+      .searchEnded, .searchTotal, .searchSelected, .scrollbarChanged, .visibleActivity:
+      return nil
+    }
+  }
 }
 
 public struct TerminalScreenStatus: Equatable, Sendable {
@@ -95,6 +175,7 @@ public struct TerminalScreenStatus: Equatable, Sendable {
   public var configChangeCount: Int
   public var search: TerminalSearchState?
   public var scrollbar: TerminalScrollbar?
+  public var lastActivityMilliseconds: Int64?
 
   public init(
     bellCount: Int = 0,
@@ -109,7 +190,8 @@ public struct TerminalScreenStatus: Equatable, Sendable {
     configReloadCount: Int = 0,
     configChangeCount: Int = 0,
     search: TerminalSearchState? = nil,
-    scrollbar: TerminalScrollbar? = nil
+    scrollbar: TerminalScrollbar? = nil,
+    lastActivityMilliseconds: Int64? = nil
   ) {
     self.bellCount = bellCount
     self.progressPercent = progressPercent
@@ -124,6 +206,7 @@ public struct TerminalScreenStatus: Equatable, Sendable {
     self.configChangeCount = configChangeCount
     self.search = search
     self.scrollbar = scrollbar
+    self.lastActivityMilliseconds = lastActivityMilliseconds
   }
 
   public var indicator: TerminalScreenIndicator? {
@@ -149,10 +232,10 @@ public struct TerminalScreenStatus: Equatable, Sendable {
     bellCount = 0
   }
 
-  public mutating func clearSuccessfulCommandFinished() {
-    if lastCommandExitCode == 0 {
-      lastCommandExitCode = nil
-    }
+  public mutating func acknowledgeSelection() {
+    bellCount = 0
+    lastCommandExitCode = nil
+    childExitCode = nil
   }
 
   public mutating func apply(_ event: TerminalScreenEvent) {
@@ -192,6 +275,8 @@ public struct TerminalScreenStatus: Equatable, Sendable {
       search = nextSearch
     case .scrollbarChanged(let scrollbar):
       self.scrollbar = scrollbar
+    case .visibleActivity(let nowMilliseconds):
+      lastActivityMilliseconds = nowMilliseconds
     }
   }
 }

@@ -22,6 +22,7 @@ final class PaneController {
   private let onStateChange: () -> Void
   private let onTitleChange: () -> Void
   private let onTerminalEvent: (TerminalScreenEvent) -> Void
+  private let onPaneFocus: () -> Void
   private var paneTree: WorkspacePaneTree
   private var commandsByPaneId: [UUID: String] = [:]
   private var titlesByPaneId: [UUID: String] = [:]
@@ -38,13 +39,15 @@ final class PaneController {
     onCwdChange: @escaping (URL?) -> Void = { _ in },
     onStateChange: @escaping () -> Void = {},
     onTitleChange: @escaping () -> Void = {},
-    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in }
+    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in },
+    onPaneFocus: @escaping () -> Void = {}
   ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
     self.onTitleChange = onTitleChange
     self.onTerminalEvent = onTerminalEvent
+    self.onPaneFocus = onPaneFocus
     self.paneTree = WorkspacePaneTree(root: .leaf(WorkspacePaneLeaf(cwd: initialCwd, command: command)))
     if let command {
       commandsByPaneId[paneTree.selectedPaneId] = command
@@ -64,13 +67,15 @@ final class PaneController {
     onCwdChange: @escaping (URL?) -> Void = { _ in },
     onStateChange: @escaping () -> Void = {},
     onTitleChange: @escaping () -> Void = {},
-    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in }
+    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in },
+    onPaneFocus: @escaping () -> Void = {}
   ) {
     self.ghosttyApp = ghosttyApp
     self.onCwdChange = onCwdChange
     self.onStateChange = onStateChange
     self.onTitleChange = onTitleChange
     self.onTerminalEvent = onTerminalEvent
+    self.onPaneFocus = onPaneFocus
     self.paneTree = paneTree
     self.commandsByPaneId = Dictionary(
       uniqueKeysWithValues: paneTree.leaves.compactMap { leaf in
@@ -169,6 +174,7 @@ final class PaneController {
     surfaceView.onFocus = { [weak self, weak surfaceView] in
       guard let self, let surfaceView else { return }
       focusedSurfaceView = surfaceView
+      onPaneFocus()
       if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)], paneTree.selectPane(id) {
         onCwdChange(cwd(for: id))
         onTitleChange()

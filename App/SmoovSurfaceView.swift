@@ -2,7 +2,6 @@ import AppKit
 import GhosttyKit
 import SessionCore
 import SmoovLog
-@preconcurrency import UserNotifications
 import WorkspacePanes
 import WorkspaceSidebar
 
@@ -229,7 +228,7 @@ final class SmoovSurfaceView: NSView {
   func handleGhosttyDesktopNotificationAction(title: String, body: String) {
     let notification = TerminalNotification(title: title, body: body)
     onDesktopNotification?(notification)
-    postUserNotification(notification)
+    AppNotificationCenter.shared.post(notification)
   }
 
   func handleGhosttyMouseShapeAction(_ shape: ghostty_action_mouse_shape_e) {
@@ -322,20 +321,6 @@ final class SmoovSurfaceView: NSView {
       return .resizeUpDown
     default:
       return .arrow
-    }
-  }
-
-  private func postUserNotification(_ notification: TerminalNotification) {
-    let center = UNUserNotificationCenter.current()
-    center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
-    center.getNotificationSettings { settings in
-      guard settings.authorizationStatus == .authorized else { return }
-      let content = UNMutableNotificationContent()
-      content.title = notification.title
-      content.body = notification.body
-      content.sound = .default
-      let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-      center.add(request)
     }
   }
 

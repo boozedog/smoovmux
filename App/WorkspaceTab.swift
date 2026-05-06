@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import PaneLauncher
@@ -28,7 +29,6 @@ final class WorkspaceTabManager: ObservableObject {
   private let gitRootResolver = GitRootResolver()
   private var rightSidebarRefreshTask: Task<Void, Never>?
   private var rightSidebarAutoOpenTask: Task<Void, Never>?
-  private var commandSuccessClearTasksByTabId: [UUID: Task<Void, Never>] = [:]
   var onStateChange: (() -> Void)?
 
   var tabs: [WorkspaceTabRecord] {
@@ -157,7 +157,7 @@ final class WorkspaceTabManager: ObservableObject {
 
   func selectTab(_ id: UUID) {
     if tabList.selectTab(id) {
-      clearBellAttention(for: id)
+      acknowledgeTerminalStatus(for: id)
       updateSelectedTabCwd()
       updateActivePaneChrome()
       onStateChange?()
@@ -168,7 +168,7 @@ final class WorkspaceTabManager: ObservableObject {
   func selectNextTab() {
     tabList.selectNextTab()
     if let selectedTabId {
-      clearBellAttention(for: selectedTabId)
+      acknowledgeTerminalStatus(for: selectedTabId)
     }
     updateSelectedTabCwd()
     updateActivePaneChrome()
@@ -179,7 +179,7 @@ final class WorkspaceTabManager: ObservableObject {
   func selectPreviousTab() {
     tabList.selectPreviousTab()
     if let selectedTabId {
-      clearBellAttention(for: selectedTabId)
+      acknowledgeTerminalStatus(for: selectedTabId)
     }
     updateSelectedTabCwd()
     updateActivePaneChrome()
@@ -197,8 +197,6 @@ final class WorkspaceTabManager: ObservableObject {
     panesByTabId[id] = nil
     rightSidebarTabs.discardPane(for: id)
     terminalStatusesByTabId[id] = nil
-    commandSuccessClearTasksByTabId[id]?.cancel()
-    commandSuccessClearTasksByTabId[id] = nil
     updateActivePaneChrome()
     onStateChange?()
     handleActiveCwdChanged()
@@ -344,40 +342,28 @@ final class WorkspaceTabManager: ObservableObject {
   }
 
   private func applyTerminalEvent(_ event: TerminalScreenEvent, for tabId: UUID) {
+    guard
+      TerminalScreenAttentionPolicy.shouldApply(
+        event,
+        isSelectedScreen: tabId == selectedTabId,
+        appIsActive: NSApp.isActive
+      )
+    else { return }
+
     var status = terminalStatus(for: tabId)
     status.apply(event)
     terminalStatusesByTabId[tabId] = status
 
-    switch event {
-    case .commandFinished(exitCode: 0):
-      scheduleSuccessfulCommandClear(for: tabId)
-    case .commandFinished:
-      commandSuccessClearTasksByTabId[tabId]?.cancel()
-      commandSuccessClearTasksByTabId[tabId] = nil
-    default:
-      break
+    let title = tabList.tabs.first { $0.id == tabId }?.title ?? "Terminal"
+    if let notification = TerminalScreenNotificationPolicy.notification(for: event, screenTitle: title) {
+      AppNotificationCenter.shared.post(notification)
     }
   }
 
-  private func clearBellAttention(for tabId: UUID) {
+  private func acknowledgeTerminalStatus(for tabId: UUID) {
     var status = terminalStatus(for: tabId)
-    status.clearBellAttention()
+    status.acknowledgeSelection()
     terminalStatusesByTabId[tabId] = status
-  }
-
-  private func scheduleSuccessfulCommandClear(for tabId: UUID) {
-    commandSuccessClearTasksByTabId[tabId]?.cancel()
-    commandSuccessClearTasksByTabId[tabId] = Task { [weak self] in
-      try? await Task.sleep(for: .seconds(2))
-      guard !Task.isCancelled else { return }
-      await MainActor.run { [weak self] in
-        guard let self else { return }
-        var status = terminalStatus(for: tabId)
-        status.clearSuccessfulCommandFinished()
-        terminalStatusesByTabId[tabId] = status
-        commandSuccessClearTasksByTabId[tabId] = nil
-      }
-    }
   }
 
   private func updateActivePaneChrome() {
@@ -423,6 +409,9 @@ final class WorkspaceTabManager: ObservableObject {
       },
       onTerminalEvent: { [weak self] event in
         self?.applyTerminalEvent(event, for: tabId)
+      },
+      onPaneFocus: { [weak self] in
+        self?.acknowledgeTerminalStatus(for: tabId)
       }
     )
   }
@@ -446,6 +435,9 @@ final class WorkspaceTabManager: ObservableObject {
       },
       onTerminalEvent: { [weak self] event in
         self?.applyTerminalEvent(event, for: tabId)
+      },
+      onPaneFocus: { [weak self] in
+        self?.acknowledgeTerminalStatus(for: tabId)
       }
     )
   }

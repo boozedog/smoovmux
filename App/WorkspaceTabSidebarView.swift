@@ -166,6 +166,13 @@ struct TerminalScreenIndicatorView: View {
   let indicator: TerminalScreenIndicator
 
   var body: some View {
+    indicatorContent
+      .help(indicator.accessibilityLabel)
+      .accessibilityLabel(indicator.accessibilityLabel)
+  }
+
+  @ViewBuilder
+  private var indicatorContent: some View {
     switch indicator {
     case .bell(let count):
       HStack(spacing: 3) {

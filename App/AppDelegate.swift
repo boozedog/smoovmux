@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     AppFonts.registerBundledFonts()
     SmoovLog.info("smoovmux launched")
     cleanupDroppedImages()
+    AppNotificationCenter.shared.configure()
     installMainMenu()
 
     let app: GhosttyApp
