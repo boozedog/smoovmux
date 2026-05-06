@@ -4,15 +4,18 @@ public struct AppSettings: Codable, Equatable, Sendable {
   public var defaultShellPath: String?
   public var defaultLauncherKind: String?
   public var defaultLauncherCustomCommand: String?
+  public var defaultWorkingDirectoryPath: String?
 
   public init(
     defaultShellPath: String? = nil,
     defaultLauncherKind: String? = nil,
-    defaultLauncherCustomCommand: String? = nil
+    defaultLauncherCustomCommand: String? = nil,
+    defaultWorkingDirectoryPath: String? = nil
   ) {
     self.defaultShellPath = defaultShellPath
     self.defaultLauncherKind = defaultLauncherKind
     self.defaultLauncherCustomCommand = defaultLauncherCustomCommand
+    self.defaultWorkingDirectoryPath = defaultWorkingDirectoryPath
   }
 }
 

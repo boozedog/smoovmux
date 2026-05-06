@@ -90,7 +90,8 @@ final class WorkspaceTabManager: ObservableObject {
 
   @discardableResult
   func addTab(select: Bool = true, command: String? = nil) -> WorkspaceTabRecord {
-    let tab = tabList.addTab(cwd: tabList.lastKnownCwd, select: select)
+    let initialCwd = DefaultWorkingDirectorySettings().resolveTopLevelCwd(inheritedOrRestoredCwd: tabList.lastKnownCwd)
+    let tab = tabList.addTab(cwd: initialCwd, select: select)
     panesByTabId[tab.id] = makePaneController(tabId: tab.id, initialCwd: tab.cwd, command: command)
     updateActivePaneChrome()
     onStateChange?()

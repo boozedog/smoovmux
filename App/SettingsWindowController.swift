@@ -35,18 +35,10 @@ private struct SettingsView: View {
   @State private var selectedShellID = Self.makeSelectedShellID()
   @State private var selectedLauncherID = Self.makeSelectedLauncherID()
   @State private var customLauncherCommand = Self.makeCustomLauncherCommand()
+  @State private var defaultWorkingDirectoryPath = Self.makeDefaultWorkingDirectoryPath()
 
   var body: some View {
     VStack(alignment: .leading, spacing: 20) {
-      VStack(alignment: .leading, spacing: 6) {
-        Text("Settings")
-          .font(.system(size: 24, weight: .semibold))
-          .foregroundStyle(.primary)
-        Text("Terminal settings are Ghostty-compatible. Changes apply to newly-created panes for now.")
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(.secondary)
-      }
-
       SettingsSection(title: "Terminal") {
         ForEach(summary.terminalRows, id: \.label) { row in
           SettingsRow(label: row.label, value: row.value)
@@ -55,6 +47,7 @@ private struct SettingsView: View {
 
       SettingsSection(title: "Shell") {
         SettingsPickerRow(label: "Default shell", selection: $selectedShellID, options: shellOptions)
+        WorkingDirectoryRow(label: "Startup folder", path: $defaultWorkingDirectoryPath)
       }
 
       SettingsSection(title: "Launcher") {
@@ -93,6 +86,9 @@ private struct SettingsView: View {
     }
     .onChange(of: selectedShellID) { _, newValue in
       saveSelectedShell(id: newValue)
+    }
+    .onChange(of: defaultWorkingDirectoryPath) { _, newValue in
+      DefaultWorkingDirectorySettings().storedPath = newValue
     }
     .onChange(of: selectedLauncherID) { _, newValue in
       saveSelectedLauncher(id: newValue)
@@ -135,6 +131,7 @@ private struct SettingsView: View {
     selectedShellID = Self.makeSelectedShellID()
     selectedLauncherID = Self.makeSelectedLauncherID()
     customLauncherCommand = Self.makeCustomLauncherCommand()
+    defaultWorkingDirectoryPath = Self.makeDefaultWorkingDirectoryPath()
   }
 
   private func saveSelectedShell(id: String) {
@@ -183,6 +180,10 @@ private struct SettingsView: View {
 
   private static func makeCustomLauncherCommand() -> String {
     DefaultLauncherSettings().choice.customCommand ?? ""
+  }
+
+  private static func makeDefaultWorkingDirectoryPath() -> String {
+    DefaultWorkingDirectorySettings().storedPath
   }
 
   private func ensureConfigFileExists() throws {
@@ -255,6 +256,26 @@ private struct SettingsPickerRow: View {
         }
         .labelsHidden()
         .frame(maxWidth: 320, alignment: .leading)
+      }
+    }
+    .font(.system(size: 13, weight: .medium))
+  }
+}
+
+private struct WorkingDirectoryRow: View {
+  let label: String
+  @Binding var path: String
+
+  var body: some View {
+    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
+      GridRow {
+        Text(label)
+          .foregroundStyle(.secondary)
+          .frame(width: 120, alignment: .leading)
+        TextField("~/projects", text: $path)
+          .textFieldStyle(.roundedBorder)
+          .font(.system(size: 12, weight: .medium, design: .monospaced))
+          .frame(maxWidth: 320, alignment: .leading)
       }
     }
     .font(.system(size: 13, weight: .medium))
