@@ -18,6 +18,12 @@ struct AppCommandTests {
     #expect(Set(shortcuts).count == shortcuts.count)
   }
 
+  @Test("about opens settings without a shortcut")
+  func aboutCommand() {
+    #expect(AppCommand.about.title == "About smoovmux")
+    #expect(AppCommand.about.shortcut == nil)
+  }
+
   @Test("new window is Command-N")
   func newWindowShortcut() {
     #expect(AppCommand.newWindow.shortcut == KeyboardShortcutSpec(key: "n", modifiers: [.command]))

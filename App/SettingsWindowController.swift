@@ -2,10 +2,22 @@ import AppKit
 import SessionCore
 import SwiftUI
 
+enum SettingsTab: Hashable {
+  case general
+  case about
+}
+
+@MainActor
+private final class SettingsSelection: ObservableObject {
+  @Published var selectedTab: SettingsTab = .general
+}
+
 @MainActor
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
+  private let selection = SettingsSelection()
+
   init() {
-    let view = SettingsView()
+    let view = SettingsView(selection: selection)
     let window = NSWindow(
       contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
       styleMask: [.titled, .closable, .miniaturizable],
@@ -26,9 +38,14 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) not supported")
   }
+
+  func selectTab(_ tab: SettingsTab) {
+    selection.selectedTab = tab
+  }
 }
 
 private struct SettingsView: View {
+  @ObservedObject var selection: SettingsSelection
   @State private var errorMessage: String?
   @State private var summary = Self.makeSummary()
   @State private var shellOptions = Self.makeShellOptions()
@@ -38,6 +55,42 @@ private struct SettingsView: View {
   @State private var defaultWorkingDirectoryPath = Self.makeDefaultWorkingDirectoryPath()
 
   var body: some View {
+    TabView(selection: $selection.selectedTab) {
+      generalTab
+        .tabItem { Text("General") }
+        .tag(SettingsTab.general)
+      aboutTab
+        .tabItem { Text("About") }
+        .tag(SettingsTab.about)
+    }
+    .padding(.top, 20)
+    .padding(.horizontal, 24)
+    .padding(.bottom, 24)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .background(Color.black)
+    .font(AppFonts.ui(size: 13, weight: .medium))
+    .preferredColorScheme(.dark)
+    .onAppear {
+      refreshSummary()
+      refreshShellOptions()
+    }
+    .onChange(of: selectedShellID) { _, newValue in
+      saveSelectedShell(id: newValue)
+    }
+    .onChange(of: defaultWorkingDirectoryPath) { _, newValue in
+      DefaultWorkingDirectorySettings().storedPath = newValue
+    }
+    .onChange(of: selectedLauncherID) { _, newValue in
+      saveSelectedLauncher(id: newValue)
+    }
+    .onChange(of: customLauncherCommand) { _, _ in
+      if selectedLauncherID == "custom" {
+        saveSelectedLauncher(id: selectedLauncherID)
+      }
+    }
+  }
+
+  private var generalTab: some View {
     VStack(alignment: .leading, spacing: 20) {
       SettingsSection(title: "Terminal") {
         ForEach(summary.terminalRows, id: \.label) { row in
@@ -68,35 +121,24 @@ private struct SettingsView: View {
 
       if let errorMessage {
         Text(errorMessage)
-          .font(.system(size: 12, weight: .medium))
+          .font(AppFonts.ui(size: 12, weight: .medium))
           .foregroundStyle(Color(nsColor: .systemRed))
       }
 
       Spacer()
     }
-    .padding(.top, 34)
-    .padding(.horizontal, 24)
-    .padding(.bottom, 24)
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .background(Color.black)
-    .preferredColorScheme(.dark)
-    .onAppear {
-      refreshSummary()
-      refreshShellOptions()
-    }
-    .onChange(of: selectedShellID) { _, newValue in
-      saveSelectedShell(id: newValue)
-    }
-    .onChange(of: defaultWorkingDirectoryPath) { _, newValue in
-      DefaultWorkingDirectorySettings().storedPath = newValue
-    }
-    .onChange(of: selectedLauncherID) { _, newValue in
-      saveSelectedLauncher(id: newValue)
-    }
-    .onChange(of: customLauncherCommand) { _, _ in
-      if selectedLauncherID == "custom" {
-        saveSelectedLauncher(id: selectedLauncherID)
+  }
+
+  private var aboutTab: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text("smoovmux")
+        .font(AppFonts.ui(size: 28, weight: .semibold))
+      Text("Native macOS terminal workspace built on libghostty.")
+        .foregroundStyle(.secondary)
+      if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
+        SettingsRow(label: "Version", value: version)
       }
+      Spacer()
     }
   }
 
@@ -204,7 +246,7 @@ private struct SettingsSection<Content: View>: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       Text(title.uppercased())
-        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+        .font(AppFonts.ui(size: 11, weight: .semibold))
         .tracking(0.7)
         .foregroundStyle(.secondary)
       VStack(alignment: .leading, spacing: 10) {
@@ -228,13 +270,13 @@ private struct SettingsRow: View {
           .foregroundStyle(.secondary)
           .frame(width: 84, alignment: .leading)
         Text(value)
-          .font(.system(size: 12, weight: .medium, design: .monospaced))
+          .font(AppFonts.ui(size: 12, weight: .medium))
           .foregroundStyle(.primary.opacity(0.92))
           .textSelection(.enabled)
           .lineLimit(2)
       }
     }
-    .font(.system(size: 13, weight: .medium))
+    .font(AppFonts.ui(size: 13, weight: .medium))
   }
 }
 
@@ -258,7 +300,7 @@ private struct SettingsPickerRow: View {
         .frame(maxWidth: 320, alignment: .leading)
       }
     }
-    .font(.system(size: 13, weight: .medium))
+    .font(AppFonts.ui(size: 13, weight: .medium))
   }
 }
 
@@ -274,11 +316,11 @@ private struct WorkingDirectoryRow: View {
           .frame(width: 120, alignment: .leading)
         TextField("~/projects", text: $path)
           .textFieldStyle(.roundedBorder)
-          .font(.system(size: 12, weight: .medium, design: .monospaced))
+          .font(AppFonts.ui(size: 12, weight: .medium))
           .frame(maxWidth: 320, alignment: .leading)
       }
     }
-    .font(.system(size: 13, weight: .medium))
+    .font(AppFonts.ui(size: 13, weight: .medium))
   }
 }
 
@@ -301,7 +343,7 @@ private struct LauncherPickerRow: View {
         .frame(maxWidth: 320, alignment: .leading)
       }
     }
-    .font(.system(size: 13, weight: .medium))
+    .font(AppFonts.ui(size: 13, weight: .medium))
   }
 }
 
@@ -317,11 +359,11 @@ private struct LauncherCommandRow: View {
           .frame(width: 84, alignment: .leading)
         TextField("command to run", text: $command)
           .textFieldStyle(.roundedBorder)
-          .font(.system(size: 12, weight: .medium, design: .monospaced))
+          .font(AppFonts.ui(size: 12, weight: .medium))
           .frame(maxWidth: 320, alignment: .leading)
       }
     }
-    .font(.system(size: 13, weight: .medium))
+    .font(AppFonts.ui(size: 13, weight: .medium))
   }
 }
 
@@ -333,7 +375,7 @@ private struct SettingsActionButton: View {
   var body: some View {
     Button(action: action) {
       Label(title, systemImage: systemImage)
-        .font(.system(size: 13, weight: .semibold))
+        .font(AppFonts.ui(size: 13, weight: .semibold))
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .contentShape(Rectangle())

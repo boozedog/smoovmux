@@ -84,6 +84,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     mainMenu.addItem(appMenuItem)
     let appMenu = NSMenu()
     appMenuItem.submenu = appMenu
+    let aboutItem = appMenu.addItem(
+      withTitle: AppCommand.about.title,
+      action: #selector(Self.showAboutSettingsWindow(_:)),
+      keyEquivalent: ""
+    )
+    aboutItem.target = self
+    appMenu.addItem(NSMenuItem.separator())
     let settingsItem = appMenu.addItem(
       withTitle: "Settings…",
       action: #selector(Self.showSettingsWindow(_:)),
@@ -302,15 +309,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
       return #selector(Self.selectNextTab(_:))
     case .previousTab:
       return #selector(Self.selectPreviousTab(_:))
-    case .newWindow, .splitRight, .splitDown, .closePane, .toggleRightSidebar:
+    case .about, .newWindow, .splitRight, .splitDown, .closePane, .toggleRightSidebar:
       return #selector(Self.noopMenuAction(_:))
     }
   }
 
   @objc func showSettingsWindow(_ sender: Any?) {
+    showSettingsWindow(sender, selectedTab: .general)
+  }
+
+  @objc private func showAboutSettingsWindow(_ sender: Any?) {
+    showSettingsWindow(sender, selectedTab: .about)
+  }
+
+  private func showSettingsWindow(_ sender: Any?, selectedTab: SettingsTab) {
     if settingsWindowController == nil {
       settingsWindowController = SettingsWindowController()
     }
+    settingsWindowController?.selectTab(selectedTab)
     settingsWindowController?.showWindow(sender)
     settingsWindowController?.window?.makeKeyAndOrderFront(sender)
     NSApp.activate(ignoringOtherApps: true)

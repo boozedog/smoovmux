@@ -104,6 +104,10 @@ brew install boozedog/zig015/zig@0.15.2
 
 `devenv.nix` prepends `/opt/homebrew/opt/zig@0.15.2/bin` to `PATH` so `devenv shell` picks it up automatically. Bump both zig and ghostty's pin together when upstream lands 0.16 migration (ghostty-org/ghostty#12228).
 
+## Versioning
+
+When bumping `CFBundleShortVersionString`, always increment `CFBundleVersion` in the same change. Use `./scripts/set-version.sh --version <x.y.z> --build <n> --plist App/Info.plist` rather than editing the plist by hand.
+
 ## Build / reload
 
 Two scripts, both at the repo root:

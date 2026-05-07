@@ -20,6 +20,7 @@ public struct KeyboardShortcutSpec: Equatable, Hashable, Sendable {
 }
 
 public enum AppCommand: CaseIterable, Equatable, Sendable {
+  case about
   case newWindow
   case newTab
   case closeTab
@@ -32,6 +33,8 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
 
   public var title: String {
     switch self {
+    case .about:
+      return "About smoovmux"
     case .newWindow:
       return "New Window"
     case .newTab:
@@ -55,6 +58,8 @@ public enum AppCommand: CaseIterable, Equatable, Sendable {
 
   public var shortcut: KeyboardShortcutSpec? {
     switch self {
+    case .about:
+      return nil
     case .newWindow:
       return KeyboardShortcutSpec(key: "n", modifiers: [.command])
     case .newTab:
