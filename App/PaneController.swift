@@ -21,7 +21,7 @@ final class PaneController {
   private let onCwdChange: (URL?) -> Void
   private let onStateChange: () -> Void
   private let onTitleChange: () -> Void
-  private let onTerminalEvent: (TerminalScreenEvent) -> Void
+  private let onTerminalEvent: (TerminalScreenEvent, UUID) -> Void
   private let onPaneFocus: () -> Void
   private var paneTree: WorkspacePaneTree
   private var commandsByPaneId: [UUID: String] = [:]
@@ -39,7 +39,7 @@ final class PaneController {
     onCwdChange: @escaping (URL?) -> Void = { _ in },
     onStateChange: @escaping () -> Void = {},
     onTitleChange: @escaping () -> Void = {},
-    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in },
+    onTerminalEvent: @escaping (TerminalScreenEvent, UUID) -> Void = { _, _ in },
     onPaneFocus: @escaping () -> Void = {}
   ) {
     self.ghosttyApp = ghosttyApp
@@ -67,7 +67,7 @@ final class PaneController {
     onCwdChange: @escaping (URL?) -> Void = { _ in },
     onStateChange: @escaping () -> Void = {},
     onTitleChange: @escaping () -> Void = {},
-    onTerminalEvent: @escaping (TerminalScreenEvent) -> Void = { _ in },
+    onTerminalEvent: @escaping (TerminalScreenEvent, UUID) -> Void = { _, _ in },
     onPaneFocus: @escaping () -> Void = {}
   ) {
     self.ghosttyApp = ghosttyApp
@@ -116,6 +116,19 @@ final class PaneController {
 
   var windowTitle: String {
     PanePresentationPolicy.windowTitle(for: paneTree.selectedPane, homePath: NSHomeDirectory())
+  }
+
+  @discardableResult
+  func focusPane(id: UUID) -> Bool {
+    guard paneTree.selectPane(id), let surfaceView = surfaceView(for: id) else { return false }
+    focusedSurfaceView = surfaceView
+    activeSurfaceView = surfaceView
+    onCwdChange(cwd(for: id))
+    onTitleChange()
+    onStateChange()
+    updateFocusRing()
+    focusSelectedSurface()
+    return true
   }
 
   func splitRight(command: String? = nil) {
@@ -224,49 +237,49 @@ final class PaneController {
       onStateChange()
     }
     surfaceView.onBell = { [weak self] in
-      self?.onTerminalEvent(.bell)
+      self?.onTerminalEvent(.bell, id)
     }
     surfaceView.onProgressChanged = { [weak self] progress in
-      self?.onTerminalEvent(.progressChanged(progress))
+      self?.onTerminalEvent(.progressChanged(progress), id)
     }
     surfaceView.onCommandFinished = { [weak self] exitCode in
-      self?.onTerminalEvent(.commandFinished(exitCode: exitCode))
+      self?.onTerminalEvent(.commandFinished(exitCode: exitCode), id)
     }
     surfaceView.onChildExited = { [weak self] exitCode in
-      self?.onTerminalEvent(.childExited(exitCode: exitCode))
+      self?.onTerminalEvent(.childExited(exitCode: exitCode), id)
     }
     surfaceView.onRendererHealthChanged = { [weak self] healthy in
-      self?.onTerminalEvent(.rendererHealthChanged(healthy: healthy))
+      self?.onTerminalEvent(.rendererHealthChanged(healthy: healthy), id)
     }
     surfaceView.onDesktopNotification = { [weak self] notification in
-      self?.onTerminalEvent(.desktopNotification(notification))
+      self?.onTerminalEvent(.desktopNotification(notification), id)
     }
     surfaceView.onMouseOverLink = { [weak self] url in
-      self?.onTerminalEvent(.mouseOverLink(url))
+      self?.onTerminalEvent(.mouseOverLink(url), id)
     }
     surfaceView.onColorChanged = { [weak self] colorChange in
-      self?.onTerminalEvent(.colorChanged(colorChange))
+      self?.onTerminalEvent(.colorChanged(colorChange), id)
     }
     surfaceView.onConfigReloaded = { [weak self] soft in
-      self?.onTerminalEvent(.configReloaded(soft: soft))
+      self?.onTerminalEvent(.configReloaded(soft: soft), id)
     }
     surfaceView.onConfigChanged = { [weak self] in
-      self?.onTerminalEvent(.configChanged)
+      self?.onTerminalEvent(.configChanged, id)
     }
     surfaceView.onSearchStarted = { [weak self] needle in
-      self?.onTerminalEvent(.searchStarted(needle: needle))
+      self?.onTerminalEvent(.searchStarted(needle: needle), id)
     }
     surfaceView.onSearchEnded = { [weak self] in
-      self?.onTerminalEvent(.searchEnded)
+      self?.onTerminalEvent(.searchEnded, id)
     }
     surfaceView.onSearchTotal = { [weak self] total in
-      self?.onTerminalEvent(.searchTotal(total))
+      self?.onTerminalEvent(.searchTotal(total), id)
     }
     surfaceView.onSearchSelected = { [weak self] selected in
-      self?.onTerminalEvent(.searchSelected(selected))
+      self?.onTerminalEvent(.searchSelected(selected), id)
     }
     surfaceView.onScrollbarChanged = { [weak self] scrollbar in
-      self?.onTerminalEvent(.scrollbarChanged(scrollbar))
+      self?.onTerminalEvent(.scrollbarChanged(scrollbar), id)
     }
     return surfaceView
   }
@@ -548,6 +561,10 @@ final class PaneController {
       surfaceView.layer?.shadowOffset = .zero
       surfaceView.layer?.masksToBounds = false
     }
+  }
+
+  private func surfaceView(for paneId: UUID) -> SmoovSurfaceView? {
+    surfaceViews.first { paneIdsBySurfaceView[ObjectIdentifier($0)] == paneId }
   }
 
   private func focusSelectedSurface() {

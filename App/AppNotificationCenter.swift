@@ -2,12 +2,14 @@ import Foundation
 import SmoovLog
 @preconcurrency import UserNotifications
 import WorkspaceSidebar
+import WorkspaceState
 
 final class AppNotificationCenter: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
   static let shared = AppNotificationCenter()
 
   private let center = UNUserNotificationCenter.current()
   private var didRequestAuthorization = false
+  @MainActor var onNotificationResponse: ((NotificationFocusRoute) -> Void)?
 
   func configure() {
     center.delegate = self
@@ -18,7 +20,7 @@ final class AppNotificationCenter: NSObject, UNUserNotificationCenterDelegate, @
     requestAuthorizationIfNeeded()
   }
 
-  func post(_ notification: TerminalNotification) {
+  func post(_ notification: TerminalNotification, route: NotificationFocusRoute? = nil) {
     SmoovLog.info("notification requested title=\(notification.title) body=\(notification.body)")
     requestAuthorizationIfNeeded { [weak self] granted in
       guard granted else {
@@ -30,6 +32,9 @@ final class AppNotificationCenter: NSObject, UNUserNotificationCenterDelegate, @
       content.title = notification.title
       content.body = notification.body
       content.sound = .default
+      if let route {
+        content.userInfo = route.userInfo
+      }
       let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
       center.add(request) { error in
         if let error {
@@ -84,5 +89,21 @@ final class AppNotificationCenter: NSObject, UNUserNotificationCenterDelegate, @
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
     completionHandler([.banner, .list, .sound])
+  }
+
+  nonisolated func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    let userInfo = response.notification.request.content.userInfo
+    Task { @MainActor [weak self] in
+      if let route = NotificationFocusRoute(userInfo: userInfo) {
+        self?.onNotificationResponse?(route)
+      } else {
+        SmoovLog.warn("notification response missing focus route")
+      }
+    }
+    completionHandler()
   }
 }

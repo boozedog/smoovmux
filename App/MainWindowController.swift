@@ -86,6 +86,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     tabManager.selectTab(id)
   }
 
+  func focus(route: NotificationFocusRoute) {
+    tabManager.focus(route: route)
+  }
+
   func windowDidMove(_ notification: Notification) {
     onRequestSave?()
   }

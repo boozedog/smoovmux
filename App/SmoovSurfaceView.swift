@@ -228,7 +228,6 @@ final class SmoovSurfaceView: NSView {
   func handleGhosttyDesktopNotificationAction(title: String, body: String) {
     let notification = TerminalNotification(title: title, body: body)
     onDesktopNotification?(notification)
-    AppNotificationCenter.shared.post(notification)
   }
 
   func handleGhosttyMouseShapeAction(_ shape: ghostty_action_mouse_shape_e) {

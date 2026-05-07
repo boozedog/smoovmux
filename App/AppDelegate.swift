@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     AppFonts.registerBundledFonts()
     SmoovLog.info("smoovmux launched")
     cleanupDroppedImages()
+    AppNotificationCenter.shared.onNotificationResponse = { [weak self] route in
+      self?.focusNotificationRoute(route)
+    }
     AppNotificationCenter.shared.configure()
     installMainMenu()
 
@@ -375,6 +378,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     NSApp.activate(ignoringOtherApps: true)
   }
 
+  private func focusNotificationRoute(_ route: NotificationFocusRoute) {
+    guard let controller = windowControllersById[route.windowId] else {
+      NSApp.activate(ignoringOtherApps: true)
+      windowControllersById.values.first?.window?.makeKeyAndOrderFront(nil)
+      return
+    }
+
+    controller.focus(route: route)
+    controller.window?.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
   private var keyMainWindowController: MainWindowController? {
     (NSApp.keyWindow?.windowController as? MainWindowController)
       ?? (NSApp.mainWindow?.windowController as? MainWindowController)
@@ -395,7 +410,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   ) -> MainWindowController? {
     guard let ghosttyApp else { return nil }
 
-    let tabManager = WorkspaceTabManager(ghosttyApp: ghosttyApp)
+    let tabManager = WorkspaceTabManager(ghosttyApp: ghosttyApp, windowId: id)
     tabManager.restore(workspaceState)
     if showLauncher || workspaceState.tabs.isEmpty {
       tabManager.showLauncher(action: .newTab)

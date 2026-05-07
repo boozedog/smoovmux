@@ -25,6 +25,7 @@ final class WorkspaceTabManager: ObservableObject {
   @Published private(set) var terminalStatusesByTabId: [UUID: TerminalScreenStatus] = [:]
 
   private let ghosttyApp: GhosttyApp
+  private let windowId: UUID
   private var panesByTabId: [UUID: PaneController] = [:]
   private let gitRootResolver = GitRootResolver()
   private var rightSidebarRefreshTask: Task<Void, Never>?
@@ -84,8 +85,9 @@ final class WorkspaceTabManager: ObservableObject {
     selectedPane?.selectedCwd ?? tabList.selectedTab?.cwd
   }
 
-  init(ghosttyApp: GhosttyApp) {
+  init(ghosttyApp: GhosttyApp, windowId: UUID) {
     self.ghosttyApp = ghosttyApp
+    self.windowId = windowId
   }
 
   @discardableResult
@@ -156,14 +158,17 @@ final class WorkspaceTabManager: ObservableObject {
     dismissLauncher()
   }
 
-  func selectTab(_ id: UUID) {
+  @discardableResult
+  func selectTab(_ id: UUID) -> Bool {
     if tabList.selectTab(id) {
       acknowledgeTerminalStatus(for: id)
       updateSelectedTabCwd()
       updateActivePaneChrome()
       onStateChange?()
       handleActiveCwdChanged()
+      return true
     }
+    return false
   }
 
   func selectNextTab() {
@@ -342,7 +347,19 @@ final class WorkspaceTabManager: ObservableObject {
     terminalStatusesByTabId[tabId] ?? TerminalScreenStatus()
   }
 
-  private func applyTerminalEvent(_ event: TerminalScreenEvent, for tabId: UUID) {
+  @discardableResult
+  func focus(route: NotificationFocusRoute) -> Bool {
+    guard route.windowId == windowId, tabList.selectTab(route.tabId) else { return false }
+    let didFocusPane = panesByTabId[route.tabId]?.focusPane(id: route.paneId) ?? false
+    acknowledgeTerminalStatus(for: route.tabId)
+    updateSelectedTabCwd()
+    updateActivePaneChrome()
+    onStateChange?()
+    handleActiveCwdChanged()
+    return didFocusPane
+  }
+
+  private func applyTerminalEvent(_ event: TerminalScreenEvent, for tabId: UUID, paneId: UUID) {
     guard
       TerminalScreenAttentionPolicy.shouldApply(
         event,
@@ -357,7 +374,10 @@ final class WorkspaceTabManager: ObservableObject {
 
     let title = tabList.tabs.first { $0.id == tabId }?.title ?? "Terminal"
     if let notification = TerminalScreenNotificationPolicy.notification(for: event, screenTitle: title) {
-      AppNotificationCenter.shared.post(notification)
+      AppNotificationCenter.shared.post(
+        notification,
+        route: NotificationFocusRoute(windowId: windowId, tabId: tabId, paneId: paneId)
+      )
     }
   }
 
@@ -408,8 +428,8 @@ final class WorkspaceTabManager: ObservableObject {
       onTitleChange: { [weak self] in
         self?.updateActivePaneChrome()
       },
-      onTerminalEvent: { [weak self] event in
-        self?.applyTerminalEvent(event, for: tabId)
+      onTerminalEvent: { [weak self] event, paneId in
+        self?.applyTerminalEvent(event, for: tabId, paneId: paneId)
       },
       onPaneFocus: { [weak self] in
         self?.acknowledgeTerminalStatus(for: tabId)
@@ -434,8 +454,8 @@ final class WorkspaceTabManager: ObservableObject {
       onTitleChange: { [weak self] in
         self?.updateActivePaneChrome()
       },
-      onTerminalEvent: { [weak self] event in
-        self?.applyTerminalEvent(event, for: tabId)
+      onTerminalEvent: { [weak self] event, paneId in
+        self?.applyTerminalEvent(event, for: tabId, paneId: paneId)
       },
       onPaneFocus: { [weak self] in
         self?.acknowledgeTerminalStatus(for: tabId)
