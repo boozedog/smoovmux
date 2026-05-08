@@ -1,3 +1,4 @@
+import Foundation
 import PaneLauncher
 import Testing
 
@@ -28,5 +29,44 @@ struct PaneLauncherTests {
   @Test("blank custom command does not create a request")
   func blankCustomCommandDoesNotCreateRequest() {
     #expect(PaneLaunchRequest(action: .newTab, customCommandText: "  \t ") == nil)
+  }
+
+  @Test("new tab request can carry a selected local cwd")
+  func newTabRequestCanCarrySelectedLocalCwd() {
+    let cwd = URL(fileURLWithPath: "/Users/alice/src/smoovmux")
+    let request = PaneLaunchRequest(action: .newTab, choice: .shell, cwd: cwd)
+
+    #expect(request.cwd == cwd)
+  }
+
+  @Test("recent paths move selected path to front and deduplicate")
+  func recentPathsMoveSelectedPathToFrontAndDeduplicate() {
+    let first = URL(fileURLWithPath: "/repo/first")
+    let second = URL(fileURLWithPath: "/repo/second")
+    let third = URL(fileURLWithPath: "/repo/third")
+
+    #expect(
+      PaneLauncherRecentPaths.updatedRecents(
+        current: [first, second],
+        selected: third,
+        limit: 2
+      ) == [third, first]
+    )
+    #expect(
+      PaneLauncherRecentPaths.updatedRecents(
+        current: [first, second],
+        selected: second,
+        limit: 3
+      ) == [second, first]
+    )
+  }
+
+  @Test("recent paths encode and decode path strings")
+  func recentPathsEncodeAndDecodePathStrings() {
+    let first = URL(fileURLWithPath: "/repo/first")
+    let second = URL(fileURLWithPath: "/repo/second")
+
+    #expect(PaneLauncherRecentPaths.pathStrings(for: [first, second]) == ["/repo/first", "/repo/second"])
+    #expect(PaneLauncherRecentPaths.urls(for: ["/repo/first", "", "/repo/second"]) == [first, second])
   }
 }

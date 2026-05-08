@@ -49,6 +49,24 @@ struct PaneFocusActivationPolicyTests {
     )
   }
 
+  @Test("only the selected pane remains terminal-active after pane switch")
+  func onlySelectedPaneRemainsTerminalActiveAfterPaneSwitch() {
+    let first = focusPaneID(1)
+    let second = focusPaneID(2)
+    let third = focusPaneID(3)
+
+    #expect(
+      PaneFocusActivationPolicy.selectedTerminalFocusStates(
+        paneIds: [first, second, third],
+        selectedPaneId: second
+      ) == [
+        first: false,
+        second: true,
+        third: false,
+      ]
+    )
+  }
+
   @Test("only the selected restored pane starts terminal-active")
   func onlySelectedRestoredPaneStartsTerminalActive() {
     let first = focusPaneID(1)

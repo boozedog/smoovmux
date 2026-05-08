@@ -105,19 +105,41 @@ public struct PaneLauncherNavigationState: Equatable, Sendable {
 public struct PaneLaunchRequest: Equatable, Sendable {
   public var action: PaneLaunchAction
   public var choice: PaneLaunchChoice
+  public var cwd: URL?
 
   public var command: String? {
     choice.command
   }
 
-  public init(action: PaneLaunchAction, choice: PaneLaunchChoice) {
+  public init(action: PaneLaunchAction, choice: PaneLaunchChoice, cwd: URL? = nil) {
     self.action = action
     self.choice = choice
+    self.cwd = cwd
   }
 
-  public init?(action: PaneLaunchAction, customCommandText: String) {
+  public init?(action: PaneLaunchAction, customCommandText: String, cwd: URL? = nil) {
     let trimmed = customCommandText.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return nil }
-    self.init(action: action, choice: .custom(trimmed))
+    self.init(action: action, choice: .custom(trimmed), cwd: cwd)
+  }
+}
+
+public enum PaneLauncherRecentPaths {
+  public static func updatedRecents(current: [URL], selected: URL?, limit: Int = 8) -> [URL] {
+    guard let selected, limit > 0 else { return Array(current.prefix(max(0, limit))) }
+    var result = [selected]
+    result.append(contentsOf: current.filter { $0.standardizedFileURL != selected.standardizedFileURL })
+    return Array(result.prefix(limit))
+  }
+
+  public static func pathStrings(for urls: [URL]) -> [String] {
+    urls.map(\.path)
+  }
+
+  public static func urls(for pathStrings: [String]) -> [URL] {
+    pathStrings.compactMap { path in
+      guard !path.isEmpty else { return nil }
+      return URL(fileURLWithPath: path)
+    }
   }
 }

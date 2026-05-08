@@ -7,6 +7,7 @@ struct PaneLauncherOverlay: View {
   let presentation: PaneLauncherPresentation
   @State private var navigation: PaneLauncherNavigationState
   @State private var customText: String
+  @State private var selectedCwd: URL?
   @FocusState private var commandFieldFocused: Bool
 
   init(tabManager: WorkspaceTabManager, presentation: PaneLauncherPresentation) {
@@ -42,6 +43,9 @@ struct PaneLauncherOverlay: View {
 
         if navigation.mode == .list {
           launcherList
+          if presentation.action == .newTab {
+            pathPicker
+          }
           Text("↑↓ select · ⏎ launch · esc shell · 1–\(rowCount) pick")
             .font(AppFonts.ui(size: 11))
             .italic()
@@ -62,6 +66,10 @@ struct PaneLauncherOverlay: View {
             .onExitCommand {
               navigation.mode = .list
             }
+
+          if presentation.action == .newTab {
+            pathPicker
+          }
 
           Text("⏎ run · esc back")
             .font(AppFonts.ui(size: 11))
@@ -106,6 +114,51 @@ struct PaneLauncherOverlay: View {
       launcherRow(index: PaneLaunchChoice.builtins.count, title: "enter a command…") {
         navigation.mode = .custom
       }
+    }
+  }
+
+  private var pathPicker: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text("working directory")
+        .font(AppFonts.ui(size: 11))
+        .foregroundStyle(.secondary)
+
+      HStack(spacing: 8) {
+        Menu(selectedCwdDisplay) {
+          Button("Default") {
+            selectedCwd = nil
+          }
+          if !tabManager.recentNewScreenCwds.isEmpty {
+            Divider()
+            ForEach(tabManager.recentNewScreenCwds, id: \.standardizedFileURL) { cwd in
+              Button(cwd.path) {
+                selectedCwd = cwd
+              }
+            }
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+        Button("Choose…") {
+          chooseDirectory()
+        }
+      }
+    }
+  }
+
+  private var selectedCwdDisplay: String {
+    selectedCwd?.path ?? "Default"
+  }
+
+  private func chooseDirectory() {
+    let panel = NSOpenPanel()
+    panel.canChooseFiles = false
+    panel.canChooseDirectories = true
+    panel.allowsMultipleSelection = false
+    panel.canCreateDirectories = true
+    panel.directoryURL = selectedCwd ?? tabManager.activeCwd
+    if panel.runModal() == .OK {
+      selectedCwd = panel.url
     }
   }
 
@@ -165,12 +218,17 @@ struct PaneLauncherOverlay: View {
   }
 
   private func launchCustom() {
-    guard let request = PaneLaunchRequest(action: presentation.action, customCommandText: customText) else { return }
+    guard let request = PaneLaunchRequest(action: presentation.action, customCommandText: customText, cwd: launchCwd)
+    else { return }
     tabManager.launch(request)
   }
 
   private func launch(_ choice: PaneLaunchChoice) {
-    tabManager.launch(PaneLaunchRequest(action: presentation.action, choice: choice))
+    tabManager.launch(PaneLaunchRequest(action: presentation.action, choice: choice, cwd: launchCwd))
+  }
+
+  private var launchCwd: URL? {
+    presentation.action == .newTab ? selectedCwd : nil
   }
 
   private static func initialSelectedIndex(for choice: PaneLaunchChoice) -> Int {

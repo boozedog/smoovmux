@@ -23,6 +23,9 @@ final class WorkspaceTabManager: ObservableObject {
   @Published private var rightSidebarTabs = RightSidebarTabState<CommandPaneController>()
   @Published private var activePaneChrome = PaneChromeState()
   @Published private(set) var terminalStatusesByTabId: [UUID: TerminalScreenStatus] = [:]
+  @Published private var recentNewTabCwds: [URL] = []
+
+  private static let recentNewTabCwdsKey = "recentNewTabCwds"
 
   private let ghosttyApp: GhosttyApp
   private let windowId: UUID
@@ -81,6 +84,10 @@ final class WorkspaceTabManager: ObservableObject {
     selectedPane?.isZoomed ?? false
   }
 
+  var recentNewScreenCwds: [URL] {
+    recentNewTabCwds
+  }
+
   var activeCwd: URL? {
     selectedPane?.selectedCwd ?? tabList.selectedTab?.cwd
   }
@@ -88,11 +95,15 @@ final class WorkspaceTabManager: ObservableObject {
   init(ghosttyApp: GhosttyApp, windowId: UUID) {
     self.ghosttyApp = ghosttyApp
     self.windowId = windowId
+    self.recentNewTabCwds = PaneLauncherRecentPaths.urls(
+      for: UserDefaults.standard.stringArray(forKey: Self.recentNewTabCwdsKey) ?? [])
   }
 
   @discardableResult
-  func addTab(select: Bool = true, command: String? = nil) -> WorkspaceTabRecord {
-    let initialCwd = DefaultWorkingDirectorySettings().resolveTopLevelCwd(inheritedOrRestoredCwd: tabList.lastKnownCwd)
+  func addTab(select: Bool = true, command: String? = nil, cwd selectedCwd: URL? = nil) -> WorkspaceTabRecord {
+    let initialCwd =
+      selectedCwd
+      ?? DefaultWorkingDirectorySettings().resolveTopLevelCwd(inheritedOrRestoredCwd: tabList.lastKnownCwd)
     let tab = tabList.addTab(cwd: initialCwd, select: select)
     panesByTabId[tab.id] = makePaneController(tabId: tab.id, initialCwd: tab.cwd, command: command)
     updateActivePaneChrome()
@@ -149,7 +160,10 @@ final class WorkspaceTabManager: ObservableObject {
   func launch(_ request: PaneLaunchRequest) {
     switch request.action {
     case .newTab:
-      addTab(command: request.command)
+      addTab(command: request.command, cwd: request.cwd)
+      recentNewTabCwds = PaneLauncherRecentPaths.updatedRecents(current: recentNewTabCwds, selected: request.cwd)
+      UserDefaults.standard.set(
+        PaneLauncherRecentPaths.pathStrings(for: recentNewTabCwds), forKey: Self.recentNewTabCwdsKey)
     case .splitRight:
       selectedPane?.splitRight(command: request.command)
     case .splitDown:

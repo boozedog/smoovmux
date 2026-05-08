@@ -28,7 +28,7 @@ public enum PaneFocusActivationPolicy {
     return .focusAndPassThrough
   }
 
-  public static func initialTerminalFocusStates(
+  public static func selectedTerminalFocusStates(
     paneIds: [UUID],
     selectedPaneId: UUID
   ) -> [UUID: Bool] {
@@ -36,5 +36,12 @@ public enum PaneFocusActivationPolicy {
       uniqueKeysWithValues: paneIds.map { paneId in
         (paneId, paneId == selectedPaneId)
       })
+  }
+
+  public static func initialTerminalFocusStates(
+    paneIds: [UUID],
+    selectedPaneId: UUID
+  ) -> [UUID: Bool] {
+    selectedTerminalFocusStates(paneIds: paneIds, selectedPaneId: selectedPaneId)
   }
 }

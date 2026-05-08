@@ -122,11 +122,10 @@ final class PaneController {
   func focusPane(id: UUID) -> Bool {
     guard paneTree.selectPane(id), let surfaceView = surfaceView(for: id) else { return false }
     focusedSurfaceView = surfaceView
-    activeSurfaceView = surfaceView
+    applySelectedTerminalFocusStates()
     onCwdChange(cwd(for: id))
     onTitleChange()
     onStateChange()
-    updateFocusRing()
     focusSelectedSurface()
     return true
   }
@@ -160,6 +159,8 @@ final class PaneController {
     }
     surfaceView.requestClosePane()
     collapse(surfaceView)
+    focusedSurfaceView = self.surfaceView(for: paneTree.selectedPaneId)
+    applySelectedTerminalFocusStates()
     applyZoomState()
     onStateChange()
   }
@@ -189,6 +190,7 @@ final class PaneController {
       focusedSurfaceView = surfaceView
       onPaneFocus()
       if let id = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)], paneTree.selectPane(id) {
+        applySelectedTerminalFocusStates()
         onCwdChange(cwd(for: id))
         onTitleChange()
         onStateChange()
@@ -323,8 +325,7 @@ final class PaneController {
     splitView.addArrangedSubview(target)
     splitView.addArrangedSubview(newSurfaceView)
     focusedSurfaceView = newSurfaceView
-    activeSurfaceView = newSurfaceView
-    updateFocusRing()
+    applySelectedTerminalFocusStates()
     applyZoomState()
 
     scheduleBalanceSplits()
@@ -537,6 +538,18 @@ final class PaneController {
       selectedPaneId: paneTree.selectedPaneId
     )
 
+    applyTerminalFocusStates(focusStates)
+  }
+
+  private func applySelectedTerminalFocusStates() {
+    let focusStates = PaneFocusActivationPolicy.selectedTerminalFocusStates(
+      paneIds: surfaceViews.compactMap { paneIdsBySurfaceView[ObjectIdentifier($0)] },
+      selectedPaneId: paneTree.selectedPaneId
+    )
+    applyTerminalFocusStates(focusStates)
+  }
+
+  private func applyTerminalFocusStates(_ focusStates: [UUID: Bool]) {
     activeSurfaceView = nil
     for surfaceView in surfaceViews {
       guard let paneId = paneIdsBySurfaceView[ObjectIdentifier(surfaceView)] else { continue }
