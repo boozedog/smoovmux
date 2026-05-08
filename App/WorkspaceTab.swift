@@ -14,6 +14,12 @@ struct PaneLauncherPresentation: Identifiable, Equatable {
   var defaultChoice: PaneLaunchChoice = .shell
 }
 
+struct MovedWorkspaceTab {
+  var record: WorkspaceTabRecord
+  var pane: PaneController
+  var status: TerminalScreenStatus?
+}
+
 @MainActor
 final class WorkspaceTabManager: ObservableObject {
   @Published private var tabList = WorkspaceTabList()
@@ -210,6 +216,49 @@ final class WorkspaceTabManager: ObservableObject {
   func closeSelectedTab() {
     guard let selectedTabId else { return }
     closeTab(selectedTabId)
+  }
+
+  var isEmpty: Bool {
+    tabs.isEmpty
+  }
+
+  func setWindowKey(_ isWindowKey: Bool) {
+    for pane in panesByTabId.values {
+      pane.setWindowKey(false)
+    }
+    selectedPane?.setWindowKey(isWindowKey)
+  }
+
+  func containsTab(_ id: UUID) -> Bool {
+    tabs.contains { $0.id == id }
+  }
+
+  func moveTab(_ id: UUID, before destinationId: UUID?) {
+    guard tabList.moveTab(id: id, before: destinationId) else { return }
+    onStateChange?()
+  }
+
+  func extractTabForMove(_ id: UUID) -> MovedWorkspaceTab? {
+    guard let record = tabList.removeMovableTab(id: id), let pane = panesByTabId.removeValue(forKey: id) else {
+      return nil
+    }
+    let status = terminalStatusesByTabId.removeValue(forKey: id)
+    rightSidebarTabs.discardPane(for: id)
+    updateActivePaneChrome()
+    onStateChange?()
+    handleActiveCwdChanged()
+    return MovedWorkspaceTab(record: record, pane: pane, status: status)
+  }
+
+  func insertMovedTab(_ movedTab: MovedWorkspaceTab, before destinationId: UUID?) {
+    guard tabList.insertTab(movedTab.record, before: destinationId, select: true) else { return }
+    panesByTabId[movedTab.record.id] = movedTab.pane
+    if let status = movedTab.status {
+      terminalStatusesByTabId[movedTab.record.id] = status
+    }
+    updateActivePaneChrome()
+    onStateChange?()
+    handleActiveCwdChanged()
   }
 
   func closeTab(_ id: UUID) {

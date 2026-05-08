@@ -172,6 +172,97 @@ struct WorkspaceTabListTests {
     #expect(list.selectedTabId == first)
   }
 
+  @Test("moving a tab reorders without changing selection")
+  func movingTabReordersWithoutChangingSelection() {
+    var list = WorkspaceTabList()
+    let first = tabID(1)
+    let second = tabID(2)
+    let third = tabID(3)
+    list.addTab(id: first)
+    list.addTab(id: second)
+    list.addTab(id: third)
+    list.selectTab(second)
+
+    let didMove = list.moveTab(id: third, before: first)
+
+    #expect(didMove == true)
+    #expect(list.tabs.map(\.id) == [third, first, second])
+    #expect(list.selectedTabId == second)
+  }
+
+  @Test("moving a tab to the end supports nil destination")
+  func movingTabToEndSupportsNilDestination() {
+    var list = WorkspaceTabList()
+    let first = tabID(1)
+    let second = tabID(2)
+    let third = tabID(3)
+    list.addTab(id: first)
+    list.addTab(id: second)
+    list.addTab(id: third)
+
+    let didMove = list.moveTab(id: first, before: nil)
+
+    #expect(didMove == true)
+    #expect(list.tabs.map(\.id) == [second, third, first])
+  }
+
+  @Test("removing the only movable tab leaves no selection")
+  func removingOnlyMovableTabLeavesNoSelection() {
+    var list = WorkspaceTabList()
+    let first = tabID(1)
+    list.addTab(id: first)
+
+    let removed = list.removeMovableTab(id: first)
+
+    #expect(removed?.id == first)
+    #expect(list.tabs.isEmpty)
+    #expect(list.selectedTabId == nil)
+  }
+
+  @Test("removing a movable tab returns it and updates selection")
+  func removingMovableTabReturnsItAndUpdatesSelection() {
+    var list = WorkspaceTabList()
+    let first = tabID(1)
+    let second = tabID(2)
+    list.addTab(id: first)
+    list.addTab(id: second)
+    list.selectTab(first)
+
+    let removed = list.removeMovableTab(id: first)
+
+    #expect(removed?.id == first)
+    #expect(list.tabs.map(\.id) == [second])
+    #expect(list.selectedTabId == second)
+  }
+
+  @Test("inserting an existing tab places and selects it")
+  func insertingExistingTabPlacesAndSelectsIt() {
+    var list = WorkspaceTabList()
+    let first = tabID(1)
+    let second = tabID(2)
+    let inserted = WorkspaceTabRecord(id: tabID(3), title: "moved")
+    list.addTab(id: first)
+    list.addTab(id: second)
+
+    let didInsert = list.insertTab(inserted, before: second, select: true)
+
+    #expect(didInsert == true)
+    #expect(list.tabs.map(\.id) == [first, inserted.id, second])
+    #expect(list.selectedTabId == inserted.id)
+  }
+
+  @Test("moving an unknown tab is ignored")
+  func movingUnknownTabIsIgnored() {
+    var list = WorkspaceTabList()
+    let first = tabID(1)
+    list.addTab(id: first)
+
+    let didMove = list.moveTab(id: tabID(99), before: first)
+
+    #expect(didMove == false)
+    #expect(list.tabs.map(\.id) == [first])
+  }
+
   @Test("next and previous selection wrap around")
   func nextAndPreviousSelectionWrap() {
     var list = WorkspaceTabList()

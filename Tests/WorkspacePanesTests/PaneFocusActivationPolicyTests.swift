@@ -67,6 +67,31 @@ struct PaneFocusActivationPolicyTests {
     )
   }
 
+  @Test("window activation gates terminal focus states")
+  func windowActivationGatesTerminalFocusStates() {
+    let first = focusPaneID(1)
+    let second = focusPaneID(2)
+
+    #expect(
+      PaneFocusActivationPolicy.windowTerminalFocusStates(
+        paneIds: [first, second],
+        selectedPaneId: second,
+        isWindowKey: true
+      ) == [
+        first: false,
+        second: true,
+      ])
+    #expect(
+      PaneFocusActivationPolicy.windowTerminalFocusStates(
+        paneIds: [first, second],
+        selectedPaneId: second,
+        isWindowKey: false
+      ) == [
+        first: false,
+        second: false,
+      ])
+  }
+
   @Test("only the selected restored pane starts terminal-active")
   func onlySelectedRestoredPaneStartsTerminalActive() {
     let first = focusPaneID(1)

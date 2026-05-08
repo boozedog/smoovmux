@@ -44,6 +44,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     }
     updateWindowTitle()
     updateTrafficLights()
+    tabManager.setWindowKey(window.isKeyWindow)
   }
 
   @objc func newTab(_ sender: Any?) {
@@ -88,6 +89,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
 
   func focus(route: NotificationFocusRoute) {
     tabManager.focus(route: route)
+  }
+
+  func windowDidBecomeKey(_ notification: Notification) {
+    tabManager.setWindowKey(NSApp.isActive)
+  }
+
+  func windowDidResignKey(_ notification: Notification) {
+    tabManager.setWindowKey(false)
   }
 
   func windowDidMove(_ notification: Notification) {

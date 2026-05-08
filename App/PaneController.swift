@@ -541,6 +541,15 @@ final class PaneController {
     applyTerminalFocusStates(focusStates)
   }
 
+  func setWindowKey(_ isWindowKey: Bool) {
+    let focusStates = PaneFocusActivationPolicy.windowTerminalFocusStates(
+      paneIds: surfaceViews.compactMap { paneIdsBySurfaceView[ObjectIdentifier($0)] },
+      selectedPaneId: paneTree.selectedPaneId,
+      isWindowKey: isWindowKey
+    )
+    applyTerminalFocusStates(focusStates)
+  }
+
   private func applySelectedTerminalFocusStates() {
     let focusStates = PaneFocusActivationPolicy.selectedTerminalFocusStates(
       paneIds: surfaceViews.compactMap { paneIdsBySurfaceView[ObjectIdentifier($0)] },

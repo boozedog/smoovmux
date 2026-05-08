@@ -44,4 +44,15 @@ public enum PaneFocusActivationPolicy {
   ) -> [UUID: Bool] {
     selectedTerminalFocusStates(paneIds: paneIds, selectedPaneId: selectedPaneId)
   }
+
+  public static func windowTerminalFocusStates(
+    paneIds: [UUID],
+    selectedPaneId: UUID,
+    isWindowKey: Bool
+  ) -> [UUID: Bool] {
+    guard isWindowKey else {
+      return Dictionary(uniqueKeysWithValues: paneIds.map { ($0, false) })
+    }
+    return selectedTerminalFocusStates(paneIds: paneIds, selectedPaneId: selectedPaneId)
+  }
 }

@@ -53,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
       windowControllersById.values.first?.window?.makeKeyAndOrderFront(nil)
     }
     NSApp.activate(ignoringOtherApps: true)
+    updateTerminalFocusForCurrentKeyWindow()
   }
 
   func applicationWillTerminate(_ notification: Notification) {
@@ -66,6 +67,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
   func applicationDidBecomeActive(_ notification: Notification) {
     if windowControllersById.isEmpty {
       showLauncherWindow(activate: true)
+    }
+    updateTerminalFocusForCurrentKeyWindow()
+  }
+
+  func applicationWillResignActive(_ notification: Notification) {
+    for controller in windowControllersById.values {
+      controller.tabManager.setWindowKey(false)
     }
   }
 
@@ -377,6 +385,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     keyMainWindowController?.selectScreen(id: id)
   }
 
+  func detachScreenToNewWindow(id: UUID, at screenPoint: NSPoint) -> Bool {
+    guard let source = windowControllersById.values.first(where: { $0.tabManager.containsTab(id) }),
+      let movedTab = source.tabManager.extractTabForMove(id),
+      let controller = showWindow(id: UUID(), workspaceState: .empty(), activate: true)
+    else { return false }
+
+    controller.tabManager.dismissLauncher()
+    controller.tabManager.insertMovedTab(movedTab, before: nil)
+    controller.tabManager.selectTab(id)
+    if let window = controller.window {
+      let size = window.frame.size
+      window.setFrameOrigin(NSPoint(x: screenPoint.x - 120, y: screenPoint.y - size.height + 40))
+      window.makeKeyAndOrderFront(nil)
+    }
+    if source.tabManager.isEmpty {
+      source.close()
+    }
+    saveState()
+    return true
+  }
+
+  func moveScreen(id: UUID, to destinationManager: WorkspaceTabManager, before destinationId: UUID?) -> Bool {
+    guard !destinationManager.containsTab(id),
+      let source = windowControllersById.values.first(where: { $0.tabManager.containsTab(id) }),
+      let movedTab = source.tabManager.extractTabForMove(id)
+    else { return false }
+
+    destinationManager.insertMovedTab(movedTab, before: destinationId)
+    destinationManager.selectTab(id)
+    if source.tabManager.isEmpty {
+      source.close()
+    }
+    destinationWindow(for: destinationManager)?.makeKeyAndOrderFront(nil)
+    saveState()
+    return true
+  }
+
+  private func destinationWindow(for tabManager: WorkspaceTabManager) -> NSWindow? {
+    windowControllersById.values.first { $0.tabManager === tabManager }?.window
+  }
+
   @objc private func noopMenuAction(_ sender: Any?) {}
 
   @objc private func zoomSelectedPane(_ sender: Any?) {
@@ -404,6 +453,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     controller.focus(route: route)
     controller.window?.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
+  }
+
+  private func updateTerminalFocusForCurrentKeyWindow() {
+    let keyWindow = NSApp.keyWindow
+    for controller in windowControllersById.values {
+      controller.tabManager.setWindowKey(controller.window === keyWindow && NSApp.isActive)
+    }
   }
 
   private var keyMainWindowController: MainWindowController? {

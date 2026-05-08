@@ -82,6 +82,44 @@ public struct WorkspaceTabList: Equatable, Sendable {
   }
 
   @discardableResult
+  public mutating func moveTab(id: UUID, before destinationId: UUID?) -> Bool {
+    guard let sourceIndex = tabs.firstIndex(where: { $0.id == id }) else { return false }
+    guard destinationId != id else { return false }
+
+    let tab = tabs.remove(at: sourceIndex)
+    if let destinationId, let destinationIndex = tabs.firstIndex(where: { $0.id == destinationId }) {
+      tabs.insert(tab, at: destinationIndex)
+    } else {
+      tabs.append(tab)
+    }
+    return true
+  }
+
+  @discardableResult
+  public mutating func insertTab(_ tab: WorkspaceTabRecord, before destinationId: UUID?, select: Bool) -> Bool {
+    guard !tabs.contains(where: { $0.id == tab.id }) else { return false }
+    if let destinationId, let destinationIndex = tabs.firstIndex(where: { $0.id == destinationId }) {
+      tabs.insert(tab, at: destinationIndex)
+    } else {
+      tabs.append(tab)
+    }
+    if select || selectedTabId == nil {
+      selectedTabId = tab.id
+    }
+    return true
+  }
+
+  public mutating func removeMovableTab(id: UUID) -> WorkspaceTabRecord? {
+    guard let index = tabs.firstIndex(where: { $0.id == id }) else { return nil }
+    let wasSelected = selectedTabId == id
+    let tab = tabs.remove(at: index)
+    if wasSelected {
+      selectedTabId = tabs.isEmpty ? nil : tabs[min(index, tabs.count - 1)].id
+    }
+    return tab
+  }
+
+  @discardableResult
   public mutating func closeTab(_ id: UUID) -> Bool {
     guard tabs.count > 1, let index = tabs.firstIndex(where: { $0.id == id }) else { return false }
     let wasSelected = selectedTabId == id
