@@ -4,8 +4,10 @@
 # Creates notarized zip and dmg artifacts containing smoovmux.app, then creates
 # a draft GitHub release with both artifacts attached.
 #
+# Optionally bumps the Homebrew tap cask if --tap-repo is specified.
+#
 # Usage:
-#   ./scripts/release.sh [--version 0.0.1] [--notary-profile smoovmux-notary]
+#   ./scripts/release.sh [--version 0.0.1] [--notary-profile smoovmux-notary] [--tap-repo boozedog/homebrew-tap]
 
 set -euo pipefail
 
@@ -19,9 +21,11 @@ TEAM_ID="T6RPYRHYEV"
 SIGNING_IDENTITY="Developer ID Application: BuserNet Consulting LLC (T6RPYRHYEV)"
 NOTARY_PROFILE="smoovmux-notary"
 BUILD_DIR="build/release"
-VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' App/Info.plist)"
+VERSION=""  # extracted from git tag or --version argument
 CREATE_GITHUB=1
 DRAFT=1
+TAP_REPO="boozedog/homebrew-tap"
+TAP_REPO_PATH=""  # local path to tap repo; defaults to ../homebrew-tap
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -45,6 +49,14 @@ while [ $# -gt 0 ]; do
       TEAM_ID="${2:-}"
       shift 2 || { echo "error: --team-id needs an argument" >&2; exit 2; }
       ;;
+    --tap-repo)
+      TAP_REPO="${2:-}"
+      shift 2 || { echo "error: --tap-repo needs an argument (e.g., boozedog/homebrew-tap)" >&2; exit 2; }
+      ;;
+    --tap-repo-path)
+      TAP_REPO_PATH="${2:-}"
+      shift 2 || { echo "error: --tap-repo-path needs an argument" >&2; exit 2; }
+      ;;
     --skip-github)
       CREATE_GITHUB=0
       shift
@@ -54,7 +66,7 @@ while [ $# -gt 0 ]; do
       shift
       ;;
     -h|--help)
-      sed -n '2,9p' "$0"
+      sed -n '2,10p' "$0"
       exit 0
       ;;
     *)
@@ -63,6 +75,20 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+# If version not provided via --version, extract from current git tag
+if [ -z "$VERSION" ]; then
+  if TAG_NAME=$(git describe --tags --exact-match 2>/dev/null); then
+    # Strip leading 'v' from tag (v0.0.6 -> 0.0.6)
+    VERSION="${TAG_NAME#v}"
+    log "extracted version $VERSION from git tag $TAG_NAME"
+  else
+    echo "error: not on a git tag. either:" >&2
+    echo "  1. create a tag first: git tag -a v0.0.6 -m 'Release 0.0.6'" >&2
+    echo "  2. or provide --version: ./scripts/release.sh --version 0.0.6" >&2
+    exit 2
+  fi
+fi
 
 if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9]+)?$ ]]; then
   echo "error: version must look like 0.0.1, got '$VERSION'" >&2
@@ -92,6 +118,31 @@ need hdiutil
 need shasum
 if [ "$CREATE_GITHUB" -eq 1 ]; then
   need gh
+fi
+
+# Update Info.plist with version from git tag
+log "updating Info.plist with version $VERSION"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString '$VERSION'" "$REPO_ROOT/App/Info.plist" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string '$VERSION'" "$REPO_ROOT/App/Info.plist"
+
+# Create tag if it doesn't exist (happens when --version was provided)
+if [ -d "$REPO_ROOT/.git" ]; then
+  if git rev-parse "$TAG" >/dev/null 2>&1; then
+    log "git tag $TAG already exists locally"
+  else
+    log "creating git tag $TAG"
+    git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
+  fi
+
+  # Push tag to origin if not already pushed
+  if ! git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+    log "pushing git tag $TAG to origin"
+    git -C "$REPO_ROOT" push origin "$TAG"
+  else
+    log "git tag $TAG already on origin"
+  fi
+else
+  log "warning: not a git repo, skipping tag operations"
 fi
 
 if [ ! -d "$REPO_ROOT/smoovmux.xcodeproj" ] || [ "$REPO_ROOT/project.yml" -nt "$REPO_ROOT/smoovmux.xcodeproj" ]; then
@@ -193,3 +244,41 @@ printf 'Zip SHA256: %s\n' "$SHA256"
 printf 'Release dmg: %s\n' "$DMG_ARTIFACT"
 printf 'DMG SHA256: %s\n' "$DMG_SHA256"
 printf 'Git tag: %s\n' "$TAG"
+
+# Bump Homebrew tap cask if requested
+if [ -n "$TAP_REPO" ]; then
+  if [ -z "$TAP_REPO_PATH" ]; then
+    TAP_REPO_PATH="$REPO_ROOT/../homebrew-tap"
+  fi
+
+  log "bumping Homebrew tap cask in $TAP_REPO"
+
+  if [ ! -d "$TAP_REPO_PATH/.git" ]; then
+    log "cloning tap repo $TAP_REPO to $TAP_REPO_PATH"
+    git clone "https://github.com/$TAP_REPO.git" "$TAP_REPO_PATH" || {
+      log "failed to clone tap repo; skipping tap bump"
+      exit 0
+    }
+  fi
+
+  CASK_FILE="$TAP_REPO_PATH/Casks/smoovmux.rb"
+  if [ ! -f "$CASK_FILE" ]; then
+    log "cask file not found at $CASK_FILE; skipping tap bump"
+    log "(create the tap repo and initial cask first)"
+    exit 0
+  fi
+
+  # Update version and sha256 in the cask
+  sed -i '' -E "s/^(  version )\"[0-9]+\.[0-9]+\.[0-9]+[^\"]*\"/\1\"$VERSION\"/" "$CASK_FILE"
+  sed -i '' -E "s/^(  sha256 )\"[a-f0-9]{64}\"/\1\"$SHA256\"/" "$CASK_FILE"
+
+  (cd "$TAP_REPO_PATH" && \
+    git add Casks/smoovmux.rb && \
+    git commit -m "bump smoovmux to $VERSION" && \
+    git push) || {
+    log "tap bump failed (possibly no changes or network issue)"
+    exit 0
+  }
+
+  log "tap bumped successfully: $TAP_REPO updated to $VERSION"
+fi

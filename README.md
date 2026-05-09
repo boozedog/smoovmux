@@ -4,6 +4,31 @@ Native macOS terminal workspace, built on [libghostty](https://github.com/ghostt
 
 **Status:** M1 prototype. One terminal pane renders and accepts input.
 
+## Installation (Homebrew)
+
+```bash
+brew tap boozedog/tap
+brew install --cask smoovmux
+```
+
+Or in one command:
+
+```bash
+brew install --cask boozedog/tap/smoovmux
+```
+
+Upgrade later with:
+
+```bash
+brew upgrade smoovmux
+```
+
+To remove (including user data):
+
+```bash
+brew uninstall --cask --zap smoovmux
+```
+
 ## Stack
 
 - Swift 6 · AppKit (hot paths) · SwiftUI (chrome)
