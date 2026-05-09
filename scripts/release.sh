@@ -269,8 +269,10 @@ if [ -n "$TAP_REPO" ]; then
   fi
 
   # Update version and sha256 in the cask
-  sed -i '' -E "s/^(  version )\"[0-9]+\.[0-9]+\.[0-9]+[^\"]*\"/\1\"$VERSION\"/" "$CASK_FILE"
-  sed -i '' -E "s/^(  sha256 )\"[a-f0-9]{64}\"/\1\"$SHA256\"/" "$CASK_FILE"
+  log "updating cask at $CASK_FILE"
+  sed -i.bak -E "s/^(  version )\"[0-9]+\.[0-9]+\.[0-9]+[^\"]*\"/\1\"$VERSION\"/" "$CASK_FILE"
+  sed -i.bak -E "s/^(  sha256 )\"[a-f0-9]{64}\"/\1\"$SHA256\"/" "$CASK_FILE"
+  rm -f "$CASK_FILE.bak"
 
   (cd "$TAP_REPO_PATH" && \
     git add Casks/smoovmux.rb && \
