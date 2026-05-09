@@ -116,6 +116,7 @@ need xcrun
 need ditto
 need hdiutil
 need shasum
+need git
 if [ "$CREATE_GITHUB" -eq 1 ]; then
   need gh
 fi
@@ -128,7 +129,19 @@ log "updating Info.plist with version $VERSION"
 # Create tag if it doesn't exist (happens when --version was provided)
 if [ -d "$REPO_ROOT/.git" ]; then
   if git rev-parse "$TAG" >/dev/null 2>&1; then
-    log "git tag $TAG already exists locally"
+    # Check if tag points to current commit
+    TAG_COMMIT=$(git rev-parse "$TAG^{commit}")
+    HEAD_COMMIT=$(git rev-parse HEAD)
+    if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+      echo "error: git tag $TAG exists but points to different commit" >&2
+      echo "  tag commit: $TAG_COMMIT" >&2
+      echo "  HEAD commit: $HEAD_COMMIT" >&2
+      echo "either:" >&2
+      echo "  1. delete and recreate the tag: git tag -d $TAG && git push --delete origin $TAG" >&2
+      echo "  2. or checkout the tag: git checkout $TAG" >&2
+      exit 2
+    fi
+    log "git tag $TAG already exists on current commit"
   else
     log "creating git tag $TAG"
     git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
