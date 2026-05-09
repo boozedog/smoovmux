@@ -309,3 +309,14 @@ if [ -n "$TAP_REPO" ]; then
 
   log "tap bumped successfully: $TAP_REPO updated to $VERSION"
 fi
+
+# Final reminder about draft releases
+if [ "$DRAFT" -eq 1 ] && [ "$CREATE_GITHUB" -eq 1 ]; then
+  echo ""
+  echo "✅ Release v$VERSION created as DRAFT"
+  echo ""
+  echo "📢 Don't forget to publish the release on GitHub!"
+  echo "   URL: https://github.com/boozedog/smoovmux/releases/tag/$TAG"
+  echo "   Or run: gh release edit $TAG --draft=false"
+  echo ""
+fi
