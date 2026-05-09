@@ -133,15 +133,27 @@ if [ -d "$REPO_ROOT/.git" ]; then
     TAG_COMMIT=$(git rev-parse "$TAG^{commit}")
     HEAD_COMMIT=$(git rev-parse HEAD)
     if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
-      echo "error: git tag $TAG exists but points to different commit" >&2
-      echo "  tag commit: $TAG_COMMIT" >&2
-      echo "  HEAD commit: $HEAD_COMMIT" >&2
-      echo "either:" >&2
-      echo "  1. delete and recreate the tag: git tag -d $TAG && git push --delete origin $TAG" >&2
-      echo "  2. or checkout the tag: git checkout $TAG" >&2
-      exit 2
+      echo ""
+      echo "⚠️  Git tag $TAG exists but points to a different commit:"
+      echo "   tag:  $TAG_COMMIT $(git log -1 --format='%s' "$TAG")"
+      echo "   HEAD: $HEAD_COMMIT $(git log -1 --format='%s' HEAD)"
+      echo ""
+      read -p "Move tag $TAG to current commit? [y/N] " -n 1 -r
+      echo ""
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        log "moving tag $TAG to current commit"
+        git tag -d "$TAG"
+        git push --delete origin "$TAG" 2>/dev/null || true
+        git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
+      else
+        echo "Aborted. Either:" >&2
+        echo "  1. Move tag manually: git tag -d $TAG && git push --delete origin $TAG && git tag -a $TAG -m 'Release $VERSION'" >&2
+        echo "  2. Or checkout the tag: git checkout $TAG" >&2
+        exit 2
+      fi
+    else
+      log "git tag $TAG already exists on current commit"
     fi
-    log "git tag $TAG already exists on current commit"
   else
     log "creating git tag $TAG"
     git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
