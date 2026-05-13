@@ -9,6 +9,7 @@ struct WorkspaceTabSidebar: View {
   @State private var commandKeyDown = false
   @State private var flagsMonitor: Any?
   @State private var draggedTabId: UUID?
+  @State private var hoveredTabId: UUID?
   @State private var dropIndicatorTarget: ScreenDropIndicatorTarget?
 
   var body: some View {
@@ -47,6 +48,7 @@ struct WorkspaceTabSidebar: View {
               showShortcut: commandKeyDown,
               isSelected: tabManager.selectedTabId == tab.id,
               canClose: tabManager.tabs.count > 1,
+              isHovering: hoveredTabId == tab.id,
               indicator: tabManager.terminalStatus(for: tab.id).indicator,
               select: { tabManager.selectTab(tab.id) },
               close: { tabManager.closeTab(tab.id) }
@@ -68,6 +70,10 @@ struct WorkspaceTabSidebar: View {
                 onDragEnded: {
                   draggedTabId = nil
                   dropIndicatorTarget = nil
+                },
+                canClose: tabManager.tabs.count > 1,
+                onHoverChanged: { hovering in
+                  hoveredTabId = hovering ? tab.id : nil
                 },
                 onDroppedOutside: { screenPoint in
                   draggedTabId = nil
@@ -175,6 +181,7 @@ struct WorkspaceTabRow: View {
   let showShortcut: Bool
   let isSelected: Bool
   let canClose: Bool
+  let isHovering: Bool
   let indicator: TerminalScreenIndicator?
   let select: () -> Void
   let close: () -> Void
@@ -193,11 +200,17 @@ struct WorkspaceTabRow: View {
           .lineLimit(1)
           .frame(maxWidth: .infinity, alignment: .leading)
 
-        if showShortcut {
+        switch ScreenRowAccessoryPolicy.accessory(
+          canClose: canClose,
+          isHovering: hovering || isHovering,
+          showShortcut: showShortcut,
+          hasIndicator: indicator != nil
+        ) {
+        case .shortcut:
           Text("⌘\(shortcutIndex)")
             .font(AppFonts.monospaced(size: 11, weight: .semibold))
             .foregroundStyle(.secondary)
-        } else if hovering, canClose {
+        case .closeButton:
           Button(action: close) {
             Image(systemName: "xmark")
               .font(AppFonts.ui(size: 11, weight: .semibold))
@@ -205,10 +218,14 @@ struct WorkspaceTabRow: View {
           }
           .buttonStyle(.plain)
           .foregroundStyle(.secondary)
-          .help("Close Tab")
+          .help("Close Screen")
           .accessibilityLabel("Close \(tab.title)")
-        } else if let indicator {
-          TerminalScreenIndicatorView(indicator: indicator)
+        case .indicator:
+          if let indicator {
+            TerminalScreenIndicatorView(indicator: indicator)
+          }
+        case .empty:
+          EmptyView()
         }
       }
       .padding(.horizontal, 8)
@@ -256,6 +273,8 @@ private struct WorkspaceTabDragSourceView: NSViewRepresentable {
   let onClick: () -> Void
   let onDragBegan: () -> Void
   let onDragEnded: () -> Void
+  let canClose: Bool
+  let onHoverChanged: (Bool) -> Void
   let onDroppedOutside: (NSPoint) -> Void
 
   func makeNSView(context: Context) -> DragSourceNSView {
@@ -264,6 +283,8 @@ private struct WorkspaceTabDragSourceView: NSViewRepresentable {
     view.onClick = onClick
     view.onDragBegan = onDragBegan
     view.onDragEnded = onDragEnded
+    view.canClose = canClose
+    view.onHoverChanged = onHoverChanged
     view.onDroppedOutside = onDroppedOutside
     return view
   }
@@ -273,6 +294,8 @@ private struct WorkspaceTabDragSourceView: NSViewRepresentable {
     nsView.onClick = onClick
     nsView.onDragBegan = onDragBegan
     nsView.onDragEnded = onDragEnded
+    nsView.canClose = canClose
+    nsView.onHoverChanged = onHoverChanged
     nsView.onDroppedOutside = onDroppedOutside
   }
 }
@@ -283,10 +306,52 @@ private final class DragSourceNSView: NSView, NSDraggingSource {
   var onClick: (() -> Void)?
   var onDragBegan: (() -> Void)?
   var onDragEnded: (() -> Void)?
+  var canClose = false
+  var isHovering = false
+  var onHoverChanged: ((Bool) -> Void)?
   var onDroppedOutside: ((NSPoint) -> Void)?
   private var mouseDownEvent: NSEvent?
+  private var trackingArea: NSTrackingArea?
   private var dragWasAccepted = false
   private var dragAcceptedObserver: NSObjectProtocol?
+
+  override func updateTrackingAreas() {
+    super.updateTrackingAreas()
+    if let trackingArea {
+      removeTrackingArea(trackingArea)
+    }
+    let nextTrackingArea = NSTrackingArea(
+      rect: bounds,
+      options: [.activeInKeyWindow, .mouseEnteredAndExited, .inVisibleRect],
+      owner: self,
+      userInfo: nil
+    )
+    trackingArea = nextTrackingArea
+    addTrackingArea(nextTrackingArea)
+  }
+
+  override func hitTest(_ point: NSPoint) -> NSView? {
+    guard
+      ScreenRowHitTestPolicy.overlayAcceptsHit(
+        x: point.x,
+        rowWidth: bounds.width,
+        closeAffordanceWidth: 32,
+        canClose: canClose,
+        isHovering: isHovering
+      )
+    else { return nil }
+    return super.hitTest(point)
+  }
+
+  override func mouseEntered(with event: NSEvent) {
+    isHovering = true
+    onHoverChanged?(true)
+  }
+
+  override func mouseExited(with event: NSEvent) {
+    isHovering = false
+    onHoverChanged?(false)
+  }
 
   override func mouseDown(with event: NSEvent) {
     mouseDownEvent = event
@@ -312,7 +377,7 @@ private final class DragSourceNSView: NSView, NSDraggingSource {
         let acceptedId = notification.object as? UUID,
         acceptedId == tabId
       else { return }
-      self.dragWasAccepted = true
+      dragWasAccepted = true
     }
     onDragBegan?()
 
@@ -321,7 +386,7 @@ private final class DragSourceNSView: NSView, NSDraggingSource {
     let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
     draggingItem.setDraggingFrame(bounds, contents: draggingImage())
     beginDraggingSession(with: [draggingItem], event: mouseDownEvent, source: self)
-    self.mouseDownEvent = nil
+    mouseDownEvent = nil
   }
 
   func draggingSession(
@@ -338,7 +403,7 @@ private final class DragSourceNSView: NSView, NSDraggingSource {
     }
     onDragEnded?()
     NotificationCenter.default.post(name: .workspaceTabDragEnded, object: nil)
-    if operation == [] && !dragWasAccepted {
+    if operation.isEmpty && !dragWasAccepted {
       onDroppedOutside?(screenPoint)
     }
     dragWasAccepted = false
