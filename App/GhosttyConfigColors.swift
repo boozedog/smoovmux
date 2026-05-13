@@ -1,12 +1,11 @@
 import AppKit
 import Foundation
+import SessionCore
 
 enum GhosttyConfigColors {
   static var dividerColor: NSColor {
-    guard let background = configuredColor(named: "background") else {
-      return NSColor.separatorColor.withAlphaComponent(0.55)
-    }
-    return background.blended(withFraction: 0.18, of: .white) ?? NSColor.separatorColor.withAlphaComponent(0.55)
+    configuredColor(named: "split-divider-color")
+      ?? NSColor.separatorColor.withAlphaComponent(0.55)
   }
 
   private static func configuredColor(named key: String) -> NSColor? {
@@ -24,8 +23,7 @@ enum GhosttyConfigColors {
   }
 
   private static func color(from rawValue: String) -> NSColor? {
-    let hex = rawValue.trimmingCharacters(in: CharacterSet(charactersIn: "# \t"))
-    guard hex.count == 6, let value = Int(hex, radix: 16) else { return nil }
+    guard let value = GhosttyConfigColorPolicy.hexColor(from: rawValue) else { return nil }
     return NSColor(
       red: CGFloat((value >> 16) & 0xff) / 255.0,
       green: CGFloat((value >> 8) & 0xff) / 255.0,

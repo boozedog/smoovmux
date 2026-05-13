@@ -600,7 +600,7 @@ final class PaneController {
 
 private final class PaneSplitView: NSSplitView {
   override func drawDivider(in rect: NSRect) {
-    NSColor.black.setFill()
+    GhosttyConfigColors.dividerColor.setFill()
     rect.fill()
   }
 }

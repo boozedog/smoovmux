@@ -366,7 +366,7 @@ private final class DragSourceNSView: NSView, NSDraggingSource {
   }
 
   override func mouseDragged(with event: NSEvent) {
-    guard let tabId, let mouseDownEvent else { return }
+    guard let tabId, let downEvent = mouseDownEvent else { return }
     dragWasAccepted = false
     dragAcceptedObserver = NotificationCenter.default.addObserver(
       forName: .workspaceTabDragAccepted,
@@ -377,7 +377,9 @@ private final class DragSourceNSView: NSView, NSDraggingSource {
         let acceptedId = notification.object as? UUID,
         acceptedId == tabId
       else { return }
-      dragWasAccepted = true
+      Task { @MainActor in
+        self.dragWasAccepted = true
+      }
     }
     onDragBegan?()
 
@@ -385,7 +387,7 @@ private final class DragSourceNSView: NSView, NSDraggingSource {
     pasteboardItem.setString(tabId.uuidString, forType: .string)
     let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
     draggingItem.setDraggingFrame(bounds, contents: draggingImage())
-    beginDraggingSession(with: [draggingItem], event: mouseDownEvent, source: self)
+    beginDraggingSession(with: [draggingItem], event: downEvent, source: self)
     mouseDownEvent = nil
   }
 
