@@ -5,13 +5,90 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+FIXTURE="$TMP_DIR/repo"
 FAKE_BIN="$TMP_DIR/bin"
 BUILD_DIR="$TMP_DIR/release"
-mkdir -p "$FAKE_BIN"
+mkdir -p "$FIXTURE/scripts" "$FIXTURE/App" "$FIXTURE/smoovmux.xcodeproj" "$FIXTURE/.git" "$FAKE_BIN"
+cp "$REPO_ROOT/scripts/release.sh" "$FIXTURE/scripts/release.sh"
+cp "$REPO_ROOT/scripts/set-version.sh" "$FIXTURE/scripts/set-version.sh"
+chmod +x "$FIXTURE/scripts/release.sh" "$FIXTURE/scripts/set-version.sh"
+cat > "$FIXTURE/App/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>
+  <string>smoovmux</string>
+  <key>CFBundleDisplayName</key>
+  <string>smoovmux</string>
+  <key>CFBundleIdentifier</key>
+  <string>dog.booze.smoovmux</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.0.0</string>
+  <key>CFBundleVersion</key>
+  <string>0</string>
+</dict>
+</plist>
+PLIST
 
-record() {
-  printf '%s\n' "$*" >> "$TMP_DIR/calls.log"
-}
+cat > "$FAKE_BIN/git" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'git %q ' "$@" >> "${SMOOVMUX_TEST_CALLS:?}"
+printf '\n' >> "$SMOOVMUX_TEST_CALLS"
+if [ "${1:-}" = "-C" ]; then
+  shift 2
+fi
+case "${1:-}" in
+  status)
+    if [ "${2:-}" = "--porcelain" ]; then
+      if [ "${SMOOVMUX_TEST_DIRTY:-0}" = "1" ]; then
+        printf ' M App/Info.plist\n'
+      fi
+      exit 0
+    fi
+    ;;
+  rev-parse)
+    case "${2:-}" in
+      --abbrev-ref)
+        printf 'master\n'
+        exit 0
+        ;;
+      HEAD)
+        printf '1111111111111111111111111111111111111111\n'
+        exit 0
+        ;;
+      v0.0.1)
+        exit 1
+        ;;
+      v0.0.1^\{commit\})
+        exit 1
+        ;;
+    esac
+    ;;
+  ls-remote)
+    exit 1
+    ;;
+  diff)
+    if [ "${2:-}" = "--cached" ] && [ "${3:-}" = "--quiet" ]; then
+      if [ "${SMOOVMUX_TEST_INDEX_CHANGED:-1}" = "1" ]; then
+        exit 1
+      fi
+      exit 0
+    fi
+    exit 0
+    ;;
+  add|commit|push|tag)
+    exit 0
+    ;;
+  log)
+    printf 'subject\n'
+    exit 0
+    ;;
+esac
+exit 0
+SH
+chmod +x "$FAKE_BIN/git"
 
 cat > "$FAKE_BIN/xcodebuild" <<'SH'
 #!/usr/bin/env bash
@@ -111,12 +188,43 @@ export PATH="$FAKE_BIN:$PATH"
 export SMOOVMUX_TEST_XCODEBUILD_ARGS="$TMP_DIR/xcodebuild.args"
 export SMOOVMUX_TEST_CALLS="$TMP_DIR/calls.log"
 
-SMOOVMUX_TEST_GH_RELEASE_EXISTS=0 "$REPO_ROOT/scripts/release.sh" \
+SMOOVMUX_TEST_INDEX_CHANGED=1 SMOOVMUX_TEST_GH_RELEASE_EXISTS=0 "$FIXTURE/scripts/release.sh" \
   --version 0.0.1 \
   --build-dir "$BUILD_DIR" \
   --notary-profile smoovmux-notary \
   --signing-identity "Developer ID Application: BuserNet Consulting LLC (T6RPYRHYEV)" \
   --team-id T6RPYRHYEV
+
+VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$FIXTURE/App/Info.plist")"
+BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$FIXTURE/App/Info.plist")"
+if [ "$VERSION" != "0.0.1" ]; then
+  echo "expected release helper to set version 0.0.1, got '$VERSION'" >&2
+  exit 1
+fi
+if [ "$BUILD" != "1" ]; then
+  echo "expected release helper to auto-increment build to 1, got '$BUILD'" >&2
+  exit 1
+fi
+if ! grep -q -- 'App/Info.plist' "$TMP_DIR/calls.log"; then
+  echo "expected release helper to stage Info.plist" >&2
+  exit 1
+fi
+if ! grep -q -- 'git commit' "$TMP_DIR/calls.log" || ! grep -q -- 'Bump\\ version\\ to\\ 0.0.1' "$TMP_DIR/calls.log"; then
+  echo "expected release helper to commit version bump" >&2
+  exit 1
+fi
+if ! grep -q -- 'push' "$TMP_DIR/calls.log" || ! grep -q -- 'origin' "$TMP_DIR/calls.log" || ! grep -q -- 'master' "$TMP_DIR/calls.log"; then
+  echo "expected release helper to push release commit" >&2
+  exit 1
+fi
+if ! grep -q -- 'git tag .*v0.0.1' "$TMP_DIR/calls.log"; then
+  echo "expected release helper to create release tag" >&2
+  exit 1
+fi
+if ! grep -q -- 'push' "$TMP_DIR/calls.log" || ! grep -q -- 'origin' "$TMP_DIR/calls.log" || ! grep -q -- 'v0.0.1' "$TMP_DIR/calls.log"; then
+  echo "expected release helper to push release tag" >&2
+  exit 1
+fi
 
 ARTIFACT="$BUILD_DIR/smoovmux-0.0.1-macos-universal.zip"
 DMG="$BUILD_DIR/smoovmux-0.0.1-macos-universal.dmg"
@@ -177,13 +285,17 @@ if ! grep -q -- '--draft' "$TMP_DIR/calls.log"; then
 fi
 
 : > "$TMP_DIR/calls.log"
-SMOOVMUX_TEST_GH_RELEASE_EXISTS=1 "$REPO_ROOT/scripts/release.sh" \
+SMOOVMUX_TEST_INDEX_CHANGED=0 SMOOVMUX_TEST_GH_RELEASE_EXISTS=1 "$FIXTURE/scripts/release.sh" \
   --version 0.0.1 \
   --build-dir "$BUILD_DIR" \
   --notary-profile smoovmux-notary \
   --signing-identity "Developer ID Application: BuserNet Consulting LLC (T6RPYRHYEV)" \
   --team-id T6RPYRHYEV
 
+if grep -q -- 'git commit' "$TMP_DIR/calls.log"; then
+  echo "expected already-versioned release not to create another version commit" >&2
+  exit 1
+fi
 if ! grep -q -- 'release' "$TMP_DIR/calls.log" || ! grep -q -- 'upload' "$TMP_DIR/calls.log" || ! grep -q -- '--clobber' "$TMP_DIR/calls.log"; then
   echo "expected existing GitHub release assets to be updated with --clobber" >&2
   exit 1

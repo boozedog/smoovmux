@@ -54,6 +54,26 @@ direnv allow                          # activates devenv (xcodegen, swiftlint, â
 ./scripts/install.sh --launch          # Release install to /Applications: "smoovmux"
 ```
 
+## Release
+
+Run releases from a clean `master` checkout with signing/notarization credentials available:
+
+```sh
+./scripts/release.sh --version 0.0.7
+```
+
+The helper script:
+
+- updates `App/Info.plist` with the marketing version and an incremented build number
+- commits and pushes the release version bump
+- creates and pushes the `v0.0.7` git tag
+- archives, signs, notarizes, and staples the app
+- creates ZIP and DMG artifacts under `build/release/`
+- creates a draft GitHub release with both artifacts attached
+- bumps the Homebrew cask in `../homebrew-tap` when the tap/cask is available (cloning if needed)
+
+Pass `--build <n>` to override the auto-incremented build number, and `--publish` to create a non-draft GitHub release.
+
 ## Contributing
 
 Read [CLAUDE.md](./CLAUDE.md) first â€” it covers the load-bearing rules (no native NSWindow tabs, privacy constraints, git signing, build tagging).

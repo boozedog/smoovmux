@@ -7,7 +7,7 @@
 # Optionally bumps the Homebrew tap cask if --tap-repo is specified.
 #
 # Usage:
-#   ./scripts/release.sh [--version 0.0.1] [--notary-profile smoovmux-notary] [--tap-repo boozedog/homebrew-tap]
+#   ./scripts/release.sh --version 0.0.1 [--build 1] [--notary-profile smoovmux-notary] [--tap-repo boozedog/homebrew-tap]
 
 set -euo pipefail
 
@@ -22,16 +22,23 @@ SIGNING_IDENTITY="Developer ID Application: BuserNet Consulting LLC (T6RPYRHYEV)
 NOTARY_PROFILE="smoovmux-notary"
 BUILD_DIR="build/release"
 VERSION=""  # extracted from git tag or --version argument
+BUILD=""    # defaults to current CFBundleVersion + 1 when the version changes
 CREATE_GITHUB=1
 DRAFT=1
 TAP_REPO="boozedog/homebrew-tap"
 TAP_REPO_PATH=""  # local path to tap repo; defaults to ../homebrew-tap
+
+log() { printf '[release:%s] %s\n' "$VERSION" "$*"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --version)
       VERSION="${2:-}"
       shift 2 || { echo "error: --version needs an argument" >&2; exit 2; }
+      ;;
+    --build)
+      BUILD="${2:-}"
+      shift 2 || { echo "error: --build needs an argument" >&2; exit 2; }
       ;;
     --build-dir)
       BUILD_DIR="${2:-}"
@@ -95,6 +102,11 @@ if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9]+)?$ ]]; then
   exit 2
 fi
 
+if [ -n "$BUILD" ] && ! [[ "$BUILD" =~ ^[0-9]+$ ]]; then
+  echo "error: build must be an integer, got '$BUILD'" >&2
+  exit 2
+fi
+
 TAG="v$VERSION"
 ARCHIVE_PATH="$BUILD_DIR/smoovmux.xcarchive"
 ARCHIVED_APP="$ARCHIVE_PATH/Products/Applications/$APP_NAME"
@@ -102,7 +114,6 @@ NOTARY_ZIP="$BUILD_DIR/smoovmux-$VERSION-notary-submit.zip"
 ARTIFACT="$BUILD_DIR/smoovmux-$VERSION-macos-universal.zip"
 DMG_ARTIFACT="$BUILD_DIR/smoovmux-$VERSION-macos-universal.dmg"
 
-log() { printf '[release:%s] %s\n' "$VERSION" "$*"; }
 need() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "error: required command not found: $1" >&2
@@ -121,53 +132,86 @@ if [ "$CREATE_GITHUB" -eq 1 ]; then
   need gh
 fi
 
-# Update Info.plist with version from git tag
-log "updating Info.plist with version $VERSION"
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString '$VERSION'" "$REPO_ROOT/App/Info.plist" 2>/dev/null \
-  || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string '$VERSION'" "$REPO_ROOT/App/Info.plist"
+if [ ! -d "$REPO_ROOT/.git" ]; then
+  echo "error: release must run from a git checkout so the version bump can be committed and tagged" >&2
+  exit 2
+fi
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "error: working tree must be clean before release" >&2
+  git status --short >&2
+  exit 2
+fi
+
+CURRENT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$REPO_ROOT/App/Info.plist" 2>/dev/null || printf '0.0.0')"
+CURRENT_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$REPO_ROOT/App/Info.plist" 2>/dev/null || printf '0')"
+if ! [[ "$CURRENT_BUILD" =~ ^[0-9]+$ ]]; then
+  CURRENT_BUILD=0
+fi
+if [ -z "$BUILD" ]; then
+  if [ "$CURRENT_VERSION" = "$VERSION" ]; then
+    BUILD="$CURRENT_BUILD"
+  else
+    BUILD="$((CURRENT_BUILD + 1))"
+  fi
+fi
+
+log "updating Info.plist to version $VERSION build $BUILD"
+"$REPO_ROOT/scripts/set-version.sh" --version "$VERSION" --build "$BUILD" --plist App/Info.plist
+
+git add App/Info.plist
+if git diff --cached --quiet -- App/Info.plist; then
+  log "Info.plist already contains version $VERSION build $BUILD"
+else
+  CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+  if [ "$CURRENT_BRANCH" = "HEAD" ]; then
+    echo "error: release must run on a branch, not detached HEAD" >&2
+    exit 2
+  fi
+  log "committing release version bump on $CURRENT_BRANCH"
+  git commit -m "Bump version to $VERSION"
+  log "pushing release commit to origin/$CURRENT_BRANCH"
+  git push origin "$CURRENT_BRANCH"
+fi
 
 # Create tag if it doesn't exist (happens when --version was provided)
-if [ -d "$REPO_ROOT/.git" ]; then
-  if git rev-parse "$TAG" >/dev/null 2>&1; then
-    # Check if tag points to current commit
-    TAG_COMMIT=$(git rev-parse "$TAG^{commit}")
-    HEAD_COMMIT=$(git rev-parse HEAD)
-    if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
-      echo ""
-      echo "⚠️  Git tag $TAG exists but points to a different commit:"
-      echo "   tag:  $TAG_COMMIT $(git log -1 --format='%s' "$TAG")"
-      echo "   HEAD: $HEAD_COMMIT $(git log -1 --format='%s' HEAD)"
-      echo ""
-      read -p "Move tag $TAG to current commit? [y/N] " -n 1 -r
-      echo ""
-      if [[ $REPLY =~ ^[Yy]$ ]]; then
-        log "moving tag $TAG to current commit"
-        git tag -d "$TAG"
-        git push --delete origin "$TAG" 2>/dev/null || true
-        git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
-      else
-        echo "Aborted. Either:" >&2
-        echo "  1. Move tag manually: git tag -d $TAG && git push --delete origin $TAG && git tag -a $TAG -m 'Release $VERSION'" >&2
-        echo "  2. Or checkout the tag: git checkout $TAG" >&2
-        exit 2
-      fi
+if git rev-parse "$TAG" >/dev/null 2>&1; then
+  # Check if tag points to current commit
+  TAG_COMMIT=$(git rev-parse "$TAG^{commit}")
+  HEAD_COMMIT=$(git rev-parse HEAD)
+  if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+    echo ""
+    echo "⚠️  Git tag $TAG exists but points to a different commit:"
+    echo "   tag:  $TAG_COMMIT $(git log -1 --format='%s' "$TAG")"
+    echo "   HEAD: $HEAD_COMMIT $(git log -1 --format='%s' HEAD)"
+    echo ""
+    read -p "Move tag $TAG to current commit? [y/N] " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      log "moving tag $TAG to current commit"
+      git tag -d "$TAG"
+      git push --delete origin "$TAG" 2>/dev/null || true
+      git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
     else
-      log "git tag $TAG already exists on current commit"
+      echo "Aborted. Either:" >&2
+      echo "  1. Move tag manually: git tag -d $TAG && git push --delete origin $TAG && git tag -a $TAG -m 'Release $VERSION'" >&2
+      echo "  2. Or checkout the tag: git checkout $TAG" >&2
+      exit 2
     fi
   else
-    log "creating git tag $TAG"
-    git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
-  fi
-
-  # Push tag to origin if not already pushed
-  if ! git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
-    log "pushing git tag $TAG to origin"
-    git -C "$REPO_ROOT" push origin "$TAG"
-  else
-    log "git tag $TAG already on origin"
+    log "git tag $TAG already exists on current commit"
   fi
 else
-  log "warning: not a git repo, skipping tag operations"
+  log "creating git tag $TAG"
+  git -C "$REPO_ROOT" tag -a "$TAG" -m "Release $VERSION"
+fi
+
+# Push tag to origin if not already pushed
+if ! git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+  log "pushing git tag $TAG to origin"
+  git -C "$REPO_ROOT" push origin "$TAG"
+else
+  log "git tag $TAG already on origin"
 fi
 
 if [ ! -d "$REPO_ROOT/smoovmux.xcodeproj" ] || [ "$REPO_ROOT/project.yml" -nt "$REPO_ROOT/smoovmux.xcodeproj" ]; then
@@ -209,6 +253,8 @@ fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier '$BUNDLE_ID'" "$ARCHIVED_APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString '$VERSION'" "$ARCHIVED_APP/Contents/Info.plist" 2>/dev/null \
   || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string '$VERSION'" "$ARCHIVED_APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion '$BUILD'" "$ARCHIVED_APP/Contents/Info.plist" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string '$BUILD'" "$ARCHIVED_APP/Contents/Info.plist"
 
 log "verifying Developer ID signature"
 codesign --verify --deep --strict --verbose=4 "$ARCHIVED_APP"
@@ -268,6 +314,7 @@ printf '\nRelease zip: %s\n' "$ARTIFACT"
 printf 'Zip SHA256: %s\n' "$SHA256"
 printf 'Release dmg: %s\n' "$DMG_ARTIFACT"
 printf 'DMG SHA256: %s\n' "$DMG_SHA256"
+printf 'Build: %s\n' "$BUILD"
 printf 'Git tag: %s\n' "$TAG"
 
 # Bump Homebrew tap cask if requested
