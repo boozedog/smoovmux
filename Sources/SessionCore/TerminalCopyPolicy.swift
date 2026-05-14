@@ -1,51 +1,111 @@
 import Foundation
 
-public struct TerminalCopyPolicy: Sendable {
-  public var promptPrefixes: [String]
-  public var collapseBlankLines: Bool
+public enum TerminalCopyMode: Sendable, Equatable {
+  case raw
+  case cleaned
+}
 
-  public init(
-    promptPrefixes: [String] = ["❯", "➜", "$ ", "# ", "> "],
-    collapseBlankLines: Bool = true
-  ) {
-    self.promptPrefixes = promptPrefixes
-    self.collapseBlankLines = collapseBlankLines
+public struct TerminalCopyPolicy: Sendable {
+  public init() {}
+
+  public static func mode(cleanupEnabled: Bool) -> TerminalCopyMode {
+    cleanupEnabled ? .cleaned : .raw
   }
 
   public func cleaned(_ text: String) -> String {
-    var lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-    lines = lines.map { stripPromptPrefix(from: $0).trimmingCharacters(in: .whitespaces) }
-    if collapseBlankLines {
-      lines = collapseRunsOfBlankLines(lines)
+    let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+    var output: [String] = []
+    var proseLines: [String] = []
+    var codeLines: [String] = []
+    var inCodeFence = false
+
+    func appendProseParagraph() {
+      guard !proseLines.isEmpty else { return }
+      if output.last?.isEmpty == false {
+        output.append("")
+      }
+      output.append(collapseWhitespace(proseLines.joined(separator: " ")))
+      proseLines = []
     }
-    return lines.joined(separator: "\n")
-  }
 
-  private func stripPromptPrefix(from line: String) -> String {
-    let leadingWhitespaceCount = line.prefix { $0 == " " || $0 == "\t" }.count
-    let leadingWhitespace = String(line.prefix(leadingWhitespaceCount))
-    let remainder = String(line.dropFirst(leadingWhitespaceCount))
-
-    for prefix in promptPrefixes where remainder.hasPrefix(prefix) {
-      return leadingWhitespace + remainder.dropFirst(prefix.count)
+    func appendCodeLine() {
+      guard !codeLines.isEmpty else { return }
+      output.append(codeLines.joined())
+      codeLines = []
     }
-    return line
-  }
 
-  private func collapseRunsOfBlankLines(_ lines: [String]) -> [String] {
-    var result: [String] = []
-    var blankRun = 0
-    for line in lines {
-      if line.isEmpty {
-        blankRun += 1
-        if blankRun <= 2 {
-          result.append(line)
+    for rawLine in lines {
+      let line = stripClaudePrompt(from: rawLine).trimmingCharacters(in: .whitespaces)
+
+      if line.hasPrefix("```") {
+        if inCodeFence {
+          appendCodeLine()
+          output.append(line)
+          inCodeFence = false
+        } else {
+          appendProseParagraph()
+          if output.last?.isEmpty == false {
+            output.append("")
+          }
+          output.append(line)
+          inCodeFence = true
         }
+        continue
+      }
+
+      if inCodeFence {
+        if line.isEmpty {
+          appendCodeLine()
+          output.append("")
+        } else {
+          codeLines.append(line)
+          if line.hasSuffix("\\") {
+            appendCodeLine()
+          }
+        }
+        continue
+      }
+
+      if line.isEmpty {
+        appendProseParagraph()
       } else {
-        blankRun = 0
-        result.append(line)
+        proseLines.append(line)
       }
     }
+
+    if inCodeFence {
+      appendCodeLine()
+    } else {
+      appendProseParagraph()
+    }
+
+    return output.joined(separator: "\n")
+  }
+
+  private func stripClaudePrompt(from line: String) -> String {
+    guard line.hasPrefix("❯") else { return line }
+
+    let afterPrompt = line.dropFirst()
+    let contentStart = afterPrompt.firstIndex { !$0.isWhitespace } ?? afterPrompt.endIndex
+    return String(afterPrompt[contentStart...])
+  }
+
+  private func collapseWhitespace(_ text: String) -> String {
+    var result = ""
+    var previousWasWhitespace = false
+
+    for character in text {
+      if character.isWhitespace {
+        if !previousWasWhitespace {
+          result.append(" ")
+        }
+        previousWasWhitespace = true
+      } else {
+        result.append(character)
+        previousWasWhitespace = false
+      }
+    }
+
     return result
   }
 }

@@ -5,17 +5,29 @@ public struct AppSettings: Codable, Equatable, Sendable {
   public var defaultLauncherKind: String?
   public var defaultLauncherCustomCommand: String?
   public var defaultWorkingDirectoryPath: String?
+  public var cleanCopiedTerminalText: Bool
 
   public init(
     defaultShellPath: String? = nil,
     defaultLauncherKind: String? = nil,
     defaultLauncherCustomCommand: String? = nil,
-    defaultWorkingDirectoryPath: String? = nil
+    defaultWorkingDirectoryPath: String? = nil,
+    cleanCopiedTerminalText: Bool = true
   ) {
     self.defaultShellPath = defaultShellPath
     self.defaultLauncherKind = defaultLauncherKind
     self.defaultLauncherCustomCommand = defaultLauncherCustomCommand
     self.defaultWorkingDirectoryPath = defaultWorkingDirectoryPath
+    self.cleanCopiedTerminalText = cleanCopiedTerminalText
+  }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    defaultShellPath = try container.decodeIfPresent(String.self, forKey: .defaultShellPath)
+    defaultLauncherKind = try container.decodeIfPresent(String.self, forKey: .defaultLauncherKind)
+    defaultLauncherCustomCommand = try container.decodeIfPresent(String.self, forKey: .defaultLauncherCustomCommand)
+    defaultWorkingDirectoryPath = try container.decodeIfPresent(String.self, forKey: .defaultWorkingDirectoryPath)
+    cleanCopiedTerminalText = try container.decodeIfPresent(Bool.self, forKey: .cleanCopiedTerminalText) ?? true
   }
 }
 

@@ -53,6 +53,7 @@ private struct SettingsView: View {
   @State private var selectedLauncherID = Self.makeSelectedLauncherID()
   @State private var customLauncherCommand = Self.makeCustomLauncherCommand()
   @State private var defaultWorkingDirectoryPath = Self.makeDefaultWorkingDirectoryPath()
+  @State private var cleanCopiedTerminalText = Self.makeCleanCopiedTerminalText()
 
   var body: some View {
     TabView(selection: $selection.selectedTab) {
@@ -80,6 +81,9 @@ private struct SettingsView: View {
     .onChange(of: defaultWorkingDirectoryPath) { _, newValue in
       DefaultWorkingDirectorySettings().storedPath = newValue
     }
+    .onChange(of: cleanCopiedTerminalText) { _, newValue in
+      DefaultTerminalCopySettings().cleanupEnabled = newValue
+    }
     .onChange(of: selectedLauncherID) { _, newValue in
       saveSelectedLauncher(id: newValue)
     }
@@ -96,6 +100,7 @@ private struct SettingsView: View {
         ForEach(summary.terminalRows, id: \.label) { row in
           SettingsRow(label: row.label, value: row.value)
         }
+        SettingsToggleRow(label: "Copy cleanup", isOn: $cleanCopiedTerminalText)
       }
 
       SettingsSection(title: "Shell") {
@@ -174,6 +179,7 @@ private struct SettingsView: View {
     selectedLauncherID = Self.makeSelectedLauncherID()
     customLauncherCommand = Self.makeCustomLauncherCommand()
     defaultWorkingDirectoryPath = Self.makeDefaultWorkingDirectoryPath()
+    cleanCopiedTerminalText = Self.makeCleanCopiedTerminalText()
   }
 
   private func saveSelectedShell(id: String) {
@@ -226,6 +232,10 @@ private struct SettingsView: View {
 
   private static func makeDefaultWorkingDirectoryPath() -> String {
     DefaultWorkingDirectorySettings().storedPath
+  }
+
+  private static func makeCleanCopiedTerminalText() -> Bool {
+    DefaultTerminalCopySettings().cleanupEnabled
   }
 
   private func ensureConfigFileExists() throws {
@@ -298,6 +308,24 @@ private struct SettingsPickerRow: View {
         }
         .labelsHidden()
         .frame(maxWidth: 320, alignment: .leading)
+      }
+    }
+    .font(AppFonts.ui(size: 13, weight: .medium))
+  }
+}
+
+private struct SettingsToggleRow: View {
+  let label: String
+  @Binding var isOn: Bool
+
+  var body: some View {
+    Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 4) {
+      GridRow {
+        Text(label)
+          .foregroundStyle(.secondary)
+          .frame(width: 120, alignment: .leading)
+        Toggle("Clean Claude Code copied text", isOn: $isOn)
+          .toggleStyle(.switch)
       }
     }
     .font(AppFonts.ui(size: 13, weight: .medium))

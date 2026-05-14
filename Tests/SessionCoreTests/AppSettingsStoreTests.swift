@@ -10,7 +10,10 @@ struct AppSettingsStoreTests {
     let url = try temporarySettingsURL()
     let store = AppSettingsStore(settingsURL: url)
 
-    #expect(try store.load().defaultShellPath == nil)
+    let settings = try store.load()
+    #expect(settings.defaultShellPath == nil)
+    #expect(settings.cleanCopiedTerminalText)
+    #expect(DefaultTerminalCopySettings(store: store).cleanupEnabled)
     #expect(!FileManager.default.fileExists(atPath: url.path))
   }
 
@@ -49,6 +52,33 @@ struct AppSettingsStoreTests {
     #expect(DefaultShellSettings(store: store).wrappedCommandLaunchCommand(for: "pi") == "'/bin/bash' -l -i -c 'pi'")
   }
 
+  @Test("copy cleanup setting persists disabled state")
+  func copyCleanupSettingPersistsDisabledState() throws {
+    let url = try temporarySettingsURL()
+    let store = AppSettingsStore(settingsURL: url)
+
+    DefaultTerminalCopySettings(store: store).cleanupEnabled = false
+
+    #expect(!DefaultTerminalCopySettings(store: store).cleanupEnabled)
+    #expect(try store.load().cleanCopiedTerminalText == false)
+  }
+
+  @Test("older settings files keep copy cleanup enabled by default")
+  func olderSettingsFilesKeepCopyCleanupEnabledByDefault() throws {
+    let url = try temporarySettingsURL()
+    try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try """
+    {
+      "defaultShellPath" : "/bin/zsh"
+    }
+    """.write(to: url, atomically: true, encoding: .utf8)
+
+    let settings = try storeLoad(url)
+    #expect(settings.defaultShellPath == "/bin/zsh")
+    #expect(settings.cleanCopiedTerminalText)
+    #expect(DefaultTerminalCopySettings(store: AppSettingsStore(settingsURL: url)).cleanupEnabled)
+  }
+
   @Test("invalid settings file falls back to defaults")
   func invalidSettingsFileFallsBackToDefaults() throws {
     let url = try temporarySettingsURL()
@@ -63,6 +93,10 @@ struct AppSettingsStoreTests {
     let path = AppSettingsStore.defaultSettingsURL.path
 
     #expect(path.hasSuffix("/.config/smoovmux/settings.json"))
+  }
+
+  private func storeLoad(_ url: URL) throws -> AppSettings {
+    try AppSettingsStore(settingsURL: url).load()
   }
 
   private func temporarySettingsURL() throws -> URL {

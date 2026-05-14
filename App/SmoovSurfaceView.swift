@@ -54,6 +54,7 @@ final class SmoovSurfaceView: NSView {
   nonisolated(unsafe) private var eventMonitor: Any?
   private var hoveredURL: URL?
   private var dropHighlightVisible = false
+  private var terminalRightMouseDownWasSent = false
 
   /// Scratch buffer populated by `insertText` during a `keyDown` call. Non-
   /// nil only while we're inside `interpretKeyEvents` — that's how we avoid
@@ -442,17 +443,17 @@ final class SmoovSurfaceView: NSView {
   override func rightMouseDown(with event: NSEvent) {
     window?.makeFirstResponder(self)
     sendMousePos(event)
-    guard sendMouseButton(event, state: GHOSTTY_MOUSE_PRESS, button: GHOSTTY_MOUSE_RIGHT) else {
-      super.rightMouseDown(with: event)
-      return
+    terminalRightMouseDownWasSent = sendMouseButton(event, state: GHOSTTY_MOUSE_PRESS, button: GHOSTTY_MOUSE_RIGHT)
+    if !terminalRightMouseDownWasSent, let menu = menu(for: event) {
+      NSMenu.popUpContextMenu(menu, with: event, for: self)
     }
   }
 
   override func rightMouseUp(with event: NSEvent) {
     sendMousePos(event)
-    guard sendMouseButton(event, state: GHOSTTY_MOUSE_RELEASE, button: GHOSTTY_MOUSE_RIGHT) else {
-      super.rightMouseUp(with: event)
-      return
+    if terminalRightMouseDownWasSent {
+      sendMouseButton(event, state: GHOSTTY_MOUSE_RELEASE, button: GHOSTTY_MOUSE_RIGHT)
+      terminalRightMouseDownWasSent = false
     }
   }
 
@@ -689,11 +690,40 @@ final class SmoovSurfaceView: NSView {
   // MARK: - Clipboard
 
   @objc func copy(_ sender: Any?) {
-    copySelection(cleaned: true)
+    copySelection(mode: TerminalCopyPolicy.mode(cleanupEnabled: DefaultTerminalCopySettings().cleanupEnabled))
   }
 
   @objc func copyRaw(_ sender: Any?) {
-    copySelection(cleaned: false)
+    copySelection(mode: .raw)
+  }
+
+  override func menu(for event: NSEvent) -> NSMenu? {
+    let menu = NSMenu()
+    for item in TerminalEditMenuPolicy.items(
+      hasSelection: selectedText != nil,
+      canPaste: canAcceptTerminalTransfer(from: NSPasteboard.general)
+    ) {
+      menu.addItem(contextMenuItem(for: item))
+    }
+    return menu
+  }
+
+  private func contextMenuItem(for item: TerminalEditMenuItem) -> NSMenuItem {
+    let menuItem = NSMenuItem(title: item.title, action: selector(for: item.action), keyEquivalent: "")
+    menuItem.target = self
+    menuItem.isEnabled = item.isEnabled
+    return menuItem
+  }
+
+  private func selector(for action: TerminalEditMenuAction) -> Selector {
+    switch action {
+    case .copy:
+      return #selector(copy(_:))
+    case .copyRaw:
+      return #selector(copyRaw(_:))
+    case .paste:
+      return #selector(paste(_:))
+    }
   }
 
   @objc func cut(_ sender: Any?) {
@@ -723,9 +753,15 @@ final class SmoovSurfaceView: NSView {
     }
   }
 
-  private func copySelection(cleaned: Bool) {
+  private func copySelection(mode: TerminalCopyMode) {
     guard let selectedText else { return }
-    let text = cleaned ? TerminalCopyPolicy().cleaned(selectedText) : selectedText
+    let text =
+      switch mode {
+      case .cleaned:
+        TerminalCopyPolicy().cleaned(selectedText)
+      case .raw:
+        selectedText
+      }
     let pasteboard = NSPasteboard.general
     pasteboard.clearContents()
     pasteboard.setString(text, forType: .string)

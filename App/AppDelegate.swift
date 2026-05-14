@@ -135,7 +135,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSMenu
     editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
     editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
     let copyRawItem = editMenu.addItem(
-      withTitle: "Copy Raw",
+      withTitle: "Copy Without Cleanup",
       action: #selector(SmoovSurfaceView.copyRaw(_:)),
       keyEquivalent: "c"
     )

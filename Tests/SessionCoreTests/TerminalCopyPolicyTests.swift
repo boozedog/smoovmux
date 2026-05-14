@@ -4,24 +4,63 @@ import Testing
 
 @Suite("Terminal copy policy")
 struct TerminalCopyPolicyTests {
-  @Test("cleaned copy strips prompt prefixes and trailing whitespace")
-  func cleanedCopyStripsPromptsAndTrailingWhitespace() {
+  @Test("cleaned copy strips Claude prompt and joins wrapped paragraphs")
+  func cleanedCopyStripsClaudePromptAndJoinsWrappedParagraphs() {
     let policy = TerminalCopyPolicy()
 
-    #expect(policy.cleaned("$ echo hello   \n> continued  ") == "echo hello\ncontinued")
+    let input = """
+      ❯ This is a long response that wrapped
+      onto another terminal line.   
+
+      ❯ A second paragraph keeps
+      its paragraph break.
+      """
+
+    #expect(
+      policy.cleaned(input) == """
+        This is a long response that wrapped onto another terminal line.
+
+        A second paragraph keeps its paragraph break.
+        """
+    )
   }
 
-  @Test("cleaned copy collapses runs of blank lines")
-  func cleanedCopyCollapsesBlankRuns() {
+  @Test("cleaned copy leaves non Claude shell prompts untouched")
+  func cleanedCopyLeavesNonClaudePromptsUntouched() {
     let policy = TerminalCopyPolicy()
 
-    #expect(policy.cleaned("one\n\n\n\n# two") == "one\n\n\ntwo")
+    #expect(
+      policy.cleaned("$ echo hello\n# root command\n> quoted text") == "$ echo hello # root command > quoted text")
   }
 
-  @Test("cleaned copy preserves raw text when using raw mode outside policy")
-  func rawCopyIsCallerControlled() {
-    let text = "$ echo hello   "
+  @Test("cleaned copy keeps markdown fences and reconstructs wrapped code lines")
+  func cleanedCopyKeepsMarkdownFencesAndReconstructsWrappedCodeLines() {
+    let policy = TerminalCopyPolicy()
 
-    #expect(text == "$ echo hello   ")
+    let input = """
+      ```bash
+      : \\
+      "this-is-a-long-token-00
+      00000000000000000000" \\
+      "yet-another-long-token-sti
+      ll-complete" 
+      ```
+      """
+
+    #expect(
+      policy.cleaned(input) == """
+        ```bash
+        : \\
+        "this-is-a-long-token-0000000000000000000000" \\
+        "yet-another-long-token-still-complete"
+        ```
+        """
+    )
+  }
+
+  @Test("copy mode defaults to cleanup and can be disabled")
+  func copyModeDefaultsToCleanupAndCanBeDisabled() {
+    #expect(TerminalCopyPolicy.mode(cleanupEnabled: true) == .cleaned)
+    #expect(TerminalCopyPolicy.mode(cleanupEnabled: false) == .raw)
   }
 }
