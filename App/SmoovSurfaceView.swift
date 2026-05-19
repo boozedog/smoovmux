@@ -1,5 +1,6 @@
 import AppKit
 import GhosttyKit
+import PushToTalkDictation
 import SessionCore
 import SmoovLog
 import WorkspacePanes
@@ -61,6 +62,15 @@ final class SmoovSurfaceView: NSView {
   /// double-delivering: libghostty receives the composed text exactly once,
   /// via `ghostty_surface_key`'s `text` field.
   private var keyTextAccumulator: [String]?
+  private var dictationOverlayView: NSView?
+  private var dictationOverlayLabel: NSTextField?
+  private var dictationBeginTask: Task<Void, Never>?
+  private let voiceDictationModel = AppVoiceDictationModel.shared
+  private lazy var dictationController = PushToTalkDictationController(
+    transcriber: voiceDictationModel.transcriber,
+    modelReadiness: voiceDictationModel.transcriber,
+    writer: SurfaceDictationWriter(surfaceView: self)
+  )
 
   init(app: GhosttyApp, config: Config) {
     // Non-zero initial frame: the Metal layer bounds must be non-zero when
@@ -68,10 +78,14 @@ final class SmoovSurfaceView: NSView {
     // Actual size comes in via `setFrameSize` when we get our real layout.
     self.app = app
     super.init(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
+    SmoovLog.info(
+      "surface init command=\(config.command == nil ? "default-shell" : "custom") workingDirectory=\(config.workingDirectory?.path ?? "nil")"
+    )
     self.wantsLayer = true
     self.surface = makeSurface(app: app, config: config)
     registerForDraggedTypes(Self.terminalDragTypes)
     self.updateTrackingAreas()
+    self.voiceDictationModel.prepareAtLaunch()
     self.eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
       self?.localMouseDown(event)
     }
@@ -613,6 +627,14 @@ final class SmoovSurfaceView: NSView {
   }
 
   override func flagsChanged(with event: NSEvent) {
+    if event.keyCode == 0x3d {
+      // Right Option is reserved as the default push-to-talk key. Do not pass
+      // its standalone modifier press/release through to libghostty; otherwise
+      // the terminal can react to it as a normal Alt modifier state change.
+      handleRightOptionPushToTalk(isPressed: event.modifierFlags.contains(.option))
+      return
+    }
+
     guard let surface else { return }
     // Which bit changed? Map the keyCode back to a modifier mask so we know
     // whether this is a press or release.
@@ -740,19 +762,6 @@ final class SmoovSurfaceView: NSView {
     // Keep the selector present for menu validation, but disabled for now.
   }
 
-  func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
-    switch item.action {
-    case #selector(copy(_:)), #selector(copyRaw(_:)), #selector(cut(_:)):
-      return selectedText != nil
-    case #selector(paste(_:)):
-      return canAcceptTerminalTransfer(from: NSPasteboard.general)
-    case #selector(selectAll(_:)):
-      return false
-    default:
-      return true
-    }
-  }
-
   private func copySelection(mode: TerminalCopyMode) {
     guard let selectedText else { return }
     let text =
@@ -765,6 +774,10 @@ final class SmoovSurfaceView: NSView {
     let pasteboard = NSPasteboard.general
     pasteboard.clearContents()
     pasteboard.setString(text, forType: .string)
+  }
+
+  func insertTextIntoTerminal(_ text: String) {
+    sendTextToTerminal(text)
   }
 
   private func sendTextToTerminal(_ text: String) {
@@ -841,6 +854,60 @@ final class SmoovSurfaceView: NSView {
   }
 }
 
+@MainActor
+private final class SurfaceDictationWriter: ActivePaneWriting {
+  private weak var surfaceView: SmoovSurfaceView?
+
+  init(surfaceView: SmoovSurfaceView) {
+    self.surfaceView = surfaceView
+  }
+
+  func writeToActivePane(_ text: String) {
+    SmoovLog.info("dictation writing sanitized text to active pane length=\(text.count)")
+    surfaceView?.insertTextIntoTerminal(text)
+  }
+}
+
+extension PushToTalkDictationState {
+  fileprivate var logDescription: String {
+    switch self {
+    case .idle:
+      return "idle"
+    case .listening:
+      return "listening"
+    case .transcribing:
+      return "transcribing"
+    case .inserted:
+      return "inserted"
+    case .noSpeechDetected:
+      return "noSpeechDetected"
+    case .failed:
+      if case .failed(let message) = self {
+        return "failed(\(message))"
+      }
+      return "failed"
+    }
+  }
+}
+
+extension WhisperKitSpeechTranscriber.Event {
+  fileprivate var logDescription: String {
+    switch self {
+    case .preparingModel:
+      return "preparingModel"
+    case .downloadingModel(let fraction):
+      if let fraction {
+        return "downloadingModel(\(Int((fraction * 100).rounded()))%)"
+      }
+      return "downloadingModel"
+    case .loadingModel:
+      return "loadingModel"
+    case .streaming:
+      return "streaming"
+    }
+  }
+}
+
 // MARK: - NSTextInputClient (text path)
 //
 // We implement the minimum needed to route composed characters (dead keys,
@@ -883,5 +950,158 @@ extension SmoovSurfaceView: @MainActor NSTextInputClient {
     actualRange: NSRangePointer?
   ) -> NSRect {
     NSRect(x: 0, y: 0, width: 0, height: 0)
+  }
+}
+
+extension SmoovSurfaceView {
+  func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+    switch item.action {
+    case #selector(copy(_:)), #selector(copyRaw(_:)), #selector(cut(_:)):
+      return selectedText != nil
+    case #selector(paste(_:)):
+      return canAcceptTerminalTransfer(from: NSPasteboard.general)
+    case #selector(selectAll(_:)):
+      return false
+    default:
+      return true
+    }
+  }
+}
+
+// MARK: - Dictation handling
+
+extension SmoovSurfaceView {
+  func handleRightOptionPushToTalk(isPressed: Bool) {
+    if isPressed {
+      SmoovLog.info("dictation PTT pressed")
+      guard voiceDictationModel.readiness.isReady else {
+        showDictationOverlay(message: voiceDictationModel.readiness.overlayText)
+        hideDictationOverlay(after: 2.0)
+        return
+      }
+      showDictationOverlay(message: "Starting microphone…\nKeep holding Right Option")
+      dictationBeginTask = Task { [weak self] in
+        guard let self else { return }
+        await dictationController.beginPushToTalk()
+        SmoovLog.info("dictation begin completed state=\(dictationController.state.logDescription)")
+        if dictationController.state == .listening {
+          updateDictationOverlay(message: "Recording…\nRelease Right Option to transcribe")
+        }
+        if !NSEvent.modifierFlags.contains(.option) {
+          SmoovLog.info("dictation PTT was released before begin completed; finishing")
+          dictationBeginTask = nil
+          updateDictationOverlay(message: "Transcribing…")
+          await dictationController.endPushToTalk()
+          showFinalDictationState()
+        }
+      }
+    } else {
+      SmoovLog.info("dictation PTT released")
+      guard dictationBeginTask != nil || dictationController.state == .listening else { return }
+      updateDictationOverlay(message: "Transcribing…")
+      Task {
+        await finishPushToTalk()
+      }
+    }
+  }
+
+  func finishPushToTalk() async {
+    let beginTask = dictationBeginTask
+    dictationBeginTask = nil
+    await beginTask?.value
+    SmoovLog.info("dictation finish after begin state=\(dictationController.state.logDescription)")
+    updateDictationOverlay(message: "Transcribing…")
+    await dictationController.endPushToTalk()
+    SmoovLog.info("dictation end completed state=\(dictationController.state.logDescription)")
+    showFinalDictationState()
+  }
+
+  func showFinalDictationState() {
+    switch dictationController.state {
+    case .inserted:
+      updateDictationOverlay(message: "Inserted dictation")
+      hideDictationOverlay(after: 1.0)
+    case .noSpeechDetected:
+      updateDictationOverlay(message: "No speech detected")
+      hideDictationOverlay(after: 1.5)
+    case .failed(let message):
+      updateDictationOverlay(message: message)
+      hideDictationOverlay(after: 2.5)
+    case .idle, .listening, .transcribing:
+      hideDictationOverlay()
+    }
+  }
+
+  func handleWhisperKitEvent(_ event: WhisperKitSpeechTranscriber.Event) {
+    SmoovLog.info("dictation whisper event=\(event.logDescription)")
+    switch event {
+    case .preparingModel:
+      updateDictationOverlay(message: "Preparing speech model…\nFirst use may download large-v3-turbo")
+    case .downloadingModel(let fraction):
+      if let fraction {
+        let percent = max(0, min(100, Int((fraction * 100).rounded())))
+        updateDictationOverlay(message: "Downloading speech model…\n\(percent)%")
+      } else {
+        updateDictationOverlay(message: "Downloading speech model…")
+      }
+    case .loadingModel:
+      updateDictationOverlay(message: "Loading speech model…")
+    case .streaming:
+      updateDictationOverlay(message: "Listening…")
+    }
+  }
+
+  func showDictationOverlay(message: String) {
+    guard dictationOverlayView == nil else {
+      updateDictationOverlay(message: message)
+      return
+    }
+
+    let label = NSTextField(labelWithString: message)
+    label.alignment = .center
+    label.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
+    label.textColor = .white
+    label.maximumNumberOfLines = 2
+    label.translatesAutoresizingMaskIntoConstraints = false
+
+    let overlay = NSVisualEffectView()
+    overlay.material = .hudWindow
+    overlay.blendingMode = .withinWindow
+    overlay.state = .active
+    overlay.wantsLayer = true
+    overlay.layer?.cornerRadius = 14
+    overlay.layer?.masksToBounds = true
+    overlay.translatesAutoresizingMaskIntoConstraints = false
+    overlay.addSubview(label)
+
+    addSubview(overlay)
+    NSLayoutConstraint.activate([
+      overlay.centerXAnchor.constraint(equalTo: centerXAnchor),
+      overlay.centerYAnchor.constraint(equalTo: centerYAnchor),
+      overlay.widthAnchor.constraint(greaterThanOrEqualToConstant: 280),
+      label.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 24),
+      label.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -24),
+      label.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 18),
+      label.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -18),
+    ])
+    dictationOverlayView = overlay
+    dictationOverlayLabel = label
+  }
+
+  func updateDictationOverlay(message: String) {
+    dictationOverlayLabel?.stringValue = message
+  }
+
+  func hideDictationOverlay() {
+    dictationOverlayView?.removeFromSuperview()
+    dictationOverlayView = nil
+    dictationOverlayLabel = nil
+  }
+
+  func hideDictationOverlay(after delay: TimeInterval) {
+    Task { @MainActor in
+      try? await Task.sleep(for: .seconds(delay))
+      hideDictationOverlay()
+    }
   }
 }

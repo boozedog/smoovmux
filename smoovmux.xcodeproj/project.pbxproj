@@ -24,6 +24,7 @@
 		56179902B899A48126BD39F1 /* MapleMonoNL-NF-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6E75440D1CB55AA35590A33C /* MapleMonoNL-NF-Regular.ttf */; };
 		576E0B534685DE71E965A0ED /* GitRightSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4F7114CDD6052E64AA242 /* GitRightSidebarView.swift */; };
 		59555B820EC2FF2F399A57B4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70F05D4065051D622312AB53 /* Assets.xcassets */; };
+		5A26203D70A39689FA6022FD /* AppVoiceDictationModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEF4AF29065CBC13F561614E /* AppVoiceDictationModel.swift */; };
 		5A3B5EDCD95A29AD63AA679F /* PaneController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07F05AE7F0D5E97754CA401 /* PaneController.swift */; };
 		63573138A6376637B5EE44A0 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1BB998E91F1E33B1E764BF89 /* Localizable.xcstrings */; };
 		67338F2FD0E0CBC63C117140 /* SmoovSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E9D96E7824555162000FC0 /* SmoovSurfaceView.swift */; };
@@ -31,6 +32,7 @@
 		7111E8D01CCA53728B108A4B /* WorkspaceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C3EC08550B2F97E3315A631 /* WorkspaceTab.swift */; };
 		762A9CE85581CA9A47E1E2A7 /* WorkspacePanes in Frameworks */ = {isa = PBXBuildFile; productRef = 5D354A3035840860E55054C3 /* WorkspacePanes */; };
 		997F2C7BB123FFECA37E2D91 /* PaneLauncher in Frameworks */ = {isa = PBXBuildFile; productRef = 526523EBF3DF01E3C2284662 /* PaneLauncher */; };
+		9F130396FC9A06793A853410 /* PushToTalkDictation in Frameworks */ = {isa = PBXBuildFile; productRef = 413A2E60E859F1248DDDAC27 /* PushToTalkDictation */; };
 		A2D9C4E15761F477990961F0 /* SmoovmuxConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0813FA9B51DDDDFCF9FECE1 /* SmoovmuxConfig.swift */; };
 		AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0480CF2F04AE337376E78B18 /* GhosttyKit.xcframework */; };
 		BA88BF35C9243D2305750921 /* TabbedRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B28811F6C750E579A75303B /* TabbedRootView.swift */; };
@@ -85,6 +87,7 @@
 		F0813FA9B51DDDDFCF9FECE1 /* SmoovmuxConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoovmuxConfig.swift; sourceTree = "<group>"; };
 		F465BE8D9A782A3DF560809E /* MapleMonoNL-NF-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "MapleMonoNL-NF-Bold.ttf"; sourceTree = "<group>"; };
 		F91C8E0BEB275F8650373472 /* NSEvent+Ghostty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSEvent+Ghostty.swift"; sourceTree = "<group>"; };
+		FEF4AF29065CBC13F561614E /* AppVoiceDictationModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVoiceDictationModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +103,7 @@
 				CA970142BB93ACA4411A6166 /* WorkspaceState in Frameworks */,
 				44412CC9749D7FDD28A8EB40 /* WorkspaceSidebar in Frameworks */,
 				997F2C7BB123FFECA37E2D91 /* PaneLauncher in Frameworks */,
+				9F130396FC9A06793A853410 /* PushToTalkDictation in Frameworks */,
 				AD51997106A6624DEAD67F35 /* GhosttyKit.xcframework in Frameworks */,
 				4BB46980230B71A09302305D /* Carbon.framework in Frameworks */,
 			);
@@ -137,6 +141,7 @@
 				AB9B644CDC70F26A3A3319F6 /* AppDelegate.swift */,
 				46A66DDE629523ECD21E4B73 /* AppFonts.swift */,
 				A2D24FC648240E14E77B61B5 /* AppNotificationCenter.swift */,
+				FEF4AF29065CBC13F561614E /* AppVoiceDictationModel.swift */,
 				70F05D4065051D622312AB53 /* Assets.xcassets */,
 				1792DF7CACAAC5F1BAC35B8D /* CommandPaneController.swift */,
 				E768C10F9BF963CAF5FD8A87 /* GhosttyApp.swift */,
@@ -224,6 +229,7 @@
 				9340354FEEEACC7329FCCD20 /* WorkspaceState */,
 				901B6F15F25856D2F793CB85 /* WorkspaceSidebar */,
 				526523EBF3DF01E3C2284662 /* PaneLauncher */,
+				413A2E60E859F1248DDDAC27 /* PushToTalkDictation */,
 			);
 			productName = smoovmux;
 			productReference = DC63E64743C627EDCB408ABF /* smoovmux.app */;
@@ -314,6 +320,7 @@
 				DB10669A721421713680BAB6 /* AppDelegate.swift in Sources */,
 				D6190A890FACAC05E5D145AA /* AppFonts.swift in Sources */,
 				6F2223321301D4383E6DE82D /* AppNotificationCenter.swift in Sources */,
+				5A26203D70A39689FA6022FD /* AppVoiceDictationModel.swift in Sources */,
 				4011B3263897C27C57D6CE68 /* CommandPaneController.swift in Sources */,
 				53C38D1C088C7DF34D849E95 /* GhosttyApp.swift in Sources */,
 				31492ADA5B4EE0EA429B3DFF /* GhosttyConfigColors.swift in Sources */,
@@ -549,6 +556,10 @@
 		1B5CAD7542000F8E9352D199 /* SessionCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SessionCore;
+		};
+		413A2E60E859F1248DDDAC27 /* PushToTalkDictation */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PushToTalkDictation;
 		};
 		526523EBF3DF01E3C2284662 /* PaneLauncher */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -104,6 +104,11 @@ fi
   || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string '$DISPLAY_NAME'" "$APP_PATH/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier '$BUNDLE_ID'" "$APP_PATH/Contents/Info.plist"
 
+# The tagged debug bundle id/display name are patched after xcodebuild signs
+# the app. Re-sign so macOS privacy services can derive valid code
+# requirements for TCC prompts such as Microphone access.
+codesign --force --sign - --entitlements "$REPO_ROOT/App/smoovmux.entitlements" --timestamp=none "$APP_PATH" >/dev/null
+
 # Record latest log path for tooling.
 printf '%s\n' "$LOG_PATH" > /tmp/smoovmux-last-debug-log-path
 

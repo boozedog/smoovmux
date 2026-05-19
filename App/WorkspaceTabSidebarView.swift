@@ -1,4 +1,5 @@
 import AppKit
+import PushToTalkDictation
 import SwiftUI
 import UniformTypeIdentifiers
 import WorkspaceSidebar
@@ -6,6 +7,7 @@ import WorkspaceTabs
 
 struct WorkspaceTabSidebar: View {
   @ObservedObject var tabManager: WorkspaceTabManager
+  @ObservedObject private var voiceDictationModel = AppVoiceDictationModel.shared
   @State private var commandKeyDown = false
   @State private var flagsMonitor: Any?
   @State private var draggedTabId: UUID?
@@ -120,6 +122,10 @@ struct WorkspaceTabSidebar: View {
 
       Spacer(minLength: 0)
 
+      VoiceDictationStatusRow(readiness: voiceDictationModel.readiness)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
+
       Button {
         NSApp.sendAction(
           #selector(AppDelegate.showSettingsWindow(_:)),
@@ -171,6 +177,48 @@ struct WorkspaceTabSidebar: View {
         NSEvent.removeMonitor(flagsMonitor)
       }
       flagsMonitor = nil
+    }
+  }
+}
+
+private struct VoiceDictationStatusRow: View {
+  let readiness: VoiceModelReadiness
+
+  var body: some View {
+    HStack(spacing: 8) {
+      Image(systemName: readiness.isReady ? "mic.fill" : "mic")
+        .font(AppFonts.ui(size: 12, weight: .medium))
+        .frame(width: 14)
+      VStack(alignment: .leading, spacing: 1) {
+        Text("Voice")
+          .font(AppFonts.monospaced(size: 10, weight: .semibold))
+          .foregroundStyle(.secondary)
+        Text(readiness.sidebarText)
+          .font(AppFonts.monospaced(size: 12, weight: .medium))
+          .lineLimit(1)
+          .minimumScaleFactor(0.75)
+      }
+      Spacer(minLength: 0)
+    }
+    .foregroundStyle(foregroundStyle)
+    .padding(.horizontal, 8)
+    .padding(.vertical, 7)
+    .background {
+      RoundedRectangle(cornerRadius: 4, style: .continuous)
+        .fill(Color.white.opacity(0.04))
+    }
+    .help(readiness.overlayText.replacingOccurrences(of: "\n", with: " — "))
+    .accessibilityLabel("Voice \(readiness.sidebarText)")
+  }
+
+  private var foregroundStyle: Color {
+    switch readiness {
+    case .ready:
+      return Color(nsColor: .systemGreen)
+    case .failed:
+      return Color(nsColor: .systemRed)
+    default:
+      return Color.secondary
     }
   }
 }

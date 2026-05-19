@@ -165,6 +165,10 @@ final class PaneController {
     onStateChange()
   }
 
+  func insertTextIntoActivePane(_ text: String) {
+    focusedSurfaceView?.insertTextIntoTerminal(text)
+  }
+
   private enum SplitDirection {
     case right
     case down
