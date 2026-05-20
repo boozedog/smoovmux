@@ -1,4 +1,5 @@
 import Foundation
+import PushToTalkDictation
 import SmoovLog
 @preconcurrency import WhisperKit
 

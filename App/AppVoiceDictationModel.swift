@@ -3,9 +3,10 @@ import Foundation
 import PushToTalkDictation
 import SmoovLog
 import SwiftUI
+import WhisperKitTranscription
 
 @MainActor
-final class AppVoiceDictationModel: ObservableObject {
+final class AppVoiceDictationModel: ObservableObject, SpeechModelReadinessProviding {
   static let shared = AppVoiceDictationModel()
 
   @Published private(set) var readiness: VoiceModelReadiness = .notStarted

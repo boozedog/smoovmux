@@ -16,6 +16,7 @@ let package = Package(
     .library(name: "WorkspaceSidebar", targets: ["WorkspaceSidebar"]),
     .library(name: "PaneLauncher", targets: ["PaneLauncher"]),
     .library(name: "PushToTalkDictation", targets: ["PushToTalkDictation"]),
+    .library(name: "WhisperKitTranscription", targets: ["WhisperKitTranscription"]),
   ],
   dependencies: [
     .package(url: "https://github.com/argmaxinc/WhisperKit.git", branch: "main"),
@@ -24,8 +25,16 @@ let package = Package(
     .target(name: "SmoovLog", path: "Sources/SmoovLog"),
     .target(
       name: "PushToTalkDictation",
-      dependencies: ["SmoovLog", .product(name: "WhisperKit", package: "WhisperKit")],
       path: "Sources/PushToTalkDictation"
+    ),
+    .target(
+      name: "WhisperKitTranscription",
+      dependencies: [
+        "PushToTalkDictation",
+        "SmoovLog",
+        .product(name: "WhisperKit", package: "WhisperKit"),
+      ],
+      path: "Sources/WhisperKitTranscription"
     ),
     .target(name: "SmoovAppCommands", path: "Sources/SmoovAppCommands"),
     .target(name: "WorkspaceTabs", path: "Sources/WorkspaceTabs"),

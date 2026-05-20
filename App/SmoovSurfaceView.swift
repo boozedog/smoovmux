@@ -3,6 +3,7 @@ import GhosttyKit
 import PushToTalkDictation
 import SessionCore
 import SmoovLog
+import WhisperKitTranscription
 import WorkspacePanes
 import WorkspaceSidebar
 
@@ -64,12 +65,18 @@ final class SmoovSurfaceView: NSView {
   private var keyTextAccumulator: [String]?
   private var dictationOverlayView: NSView?
   private var dictationOverlayLabel: NSTextField?
-  private var dictationBeginTask: Task<Void, Never>?
   private let voiceDictationModel = AppVoiceDictationModel.shared
   private lazy var dictationController = PushToTalkDictationController(
     transcriber: voiceDictationModel.transcriber,
     modelReadiness: voiceDictationModel.transcriber,
     writer: SurfaceDictationWriter(surfaceView: self)
+  )
+  private lazy var dictationOrchestrator = PushToTalkOrchestrator(
+    controller: dictationController,
+    overlay: self,
+    modelReadiness: voiceDictationModel,
+    isKeyStillHeld: { NSEvent.modifierFlags.contains(.option) },
+    readinessOverlayMessage: { $0.overlayText }
   )
 
   init(app: GhosttyApp, config: Config) {
@@ -868,28 +875,6 @@ private final class SurfaceDictationWriter: ActivePaneWriting {
   }
 }
 
-extension PushToTalkDictationState {
-  fileprivate var logDescription: String {
-    switch self {
-    case .idle:
-      return "idle"
-    case .listening:
-      return "listening"
-    case .transcribing:
-      return "transcribing"
-    case .inserted:
-      return "inserted"
-    case .noSpeechDetected:
-      return "noSpeechDetected"
-    case .failed:
-      if case .failed(let message) = self {
-        return "failed(\(message))"
-      }
-      return "failed"
-    }
-  }
-}
-
 extension WhisperKitSpeechTranscriber.Event {
   fileprivate var logDescription: String {
     switch self {
@@ -970,66 +955,10 @@ extension SmoovSurfaceView {
 
 // MARK: - Dictation handling
 
-extension SmoovSurfaceView {
+extension SmoovSurfaceView: DictationOverlayPresenting {
   func handleRightOptionPushToTalk(isPressed: Bool) {
-    if isPressed {
-      SmoovLog.info("dictation PTT pressed")
-      guard voiceDictationModel.readiness.isReady else {
-        showDictationOverlay(message: voiceDictationModel.readiness.overlayText)
-        hideDictationOverlay(after: 2.0)
-        return
-      }
-      showDictationOverlay(message: "Starting microphone…\nKeep holding Right Option")
-      dictationBeginTask = Task { [weak self] in
-        guard let self else { return }
-        await dictationController.beginPushToTalk()
-        SmoovLog.info("dictation begin completed state=\(dictationController.state.logDescription)")
-        if dictationController.state == .listening {
-          updateDictationOverlay(message: "Recording…\nRelease Right Option to transcribe")
-        }
-        if !NSEvent.modifierFlags.contains(.option) {
-          SmoovLog.info("dictation PTT was released before begin completed; finishing")
-          dictationBeginTask = nil
-          updateDictationOverlay(message: "Transcribing…")
-          await dictationController.endPushToTalk()
-          showFinalDictationState()
-        }
-      }
-    } else {
-      SmoovLog.info("dictation PTT released")
-      guard dictationBeginTask != nil || dictationController.state == .listening else { return }
-      updateDictationOverlay(message: "Transcribing…")
-      Task {
-        await finishPushToTalk()
-      }
-    }
-  }
-
-  func finishPushToTalk() async {
-    let beginTask = dictationBeginTask
-    dictationBeginTask = nil
-    await beginTask?.value
-    SmoovLog.info("dictation finish after begin state=\(dictationController.state.logDescription)")
-    updateDictationOverlay(message: "Transcribing…")
-    await dictationController.endPushToTalk()
-    SmoovLog.info("dictation end completed state=\(dictationController.state.logDescription)")
-    showFinalDictationState()
-  }
-
-  func showFinalDictationState() {
-    switch dictationController.state {
-    case .inserted:
-      updateDictationOverlay(message: "Inserted dictation")
-      hideDictationOverlay(after: 1.0)
-    case .noSpeechDetected:
-      updateDictationOverlay(message: "No speech detected")
-      hideDictationOverlay(after: 1.5)
-    case .failed(let message):
-      updateDictationOverlay(message: message)
-      hideDictationOverlay(after: 2.5)
-    case .idle, .listening, .transcribing:
-      hideDictationOverlay()
-    }
+    SmoovLog.info("dictation PTT \(isPressed ? "pressed" : "released")")
+    dictationOrchestrator.handle(isPressed: isPressed)
   }
 
   func handleWhisperKitEvent(_ event: WhisperKitSpeechTranscriber.Event) {
@@ -1096,12 +1025,5 @@ extension SmoovSurfaceView {
     dictationOverlayView?.removeFromSuperview()
     dictationOverlayView = nil
     dictationOverlayLabel = nil
-  }
-
-  func hideDictationOverlay(after delay: TimeInterval) {
-    Task { @MainActor in
-      try? await Task.sleep(for: .seconds(delay))
-      hideDictationOverlay()
-    }
   }
 }
