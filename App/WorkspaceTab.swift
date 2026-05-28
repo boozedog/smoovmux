@@ -393,7 +393,10 @@ final class WorkspaceTabManager: ObservableObject {
     rightSidebarTabs.setPane(
       CommandPaneController(
         ghosttyApp: ghosttyApp,
-        command: DefaultShellSettings().wrappedExecutableLaunchCommand(executablePath: lazygitURL.path),
+        command: DefaultShellSettings().wrappedExecutableLaunchCommand(
+          executablePath: lazygitURL.path,
+          environmentAssignments: ["GH_PATH": "/usr/bin/false"]
+        ),
         cwd: gitRoot
       ),
       gitRoot: gitRoot,

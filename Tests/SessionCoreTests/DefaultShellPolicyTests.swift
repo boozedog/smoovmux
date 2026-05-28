@@ -73,4 +73,15 @@ struct DefaultShellPolicyTests {
     )
   }
 
+  @Test("executable wrappers can set command-scoped environment variables")
+  func executableWrappersCanSetCommandScopedEnvironmentVariables() {
+    #expect(
+      DefaultShellPolicy.wrappedExecutableLaunchCommand(
+        executablePath: "/opt/homebrew/bin/lazygit",
+        environmentAssignments: ["GH_PATH": "/usr/bin/false"],
+        storedShellPath: "/bin/zsh"
+      ) == "'/bin/zsh' -l -i -c 'GH_PATH='\\''/usr/bin/false'\\'' '\\''/opt/homebrew/bin/lazygit'\\'''"
+    )
+  }
+
 }
