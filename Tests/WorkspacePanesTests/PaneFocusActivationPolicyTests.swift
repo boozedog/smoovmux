@@ -15,14 +15,14 @@ struct PaneFocusActivationPolicyTests {
     )
   }
 
-  @Test("active window pane switch click focuses pane without forwarding terminal click")
-  func activeWindowPaneSwitchClickFocusesPaneWithoutForwardingTerminalClick() {
+  @Test("active window pane switch click focuses pane and forwards terminal click")
+  func activeWindowPaneSwitchClickFocusesPaneAndForwardsTerminalClick() {
     #expect(
       PaneFocusActivationPolicy.mouseDownFocusAction(
         isAppActive: true,
         isWindowKey: true,
         isAlreadyFirstResponder: false
-      ) == .focusAndConsume
+      ) == .focusAndPassThrough
     )
   }
 

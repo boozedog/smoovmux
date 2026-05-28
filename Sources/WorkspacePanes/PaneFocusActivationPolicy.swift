@@ -21,10 +21,6 @@ public enum PaneFocusActivationPolicy {
       return .passThrough
     }
 
-    if isAppActive && isWindowKey {
-      return .focusAndConsume
-    }
-
     return .focusAndPassThrough
   }
 
